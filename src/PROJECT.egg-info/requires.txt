@@ -1,0 +1,6 @@
+python-telegram-bot<23,>=22.7
+python-dotenv<2,>=1.2.2
+httpx<0.29,>=0.28
+
+[dev]
+pytest<9,>=8.3
