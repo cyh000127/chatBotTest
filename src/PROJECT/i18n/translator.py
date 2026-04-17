@@ -19,8 +19,12 @@ def get_catalog(locale: str | None):
     return CATALOGS.get(locale or DEFAULT_LOCALE, ko)
 
 
-def language_keyboard() -> list[list[str]]:
-    return [[LANGUAGE_LABELS["ko"], LANGUAGE_LABELS["en"], LANGUAGE_LABELS["km"]]]
+def language_keyboard() -> list[list[dict[str, str]]]:
+    return [[
+        {"text": LANGUAGE_LABELS["ko"], "data": "language:ko"},
+        {"text": LANGUAGE_LABELS["en"], "data": "language:en"},
+        {"text": LANGUAGE_LABELS["km"], "data": "language:km"},
+    ]]
 
 
 def resolve_language_choice(text: str) -> str | None:

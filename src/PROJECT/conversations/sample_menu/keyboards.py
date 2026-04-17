@@ -13,28 +13,47 @@ from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_LANG
 from PROJECT.i18n.translator import language_keyboard
 
 
-def main_menu_keyboard(catalog) -> list[list[str]]:
+def _button(text: str, data: str) -> dict[str, str]:
+    return {"text": text, "data": data}
+
+
+def main_menu_keyboard(catalog) -> list[list[dict[str, str]]]:
     return [
-        [catalog.BUTTON_TODAY_DATE, catalog.BUTTON_TODAY_WEATHER],
-        [catalog.BUTTON_PROFILE, catalog.BUTTON_HELP],
-        [catalog.BUTTON_RESTART],
-        [catalog.BUTTON_CANCEL],
+        [
+            _button(catalog.BUTTON_TODAY_DATE, "intent:show_today_date"),
+            _button(catalog.BUTTON_TODAY_WEATHER, "intent:open_weather_menu"),
+        ],
+        [
+            _button(catalog.BUTTON_PROFILE, "intent:profile"),
+            _button(catalog.BUTTON_HELP, "intent:help"),
+        ],
+        [_button(catalog.BUTTON_RESTART, "intent:restart")],
+        [_button(catalog.BUTTON_CANCEL, "intent:cancel")],
     ]
 
 
-def weather_menu_keyboard(catalog) -> list[list[str]]:
+def weather_menu_keyboard(catalog) -> list[list[dict[str, str]]]:
     return [
-        list(catalog.CITY_BUTTON_TO_KEY.keys()),
-        [catalog.BUTTON_BACK, catalog.BUTTON_RESTART],
-        [catalog.BUTTON_HELP, catalog.BUTTON_CANCEL],
+        [_button(label, f"city:{city_key}") for label, city_key in catalog.CITY_BUTTON_TO_KEY.items()],
+        [
+            _button(catalog.BUTTON_BACK, "intent:back"),
+            _button(catalog.BUTTON_RESTART, "intent:restart"),
+        ],
+        [
+            _button(catalog.BUTTON_HELP, "intent:help"),
+            _button(catalog.BUTTON_CANCEL, "intent:cancel"),
+        ],
     ]
 
 
-def cancelled_keyboard(catalog) -> list[list[str]]:
-    return [[catalog.BUTTON_RESTART, catalog.BUTTON_HELP]]
+def cancelled_keyboard(catalog) -> list[list[dict[str, str]]]:
+    return [[
+        _button(catalog.BUTTON_RESTART, "intent:restart"),
+        _button(catalog.BUTTON_HELP, "intent:help"),
+    ]]
 
 
-def keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) -> list[list[str]]:
+def keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) -> list[list[dict[str, str]]]:
     if state == STATE_WEATHER_MENU:
         return weather_menu_keyboard(catalog)
     if state in {

@@ -2,8 +2,10 @@ import httpx
 
 from PROJECT.adapters.outbound.reply_sender import send_text
 from PROJECT.canonical_intents.mapping import command_to_intent, text_to_intent
+from PROJECT.canonical_intents import registry
 from PROJECT.canonical_intents.registry import INTENT_UNKNOWN_COMMAND
 from PROJECT.channels.telegram.parser import parse_update
+from PROJECT.channels.telegram.handlers.commands import cancel_command, help_command, language_command, menu_command, profile_command
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_DAY,
@@ -76,6 +78,35 @@ async def send_profile_prompt(update, context, state: str, text: str | None = No
         text or profile_service.prompt_for_state(state, catalog),
         keyboard_layout=profile_service.keyboard_for_state(state, draft, catalog),
     )
+
+
+def parse_callback_data(data: str) -> tuple[str, dict]:
+    if data.startswith("intent:"):
+        return data.split(":", 1)[1], {}
+    if data.startswith("city:"):
+        return registry.INTENT_SELECT_CITY, {"city": data.split(":", 1)[1]}
+    if data.startswith("language:"):
+        return "language_select", {"locale": data.split(":", 1)[1]}
+    if data.startswith("profile:year_nav:"):
+        return "profile_year_nav", {"direction": data.rsplit(":", 1)[1]}
+    if data.startswith("profile:year:"):
+        return "profile_year", {"year": int(data.rsplit(":", 1)[1])}
+    if data.startswith("profile:month:"):
+        return "profile_month", {"month": int(data.rsplit(":", 1)[1])}
+    if data.startswith("profile:day:"):
+        return "profile_day", {"day": int(data.rsplit(":", 1)[1])}
+    return registry.INTENT_UNKNOWN_TEXT, {}
+
+
+async def clear_callback_markup(update) -> None:
+    query = update.callback_query
+    if query is None:
+        return
+    try:
+        await query.answer()
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        return
 
 
 async def handle_profile_state(update, context, state: str, text: str) -> bool:
@@ -292,6 +323,173 @@ async def text_message(update, context) -> None:
         handled = await handle_profile_state(update, context, state, inbound.text)
         if handled:
             return
+
+    if decision.route == ROUTE_SHOW_DATE:
+        await send_text(
+            update,
+            service.today_date_text(catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
+    if decision.route == ROUTE_SHOW_WEATHER_MENU:
+        set_state(context.user_data, decision.next_state, push_history=decision.push_history)
+        await send_text(
+            update,
+            service.weather_menu_text(catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
+    if decision.route == ROUTE_SHOW_WEATHER:
+        city = decision.payload["city"]
+        set_selected_city(context.user_data, city)
+        try:
+            snapshot = await service.fetch_weather(city, context.bot_data["settings"])
+            message = service.weather_result_text(snapshot, catalog)
+        except httpx.HTTPError:
+            message = service.weather_error_text(catalog)
+        await send_text(
+            update,
+            message,
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
+    await send_text(
+        update,
+        service.fallback_text(fallback_key_for_state(current_state(context.user_data)), catalog),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+    )
+
+
+async def button_callback(update, context) -> None:
+    query = update.callback_query
+    if query is None:
+        return
+
+    state = current_state(context.user_data)
+    action, payload = parse_callback_data(query.data)
+
+    if action == "language_select":
+        await clear_callback_markup(update)
+        set_locale(context.user_data, payload["locale"])
+        set_state(context.user_data, STATE_MAIN_MENU)
+        catalog = current_catalog(context)
+        await send_text(
+            update,
+            service.language_changed_text(catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
+    if action == "profile_year_nav":
+        await clear_callback_markup(update)
+        if state != STATE_PROFILE_BIRTH_YEAR:
+            await send_profile_prompt(update, context, current_state(context.user_data))
+            return
+        draft = current_profile(context)
+        delta = -12 if payload["direction"] == "prev" else 12
+        updated = profile_service.update_draft(draft, year_page_start=draft.year_page_start + delta)
+        set_profile_draft(context.user_data, updated.to_dict())
+        await send_profile_prompt(update, context, STATE_PROFILE_BIRTH_YEAR)
+        return
+
+    if action == "profile_year":
+        await clear_callback_markup(update)
+        if state != STATE_PROFILE_BIRTH_YEAR:
+            await send_profile_prompt(update, context, current_state(context.user_data))
+            return
+        draft = current_profile(context)
+        updated = profile_service.update_draft(draft, birth_year=payload["year"], birth_month=None, birth_day=None)
+        set_profile_draft(context.user_data, updated.to_dict())
+        set_state(context.user_data, STATE_PROFILE_BIRTH_MONTH, push_history=True)
+        await send_profile_prompt(update, context, STATE_PROFILE_BIRTH_MONTH)
+        return
+
+    if action == "profile_month":
+        await clear_callback_markup(update)
+        if state != STATE_PROFILE_BIRTH_MONTH:
+            await send_profile_prompt(update, context, current_state(context.user_data))
+            return
+        draft = current_profile(context)
+        updated = profile_service.update_draft(draft, birth_month=payload["month"], birth_day=None)
+        set_profile_draft(context.user_data, updated.to_dict())
+        set_state(context.user_data, STATE_PROFILE_BIRTH_DAY, push_history=True)
+        await send_profile_prompt(update, context, STATE_PROFILE_BIRTH_DAY)
+        return
+
+    if action == "profile_day":
+        await clear_callback_markup(update)
+        if state != STATE_PROFILE_BIRTH_DAY:
+            await send_profile_prompt(update, context, current_state(context.user_data))
+            return
+        draft = current_profile(context)
+        updated = profile_service.update_draft(draft, birth_day=payload["day"])
+        set_profile_draft(context.user_data, updated.to_dict())
+        set_state(context.user_data, STATE_PROFILE_CONFIRM, push_history=True)
+        catalog = current_catalog(context)
+        await send_text(
+            update,
+            profile_service.confirmation_text(updated, catalog),
+            keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, updated, catalog),
+        )
+        return
+
+    decision = route_message(state, action, payload)
+    await clear_callback_markup(update)
+    catalog = current_catalog(context)
+
+    if decision.route == ROUTE_HELP:
+        await help_command(update, context)
+        return
+
+    if decision.route == ROUTE_MAIN_MENU:
+        await menu_command(update, context)
+        return
+
+    if decision.route == ROUTE_OPEN_PROFILE:
+        await profile_command(update, context)
+        return
+
+    if decision.route == ROUTE_CANCEL:
+        await cancel_command(update, context)
+        return
+
+    if decision.route == ROUTE_GO_BACK:
+        previous_state = go_back(context.user_data)
+        if previous_state in PROFILE_STATES:
+            await send_profile_prompt(update, context, previous_state)
+            return
+        message = service.back_text(previous_state, catalog)
+        await send_text(
+            update,
+            message,
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
+    if decision.route == ROUTE_PROFILE_EDIT:
+        set_state(context.user_data, STATE_PROFILE_NAME)
+        draft = profile_service.new_draft()
+        set_profile_draft(context.user_data, draft.to_dict())
+        set_pending_slot(context.user_data, None)
+        await send_text(
+            update,
+            profile_service.edit_text(catalog),
+            keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_NAME, draft, catalog),
+        )
+        return
+
+    if decision.route == ROUTE_PROFILE_FINALIZE:
+        set_state(context.user_data, STATE_MAIN_MENU)
+        set_pending_slot(context.user_data, None)
+        await send_text(
+            update,
+            profile_service.confirmed_text(catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
 
     if decision.route == ROUTE_SHOW_DATE:
         await send_text(
