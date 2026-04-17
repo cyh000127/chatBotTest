@@ -1,0 +1,59 @@
+from PROJECT.i18n.catalogs import en, km, ko
+
+DEFAULT_LOCALE = "ko"
+
+CATALOGS = {
+    "ko": ko,
+    "en": en,
+    "km": km,
+}
+
+LANGUAGE_LABELS = {
+    "ko": "한국어",
+    "en": "English",
+    "km": "ខ្មែរ",
+}
+
+
+def get_catalog(locale: str | None):
+    return CATALOGS.get(locale or DEFAULT_LOCALE, ko)
+
+
+def language_keyboard() -> list[list[str]]:
+    return [[LANGUAGE_LABELS["ko"], LANGUAGE_LABELS["en"], LANGUAGE_LABELS["km"]]]
+
+
+def resolve_language_choice(text: str) -> str | None:
+    normalized = text.strip()
+    for locale, label in LANGUAGE_LABELS.items():
+        if normalized == label or normalized.lower() == locale:
+            return locale
+    return None
+
+
+def all_city_labels() -> dict[str, str]:
+    labels: dict[str, str] = {}
+    for catalog in CATALOGS.values():
+        labels.update(catalog.CITY_BUTTON_TO_KEY)
+    return labels
+
+
+def all_button_intents() -> dict[str, str]:
+    from PROJECT.canonical_intents import registry
+
+    mapping = {}
+    for catalog in CATALOGS.values():
+        mapping.update(
+            {
+                catalog.BUTTON_TODAY_DATE: registry.INTENT_SHOW_TODAY_DATE,
+                catalog.BUTTON_TODAY_WEATHER: registry.INTENT_OPEN_WEATHER_MENU,
+                catalog.BUTTON_PROFILE: registry.INTENT_PROFILE,
+                catalog.BUTTON_HELP: registry.INTENT_HELP,
+                catalog.BUTTON_BACK: registry.INTENT_BACK,
+                catalog.BUTTON_CANCEL: registry.INTENT_CANCEL,
+                catalog.BUTTON_RESTART: registry.INTENT_RESTART,
+                catalog.BUTTON_CONFIRM: registry.INTENT_CONFIRM,
+                catalog.BUTTON_EDIT: registry.INTENT_EDIT,
+            }
+        )
+    return mapping

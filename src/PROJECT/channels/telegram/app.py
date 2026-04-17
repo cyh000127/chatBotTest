@@ -1,6 +1,6 @@
 from telegram.ext import CommandHandler, MessageHandler, filters
 
-from PROJECT.channels.telegram.handlers.commands import cancel_command, help_command, menu_command, profile_command, start_command
+from PROJECT.channels.telegram.handlers.commands import cancel_command, help_command, language_command, menu_command, profile_command, start_command
 from PROJECT.channels.telegram.handlers.messages import text_message, unknown_command
 from PROJECT.settings import Settings
 
@@ -17,6 +17,7 @@ def create_application(settings: Settings):
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("menu", menu_command))
     application.add_handler(CommandHandler("profile", profile_command))
+    application.add_handler(CommandHandler("language", language_command))
     application.add_handler(CommandHandler("cancel", cancel_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_message))
     application.add_handler(MessageHandler(filters.COMMAND, unknown_command))

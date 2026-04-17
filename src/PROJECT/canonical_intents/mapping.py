@@ -1,5 +1,5 @@
 from PROJECT.canonical_intents import registry
-from PROJECT.i18n.catalogs import ko
+from PROJECT.i18n.translator import all_button_intents, all_city_labels
 
 COMMAND_TO_INTENT = {
     "start": registry.INTENT_START,
@@ -10,16 +10,10 @@ COMMAND_TO_INTENT = {
 }
 
 BUTTON_TO_INTENT = {
-    ko.BUTTON_TODAY_DATE: registry.INTENT_SHOW_TODAY_DATE,
-    ko.BUTTON_TODAY_WEATHER: registry.INTENT_OPEN_WEATHER_MENU,
-    ko.BUTTON_PROFILE: registry.INTENT_PROFILE,
-    ko.BUTTON_HELP: registry.INTENT_HELP,
-    ko.BUTTON_BACK: registry.INTENT_BACK,
-    ko.BUTTON_CANCEL: registry.INTENT_CANCEL,
-    ko.BUTTON_RESTART: registry.INTENT_RESTART,
-    ko.BUTTON_CONFIRM: registry.INTENT_CONFIRM,
-    ko.BUTTON_EDIT: registry.INTENT_EDIT,
+    **all_button_intents(),
 }
+
+CITY_LABELS = all_city_labels()
 
 
 def command_to_intent(command: str) -> str:
@@ -31,6 +25,6 @@ def text_to_intent(text: str) -> tuple[str, dict]:
     normalized = text.strip()
     if normalized in BUTTON_TO_INTENT:
         return BUTTON_TO_INTENT[normalized], {}
-    if normalized in ko.CITY_LABELS:
-        return registry.INTENT_SELECT_CITY, {"city": normalized}
+    if normalized in CITY_LABELS:
+        return registry.INTENT_SELECT_CITY, {"city": CITY_LABELS[normalized]}
     return registry.INTENT_UNKNOWN_TEXT, {}

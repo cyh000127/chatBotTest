@@ -11,8 +11,16 @@ BUTTON_CONFIRM = "확인"
 BUTTON_EDIT = "수정"
 BUTTON_PREV_YEARS = "이전 12년"
 BUTTON_NEXT_YEARS = "다음 12년"
+LANGUAGE_NAME = "한국어"
+LANGUAGE_MENU_MESSAGE = "언어를 선택하세요."
+LANGUAGE_CHANGED_MESSAGE = "언어가 한국어로 변경되었습니다."
 
 CITY_LABELS = ("서울", "부산", "제주")
+CITY_BUTTON_TO_KEY = {
+    "서울": "서울",
+    "부산": "부산",
+    "제주": "제주",
+}
 
 START_MESSAGE = "시작합니다.\n오늘의 날짜와 날씨를 선택하세요."
 MAIN_MENU_MESSAGE = "메인 메뉴입니다.\n오늘의 날짜와 날씨를 선택하세요."
@@ -34,7 +42,8 @@ HELP_MESSAGE = (
     "- /start : 처음 진입점으로 이동\n"
     "- /help : 도움말 보기\n"
     "- /menu : 메인 메뉴 열기\n"
-    "- /profile : 프로필 자유입력 시작\n"
+    "- /profile : 프로필 입력 시작\n"
+    "- /language : 언어 변경\n"
     "- 뒤로가기 : 이전 단계로 이동\n"
     "- 취소 : 현재 흐름 종료\n"
     "- 처음부터 : 세션을 초기화하고 다시 시작"
@@ -66,6 +75,11 @@ PROFILE_BIRTH_YEAR_FALLBACK = "출생 연도 버튼을 선택해주세요."
 PROFILE_BIRTH_MONTH_FALLBACK = "출생 월 버튼을 선택해주세요."
 PROFILE_BIRTH_DAY_FALLBACK = "출생 일 버튼을 선택해주세요."
 PROFILE_CONFIRM_FALLBACK = "[확인] 또는 [수정]을 선택해주세요."
+PROFILE_REPAIR_NAME_MESSAGE = "이름을 다시 입력할게요."
+PROFILE_REPAIR_RESIDENCE_MESSAGE = "거주지를 다시 입력할게요."
+PROFILE_REPAIR_CITY_MESSAGE = "시/도를 다시 입력할게요."
+PROFILE_REPAIR_DISTRICT_MESSAGE = "구/군/시를 다시 입력할게요."
+PROFILE_REPAIR_BIRTH_MESSAGE = "생년월일을 다시 입력할게요.\n출생 연도를 선택해주세요."
 
 
 def format_profile_confirmation(

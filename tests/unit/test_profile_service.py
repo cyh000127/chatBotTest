@@ -9,6 +9,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
 )
+from PROJECT.i18n.catalogs import ko
 
 
 def test_new_draft_has_year_page():
@@ -17,20 +18,23 @@ def test_new_draft_has_year_page():
 
 
 def test_prompt_for_each_step_exists():
-    assert service.prompt_for_state(STATE_PROFILE_NAME)
-    assert service.prompt_for_state(STATE_PROFILE_RESIDENCE)
-    assert service.prompt_for_state(STATE_PROFILE_CITY)
-    assert service.prompt_for_state(STATE_PROFILE_DISTRICT)
-    assert service.prompt_for_state(STATE_PROFILE_BIRTH_YEAR)
-    assert service.prompt_for_state(STATE_PROFILE_BIRTH_MONTH)
-    assert service.prompt_for_state(STATE_PROFILE_BIRTH_DAY)
-    assert service.prompt_for_state(STATE_PROFILE_CONFIRM)
+    assert service.prompt_for_state(STATE_PROFILE_NAME, ko)
+    assert service.prompt_for_state(STATE_PROFILE_RESIDENCE, ko)
+    assert service.prompt_for_state(STATE_PROFILE_CITY, ko)
+    assert service.prompt_for_state(STATE_PROFILE_DISTRICT, ko)
+    assert service.prompt_for_state(STATE_PROFILE_BIRTH_YEAR, ko)
+    assert service.prompt_for_state(STATE_PROFILE_BIRTH_MONTH, ko)
+    assert service.prompt_for_state(STATE_PROFILE_BIRTH_DAY, ko)
+    assert service.prompt_for_state(STATE_PROFILE_CONFIRM, ko)
 
 
 def test_button_parsers():
     assert service.parse_year_button("1998년") == 1998
+    assert service.parse_year_button("1998") == 1998
     assert service.parse_month_button("4월") == 4
+    assert service.parse_month_button("4") == 4
     assert service.parse_day_button("20일") == 20
+    assert service.parse_day_button("20") == 20
 
 
 def test_confirmation_text_formats_birth_date():
@@ -44,7 +48,7 @@ def test_confirmation_text_formats_birth_date():
         birth_month=4,
         birth_day=20,
     )
-    text = service.confirmation_text(draft)
+    text = service.confirmation_text(draft, ko)
     assert "김민수" in text
     assert "서울특별시" in text
     assert "1998-04-20" in text

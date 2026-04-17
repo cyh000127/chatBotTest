@@ -1,1 +1,1 @@
-__all__ = ["command_router", "input_fallback", "session_dispatcher"]
+__all__ = ["command_router", "input_fallback", "repair_router", "session_dispatcher"]

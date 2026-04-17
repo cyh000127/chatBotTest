@@ -3,8 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 
-from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU, STATE_WEATHER_MENU
-from PROJECT.i18n.catalogs import ko
+from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU, STATE_WEATHER_MENU
 from PROJECT.settings import Settings
 
 KST = timezone(timedelta(hours=9), name="KST")
@@ -26,62 +25,72 @@ class WeatherSnapshot:
     wind_speed: float
 
 
-def start_text() -> str:
-    return ko.START_MESSAGE
+def start_text(catalog) -> str:
+    return catalog.START_MESSAGE
 
 
-def help_text() -> str:
-    return ko.HELP_MESSAGE
+def help_text(catalog) -> str:
+    return catalog.HELP_MESSAGE
 
 
-def main_menu_text() -> str:
-    return ko.MAIN_MENU_MESSAGE
+def main_menu_text(catalog) -> str:
+    return catalog.MAIN_MENU_MESSAGE
 
 
-def weather_menu_text() -> str:
-    return ko.WEATHER_MENU_MESSAGE
+def weather_menu_text(catalog) -> str:
+    return catalog.WEATHER_MENU_MESSAGE
 
 
-def cancel_text() -> str:
-    return ko.CANCEL_MESSAGE
+def cancel_text(catalog) -> str:
+    return catalog.CANCEL_MESSAGE
 
 
-def back_text(previous_state: str | None) -> str:
+def back_text(previous_state: str | None, catalog) -> str:
     if previous_state is None:
-        return ko.BACK_LIMIT_MESSAGE
+        return catalog.BACK_LIMIT_MESSAGE
     if previous_state == STATE_MAIN_MENU:
-        return ko.BACK_TO_MAIN_MESSAGE
+        return catalog.BACK_TO_MAIN_MESSAGE
     if previous_state == STATE_WEATHER_MENU:
-        return ko.BACK_TO_WEATHER_MESSAGE
-    return ko.BACK_GENERIC_MESSAGE
+        return catalog.BACK_TO_WEATHER_MESSAGE
+    if previous_state == STATE_LANGUAGE_SELECT:
+        return catalog.BACK_GENERIC_MESSAGE
+    return catalog.BACK_GENERIC_MESSAGE
 
 
-def today_date_text(now: datetime | None = None) -> str:
+def today_date_text(catalog, now: datetime | None = None) -> str:
     current = now or datetime.now(KST)
-    return ko.format_today_date(current)
+    return catalog.format_today_date(current)
 
 
-def weather_result_text(snapshot: WeatherSnapshot) -> str:
-    return ko.format_weather(
+def weather_result_text(snapshot: WeatherSnapshot, catalog) -> str:
+    return catalog.format_weather(
         city=snapshot.city,
         observed_at=snapshot.observed_at,
-        weather_label=ko.weather_code_label(snapshot.weather_code),
+        weather_label=catalog.weather_code_label(snapshot.weather_code),
         temperature=snapshot.temperature,
         apparent_temperature=snapshot.apparent_temperature,
         wind_speed=snapshot.wind_speed,
     )
 
 
-def weather_error_text() -> str:
-    return ko.WEATHER_ERROR_MESSAGE
+def weather_error_text(catalog) -> str:
+    return catalog.WEATHER_ERROR_MESSAGE
 
 
-def fallback_text(key: str) -> str:
-    return ko.FALLBACK_MESSAGES[key]
+def fallback_text(key: str, catalog) -> str:
+    return catalog.FALLBACK_MESSAGES[key]
 
 
-def unknown_command_text() -> str:
-    return ko.UNKNOWN_COMMAND_MESSAGE
+def unknown_command_text(catalog) -> str:
+    return catalog.UNKNOWN_COMMAND_MESSAGE
+
+
+def language_menu_text(catalog) -> str:
+    return catalog.LANGUAGE_MENU_MESSAGE
+
+
+def language_changed_text(catalog) -> str:
+    return catalog.LANGUAGE_CHANGED_MESSAGE
 
 
 async def fetch_weather(city: str, settings: Settings) -> WeatherSnapshot:

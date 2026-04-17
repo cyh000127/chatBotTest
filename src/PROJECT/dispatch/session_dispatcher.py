@@ -1,4 +1,5 @@
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
+from PROJECT.i18n.translator import DEFAULT_LOCALE
 
 
 def _default_session() -> dict:
@@ -8,6 +9,7 @@ def _default_session() -> dict:
         "selected_city": None,
         "profile_draft": None,
         "pending_slot": None,
+        "locale": DEFAULT_LOCALE,
     }
 
 
@@ -16,7 +18,9 @@ def get_session(user_data: dict) -> dict:
 
 
 def reset_session(user_data: dict) -> dict:
+    locale = get_session(user_data).get("locale", DEFAULT_LOCALE) if "session" in user_data else DEFAULT_LOCALE
     user_data["session"] = _default_session()
+    user_data["session"]["locale"] = locale
     return user_data["session"]
 
 
@@ -70,3 +74,11 @@ def set_pending_slot(user_data: dict, pending_slot: str | None) -> None:
 
 def pending_slot(user_data: dict) -> str | None:
     return get_session(user_data)["pending_slot"]
+
+
+def set_locale(user_data: dict, locale: str) -> None:
+    get_session(user_data)["locale"] = locale
+
+
+def current_locale(user_data: dict) -> str:
+    return get_session(user_data)["locale"]
