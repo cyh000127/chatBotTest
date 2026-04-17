@@ -9,6 +9,8 @@ BUTTON_CANCEL = "취소"
 BUTTON_RESTART = "처음부터"
 BUTTON_CONFIRM = "확인"
 BUTTON_EDIT = "수정"
+BUTTON_PREV_YEARS = "이전 12년"
+BUTTON_NEXT_YEARS = "다음 12년"
 
 CITY_LABELS = ("서울", "부산", "제주")
 
@@ -16,9 +18,8 @@ START_MESSAGE = "시작합니다.\n오늘의 날짜와 날씨를 선택하세요
 MAIN_MENU_MESSAGE = "메인 메뉴입니다.\n오늘의 날짜와 날씨를 선택하세요."
 WEATHER_MENU_MESSAGE = "오늘 날씨를 확인할 도시를 선택하세요."
 PROFILE_ENTRY_MESSAGE = (
-    "프로필 자유입력 모드입니다.\n"
-    "이름, 생년월일, 거주지를 한 번에 입력해주세요.\n"
-    "예: 김민수 서울 강남 1998년 4월 20일"
+    "프로필 입력을 시작합니다.\n"
+    "이름부터 순서대로 입력할게요."
 )
 CANCEL_MESSAGE = "현재 작업을 취소했습니다.\n'처음부터' 또는 /start 로 다시 시작할 수 있습니다."
 BACK_LIMIT_MESSAGE = "더 이상 뒤로갈 단계가 없습니다.\n메인 메뉴에서 다시 선택하세요."
@@ -48,25 +49,23 @@ FALLBACK_MESSAGES = {
     "profile_confirm": "초안이 준비돼 있어요.\n[확인] 또는 [수정]을 선택해주세요.",
 }
 
-PROFILE_CONFIRMED_MESSAGE = "초안을 확인했습니다.\n현재 세션에 저장해두었어요."
-PROFILE_EDIT_MESSAGE = "프로필 초안을 다시 입력해주세요."
-PROFILE_MISSING_NAME_MESSAGE = "이름을 확인하지 못했어요.\n이름을 포함해서 다시 입력해주세요."
-PROFILE_MISSING_BIRTH_MESSAGE = "생년월일을 확인하지 못했어요.\n예: 1998-04-20 또는 1998년 4월 20일"
-PROFILE_MISSING_RESIDENCE_MESSAGE = "거주지를 확인하지 못했어요.\n예: 서울특별시 강남구"
-PROFILE_CITY_FOLLOWUP_MESSAGE = (
-    "거주지를 조금 더 확인할게요.\n"
-    "{district}는 어느 시/도에 해당하나요?\n"
-    "예: {examples}"
-)
-PROFILE_DISTRICT_FOLLOWUP_MESSAGE = (
-    "{city}까지 확인했어요.\n"
-    "어느 구/군/시에 거주하시나요?\n"
-    "예: {examples}"
-)
-PROFILE_AMBIGUOUS_DISTRICT_MESSAGE = (
-    "{keyword}은(는) 여러 후보가 있어요.\n"
-    "아래 중 어디에 해당하나요?"
-)
+PROFILE_CONFIRMED_MESSAGE = "입력을 확인했습니다.\n현재 세션에 저장해두었어요."
+PROFILE_EDIT_MESSAGE = "프로필 입력을 처음부터 다시 시작할게요."
+PROFILE_NAME_PROMPT = "이름을 입력해주세요."
+PROFILE_RESIDENCE_PROMPT = "거주지를 입력해주세요."
+PROFILE_CITY_PROMPT = "시/도를 입력해주세요.\n예: 서울특별시, 경기도"
+PROFILE_DISTRICT_PROMPT = "구/군/시를 입력해주세요.\n예: 강남구, 분당구"
+PROFILE_BIRTH_YEAR_PROMPT = "생년월일 중 출생 연도를 버튼으로 선택해주세요."
+PROFILE_BIRTH_MONTH_PROMPT = "출생 월을 버튼으로 선택해주세요."
+PROFILE_BIRTH_DAY_PROMPT = "출생 일을 버튼으로 선택해주세요."
+PROFILE_NAME_FALLBACK = "이름을 다시 입력해주세요."
+PROFILE_RESIDENCE_FALLBACK = "거주지를 다시 입력해주세요."
+PROFILE_CITY_FALLBACK = "시/도를 다시 입력해주세요.\n예: 서울특별시, 경기도"
+PROFILE_DISTRICT_FALLBACK = "구/군/시를 다시 입력해주세요.\n예: 강남구, 분당구"
+PROFILE_BIRTH_YEAR_FALLBACK = "출생 연도 버튼을 선택해주세요."
+PROFILE_BIRTH_MONTH_FALLBACK = "출생 월 버튼을 선택해주세요."
+PROFILE_BIRTH_DAY_FALLBACK = "출생 일 버튼을 선택해주세요."
+PROFILE_CONFIRM_FALLBACK = "[확인] 또는 [수정]을 선택해주세요."
 
 
 def format_profile_confirmation(
@@ -75,13 +74,16 @@ def format_profile_confirmation(
     birth_date: str,
     city: str,
     district: str,
+    residence: str,
 ) -> str:
     return (
         "확인했어요.\n"
         f"- 이름: {name}\n"
+        f"- 거주지: {residence}\n"
+        f"- 시/도: {city}\n"
+        f"- 구/군/시: {district}\n"
         f"- 생년월일: {birth_date}\n"
-        f"- 거주지: {city} {district}\n\n"
-        "맞으면 [확인], 수정하려면 [수정]을 눌러주세요."
+        "\n맞으면 [확인], 수정하려면 [수정]을 눌러주세요."
     )
 
 WEATHER_CODE_LABELS = {

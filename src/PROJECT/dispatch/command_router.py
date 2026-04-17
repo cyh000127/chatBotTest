@@ -2,9 +2,14 @@ from dataclasses import dataclass, field
 
 from PROJECT.canonical_intents import registry
 from PROJECT.conversations.profile_intake.states import (
+    STATE_PROFILE_BIRTH_DAY,
+    STATE_PROFILE_BIRTH_MONTH,
+    STATE_PROFILE_BIRTH_YEAR,
+    STATE_PROFILE_CITY,
     STATE_PROFILE_CONFIRM,
-    STATE_PROFILE_FOLLOWUP,
-    STATE_PROFILE_INPUT,
+    STATE_PROFILE_DISTRICT,
+    STATE_PROFILE_NAME,
+    STATE_PROFILE_RESIDENCE,
 )
 from PROJECT.conversations.sample_menu.states import STATE_WEATHER_MENU
 
@@ -12,9 +17,6 @@ ROUTE_HELP = "help"
 ROUTE_MAIN_MENU = "main_menu"
 ROUTE_CANCEL = "cancel"
 ROUTE_OPEN_PROFILE = "open_profile"
-ROUTE_PARSE_PROFILE = "parse_profile"
-ROUTE_PROFILE_FOLLOWUP = "profile_followup"
-ROUTE_PROFILE_CONFIRM = "profile_confirm"
 ROUTE_PROFILE_EDIT = "profile_edit"
 ROUTE_PROFILE_FINALIZE = "profile_finalize"
 ROUTE_GO_BACK = "go_back"
@@ -40,21 +42,15 @@ def route_message(state: str, intent: str, payload: dict | None = None) -> Route
     if intent in {registry.INTENT_START, registry.INTENT_MENU, registry.INTENT_RESTART}:
         return RouteDecision(ROUTE_MAIN_MENU)
     if intent == registry.INTENT_PROFILE:
-        return RouteDecision(ROUTE_OPEN_PROFILE, next_state=STATE_PROFILE_INPUT)
+        return RouteDecision(ROUTE_OPEN_PROFILE, next_state=STATE_PROFILE_NAME)
     if intent == registry.INTENT_CANCEL:
         return RouteDecision(ROUTE_CANCEL)
     if intent == registry.INTENT_BACK:
         return RouteDecision(ROUTE_GO_BACK)
-    if state == STATE_PROFILE_INPUT and intent == registry.INTENT_UNKNOWN_TEXT:
-        return RouteDecision(ROUTE_PARSE_PROFILE, next_state=STATE_PROFILE_INPUT, payload=payload)
-    if state == STATE_PROFILE_FOLLOWUP and intent in {registry.INTENT_UNKNOWN_TEXT, registry.INTENT_SELECT_CITY}:
-        return RouteDecision(ROUTE_PROFILE_FOLLOWUP, next_state=STATE_PROFILE_FOLLOWUP, payload=payload)
-    if state == STATE_PROFILE_FOLLOWUP and intent == registry.INTENT_EDIT:
-        return RouteDecision(ROUTE_PROFILE_EDIT, next_state=STATE_PROFILE_INPUT)
     if state == STATE_PROFILE_CONFIRM and intent == registry.INTENT_CONFIRM:
         return RouteDecision(ROUTE_PROFILE_FINALIZE)
     if state == STATE_PROFILE_CONFIRM and intent == registry.INTENT_EDIT:
-        return RouteDecision(ROUTE_PROFILE_EDIT, next_state=STATE_PROFILE_INPUT)
+        return RouteDecision(ROUTE_PROFILE_EDIT, next_state=STATE_PROFILE_NAME)
     if intent == registry.INTENT_SHOW_TODAY_DATE:
         return RouteDecision(ROUTE_SHOW_DATE)
     if intent == registry.INTENT_OPEN_WEATHER_MENU:
