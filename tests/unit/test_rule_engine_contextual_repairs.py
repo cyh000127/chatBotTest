@@ -64,6 +64,18 @@ def test_detect_fertilizer_implicit_used_update_in_confirm_context():
     assert decision.changes["used"] is False
 
 
+def test_detect_fertilizer_product_edit_request_is_not_treated_as_value():
+    assert detect_fertilizer_direct_update("제품명 변경할래", allow_implicit=True) is None
+    assert detect_fertilizer_direct_update("아니 제품명을 변경하고 싶다고", allow_implicit=True) is None
+
+
+def test_detect_fertilizer_product_direct_value_update():
+    decision = detect_fertilizer_direct_update("제품명은 한아름 복합비료로 변경할래", allow_implicit=True)
+
+    assert decision is not None
+    assert decision.changes["product_name"] == "한아름 복합비료"
+
+
 def test_direct_update_requires_signal_without_context():
     assert detect_profile_direct_update("송파구") is None
     assert detect_fertilizer_direct_update("20kg") is None

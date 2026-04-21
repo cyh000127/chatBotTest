@@ -51,13 +51,25 @@ FERTILIZER_DATE_MARKERS = ("사용일", "날짜", "언제", "date", "day")
 TRAILING_UPDATE_PATTERN = re.compile(
     r"\s*(?:은|는|이|가|을|를|도|:)?\s*"
     r"(?:"
-    r"(?:으로|로)?\s*(?:바꿔줘|바꿔주세요|바꿔|수정해줘|수정해주세요|수정할게|수정|변경해줘|변경해주세요|변경할게|변경|고쳐줘|고쳐주세요|고쳐|다시입력해줘|다시입력해주세요)"
+    r"(?:으로|로)?\s*(?:바꿔줘|바꿔주세요|바꿀래|바꿀게|바꾸고싶어|바꾸고싶어요|바꾸고싶다|바꾸고싶은데|바꿔볼래|바꿔|수정해줘|수정해주세요|수정할래|수정할게|수정하고싶어|수정하고싶어요|수정하고싶다|수정하고싶은데|수정|변경해줘|변경해주세요|변경할래|변경할게|변경하고싶어|변경하고싶어요|변경하고싶다|변경하고싶다고|변경하고싶은데|변경|고쳐줘|고쳐주세요|고칠래|고칠게|고치고싶어|고치고싶어요|고치고싶다|고치고싶은데|고쳐|다시입력해줘|다시입력해주세요)"
     r"|(?:이야|예요|이에요|입니다)"
     r")\s*$",
     re.IGNORECASE,
 )
 
 LEADING_PARTICLE_PATTERN = re.compile(r"^(?:은|는|이|가|을|를|:)\s*")
+ACTION_ONLY_PATTERN = re.compile(
+    r"^(?:"
+    r"(?:다시\s*)?(?:입력|수정|변경)"
+    r"(?:\s*하(?:고)?)?"
+    r"(?:\s*고\s*싶(?:어|어요|다|은데|다고))?"
+    r"(?:\s*할(?:래|게))?"
+    r"|(?:바꾸|바꿔|고치|고쳐)"
+    r"(?:\s*고\s*싶(?:어|어요|다|은데|다고))?"
+    r"(?:\s*볼래|\s*줘|\s*주세요|\s*할(?:래|게))?"
+    r")$",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -213,13 +225,14 @@ def _collapse(text: str) -> str:
 
 
 def _extract_field_value(text: str, markers: tuple[str, ...]) -> str | None:
-    for marker in markers:
+    for marker in sorted(markers, key=len, reverse=True):
         marker_match = re.search(re.escape(marker), text, re.IGNORECASE)
         if marker_match is None:
             continue
         candidate = _clean_value(text[marker_match.end():])
         if candidate:
             return candidate
+        return None
     return None
 
 
@@ -238,6 +251,9 @@ def _clean_value(value: str) -> str:
         if negated:
             normalized = negated
     normalized = TRAILING_UPDATE_PATTERN.sub("", normalized).strip(" .,!?:")
+    collapsed = _collapse(normalized)
+    if collapsed and ACTION_ONLY_PATTERN.fullmatch(collapsed):
+        return ""
     return normalized
 
 
