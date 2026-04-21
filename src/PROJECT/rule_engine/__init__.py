@@ -25,6 +25,16 @@ from PROJECT.rule_engine.slot_extractors import (
     extract_korean_name_candidate,
 )
 from PROJECT.rule_engine.step_rules import classify_step_local_intent, classify_step_local_intent_text
+from PROJECT.rule_engine.validators import (
+    PROFILE_PENDING_BIRTH_DATE,
+    PROFILE_PENDING_CITY_FOR_DISTRICT,
+    PROFILE_PENDING_DISTRICT_CHOICE,
+    PROFILE_PENDING_DISTRICT_FOR_CITY,
+    PROFILE_PENDING_NAME,
+    PROFILE_PENDING_RESIDENCE,
+    validate_profile_candidates,
+    validate_profile_followup,
+)
 
 __all__ = [
     "CITY_ALIASES",
@@ -33,6 +43,12 @@ __all__ = [
     "DistrictRule",
     "PROFILE_NAME_STOPWORDS",
     "PROFILE_PLACE_TOKENS",
+    "PROFILE_PENDING_BIRTH_DATE",
+    "PROFILE_PENDING_CITY_FOR_DISTRICT",
+    "PROFILE_PENDING_DISTRICT_CHOICE",
+    "PROFILE_PENDING_DISTRICT_FOR_CITY",
+    "PROFILE_PENDING_NAME",
+    "PROFILE_PENDING_RESIDENCE",
     "classify_global_intent",
     "classify_global_intent_text",
     "classify_step_local_intent",
@@ -54,4 +70,6 @@ __all__ = [
     "normalize_body_text",
     "normalize_user_input",
     "normalize_whitespace",
+    "validate_profile_candidates",
+    "validate_profile_followup",
 ]

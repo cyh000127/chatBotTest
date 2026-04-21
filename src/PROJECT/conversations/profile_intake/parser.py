@@ -1,18 +1,22 @@
 from dataclasses import asdict, dataclass, field
 
 from PROJECT.conversations.profile_intake.normalization import (
-    CITY_ALIASES,
-    DISTRICT_RULES,
     detect_city,
     detect_district_rule,
     district_examples_for_city,
     normalize_text,
 )
 from PROJECT.rule_engine import (
+    PROFILE_PENDING_CITY_FOR_DISTRICT,
+    PROFILE_PENDING_DISTRICT_CHOICE,
+    PROFILE_PENDING_DISTRICT_FOR_CITY,
     PROFILE_NAME_STOPWORDS,
     PROFILE_PLACE_TOKENS,
+    ValidationClassification,
     extract_birth_date_candidate,
     extract_korean_name_candidate,
+    validate_profile_candidates,
+    validate_profile_followup,
 )
 
 PARSE_PARSED = "parsed"
@@ -75,35 +79,19 @@ def parse_profile_text(text: str) -> ProfileDraft:
     city = detect_city(normalized)
     rule = detect_district_rule(normalized)
 
-    district = None
-    pending_slot = None
-    followup_options: tuple[str, ...] = ()
-    followup_keyword = None
-    parse_status = PARSE_PARSED
-
-    if rule is not None:
-        followup_keyword = rule.trigger
-        if rule.ambiguous_options:
-            city = city or rule.city
-            pending_slot = "district_choice"
-            followup_options = rule.ambiguous_options
-            parse_status = PARSE_NEEDS_FOLLOWUP
-        elif city is None and rule.ask_city_when_missing:
-            district = rule.district
-            pending_slot = "city_for_district"
-            parse_status = PARSE_NEEDS_FOLLOWUP
-        else:
-            city = city or rule.city
-            district = rule.district
-    elif city:
-        pending_slot = "district_for_city"
-        parse_status = PARSE_NEEDS_FOLLOWUP
-    else:
-        parse_status = PARSE_NEEDS_FOLLOWUP
-
-    if name is None or birth_date is None:
-        parse_status = PARSE_NEEDS_FOLLOWUP
-        pending_slot = pending_slot or ("name" if name is None else "birth_date")
+    validation = validate_profile_candidates(
+        name_candidate=name,
+        birth_date_candidate=birth_date,
+        city_candidate=city,
+        district_rule=rule,
+    )
+    metadata = validation.metadata
+    city = metadata.get("city_candidate")
+    district = metadata.get("district_candidate")
+    pending_slot = metadata.get("pending_slot")
+    followup_options = metadata.get("followup_options", ())
+    followup_keyword = metadata.get("followup_keyword")
+    parse_status = PARSE_PARSED if validation.is_resolved else PARSE_NEEDS_FOLLOWUP
 
     residence_raw = _residence_raw(normalized, city, district, followup_keyword)
 
@@ -122,12 +110,19 @@ def parse_profile_text(text: str) -> ProfileDraft:
 
 
 def apply_followup_response(draft: ProfileDraft, text: str) -> ProfileDraft:
-    normalized = normalize_text(text)
+    validation = validate_profile_followup(
+        pending_slot=draft.pending_slot,
+        raw_text=text,
+        city_candidate=draft.city_candidate,
+        district_candidate=draft.district_candidate,
+        followup_options=draft.followup_options,
+    )
 
-    if draft.pending_slot == "city_for_district":
-        city = detect_city(normalized)
-        if city is None:
-            return ProfileDraft(**{**draft.to_dict(), "retry_count": draft.retry_count + 1})
+    if validation.classification == ValidationClassification.REASK:
+        return ProfileDraft(**{**draft.to_dict(), "retry_count": draft.retry_count + 1})
+
+    if draft.pending_slot == PROFILE_PENDING_CITY_FOR_DISTRICT:
+        city = validation.metadata["city_candidate"]
         return ProfileDraft(
             **{
                 **draft.to_dict(),
@@ -140,38 +135,31 @@ def apply_followup_response(draft: ProfileDraft, text: str) -> ProfileDraft:
             }
         )
 
-    if draft.pending_slot == "district_for_city":
-        rule = detect_district_rule(normalized)
-        if rule is None or rule.district is None:
-            return ProfileDraft(**{**draft.to_dict(), "retry_count": draft.retry_count + 1})
+    if draft.pending_slot == PROFILE_PENDING_DISTRICT_FOR_CITY:
+        district = validation.metadata["district_candidate"]
         return ProfileDraft(
             **{
                 **draft.to_dict(),
-                "district_candidate": rule.district,
+                "district_candidate": district,
                 "parse_status": PARSE_PARSED,
                 "pending_slot": None,
                 "followup_options": (),
                 "retry_count": draft.retry_count + 1,
-                "residence_raw": f"{draft.city_candidate} {rule.district}",
+                "residence_raw": f"{draft.city_candidate} {district}",
             }
         )
 
-    if draft.pending_slot == "district_choice":
-        options = {option.replace("고양시 ", ""): option for option in draft.followup_options}
-        chosen = options.get(normalized)
-        if chosen is None and normalized in draft.followup_options:
-            chosen = normalized
-        if chosen is None:
-            return ProfileDraft(**{**draft.to_dict(), "retry_count": draft.retry_count + 1})
+    if draft.pending_slot == PROFILE_PENDING_DISTRICT_CHOICE:
+        district = validation.metadata["district_candidate"]
         return ProfileDraft(
             **{
                 **draft.to_dict(),
-                "district_candidate": chosen,
+                "district_candidate": district,
                 "parse_status": PARSE_PARSED,
                 "pending_slot": None,
                 "followup_options": (),
                 "retry_count": draft.retry_count + 1,
-                "residence_raw": f"{draft.city_candidate} {chosen}",
+                "residence_raw": f"{draft.city_candidate} {district}",
             }
         )
 
