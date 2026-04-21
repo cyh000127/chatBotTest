@@ -358,7 +358,11 @@ async def text_message(update, context) -> None:
             await show_current_profile(update, context)
             return
 
-    intent, payload = text_to_intent(inbound.text)
+    intent, payload = text_to_intent(
+        inbound.text,
+        current_step=state,
+        locale=current_locale(context.user_data),
+    )
     decision = route_message(state, intent, payload)
     catalog = current_catalog(context)
 
