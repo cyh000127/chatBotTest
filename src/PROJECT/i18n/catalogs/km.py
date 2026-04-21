@@ -71,6 +71,7 @@ FALLBACK_MESSAGES = {
 
 PROFILE_CONFIRMED_MESSAGE = "បានបញ្ជាក់ការបញ្ចូល។\nបានរក្សាទុកក្នុងសម័យបច្ចុប្បន្ន។"
 PROFILE_EDIT_MESSAGE = "សូមជ្រើសរើសព័ត៌មានដែលអ្នកចង់កែប្រែ។"
+PROFILE_NOT_FOUND_MESSAGE = "មិនទាន់មានប្រវត្តិដែលបានរក្សាទុកទេ។\nសូមបំពេញប្រវត្តិជាមុនសិន។"
 PROFILE_NAME_PROMPT = "សូមបញ្ចូលឈ្មោះ។"
 PROFILE_RESIDENCE_PROMPT = "សូមបញ្ចូលទីលំនៅ។"
 PROFILE_CITY_PROMPT = "សូមបញ្ចូលរាជធានី/ខេត្ត។\nឧទាហរណ៍៖ Seoul, Gyeonggi-do"
@@ -110,6 +111,24 @@ def format_profile_confirmation(
         f"- ខណ្ឌ/ស្រុក/ក្រុង: {district}\n"
         f"- ថ្ងៃខែឆ្នាំកំណើត: {birth_date}\n"
         "\nបើត្រឹមត្រូវ សូមជ្រើសរើស [បញ្ជាក់] មិនដូច្នោះទេ [កែប្រែ]។"
+    )
+
+
+def format_profile_summary(
+    *,
+    name: str,
+    birth_date: str,
+    city: str,
+    district: str,
+    residence: str,
+) -> str:
+    return (
+        "នេះគឺជាប្រវត្តិដែលបានរក្សាទុករបស់អ្នក។\n"
+        f"- ឈ្មោះ: {name}\n"
+        f"- ទីលំនៅ: {residence}\n"
+        f"- រាជធានី/ខេត្ត: {city}\n"
+        f"- ខណ្ឌ/ស្រុក/ក្រុង: {district}\n"
+        f"- ថ្ងៃខែឆ្នាំកំណើត: {birth_date}"
     )
 
 

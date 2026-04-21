@@ -5,7 +5,17 @@ from PROJECT.canonical_intents.mapping import command_to_intent, text_to_intent
 from PROJECT.canonical_intents import registry
 from PROJECT.canonical_intents.registry import INTENT_UNKNOWN_COMMAND
 from PROJECT.channels.telegram.parser import parse_update
-from PROJECT.channels.telegram.handlers.commands import attempt_auth, cancel_command, help_command, language_command, menu_command, profile_command
+from PROJECT.channels.telegram.handlers.commands import (
+    attempt_auth,
+    cancel_command,
+    help_command,
+    language_command,
+    menu_command,
+    open_profile_edit_selector,
+    open_profile_target_edit,
+    show_current_profile,
+    start_profile_input,
+)
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_DAY,
@@ -35,16 +45,18 @@ from PROJECT.dispatch.command_router import (
     route_message,
 )
 from PROJECT.dispatch.input_fallback import fallback_key_for_state
-from PROJECT.dispatch.repair_router import detect_repair_intent
+from PROJECT.dispatch.repair_router import detect_profile_view_intent, detect_repair_intent
 from PROJECT.dispatch.session_dispatcher import (
     cancel_session,
     current_locale,
     current_state,
     go_back,
+    has_confirmed_profile,
     is_authenticated,
     pending_slot,
     profile_draft,
     reset_session,
+    set_confirmed_profile,
     set_locale,
     set_pending_slot,
     set_profile_draft,
@@ -311,6 +323,15 @@ async def text_message(update, context) -> None:
         repair = detect_repair_intent(inbound.text)
         if repair is not None:
             catalog = current_catalog(context)
+            if repair.target_state == STATE_PROFILE_EDIT_SELECT:
+                set_pending_slot(context.user_data, None)
+                set_state(context.user_data, STATE_PROFILE_EDIT_SELECT)
+                await send_text(
+                    update,
+                    profile_service.edit_selection_text(current_profile(context), catalog),
+                    keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_EDIT_SELECT, current_profile(context), catalog),
+                )
+                return
             draft = profile_service.reset_draft_for_repair(current_profile(context), repair.target_state)
             set_profile_draft(context.user_data, draft.to_dict())
             if state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}:
@@ -323,6 +344,18 @@ async def text_message(update, context) -> None:
                 profile_service.repair_message(repair.target_state, catalog),
                 keyboard_layout=profile_service.keyboard_for_state(repair.target_state, draft, catalog),
             )
+            return
+
+    if state not in PROFILE_STATES and has_confirmed_profile(context.user_data):
+        repair = detect_repair_intent(inbound.text)
+        if repair is not None:
+            if repair.target_state == STATE_PROFILE_EDIT_SELECT:
+                await open_profile_edit_selector(update, context)
+            else:
+                await open_profile_target_edit(update, context, repair.target_state)
+            return
+        if detect_profile_view_intent(inbound.text):
+            await show_current_profile(update, context)
             return
 
     intent, payload = text_to_intent(inbound.text)
@@ -347,12 +380,7 @@ async def text_message(update, context) -> None:
         return
 
     if decision.route == ROUTE_OPEN_PROFILE:
-        reset_session(context.user_data)
-        set_state(context.user_data, STATE_PROFILE_NAME)
-        draft = profile_service.new_draft()
-        set_profile_draft(context.user_data, draft.to_dict())
-        set_pending_slot(context.user_data, None)
-        await send_profile_prompt(update, context, STATE_PROFILE_NAME)
+        await start_profile_input(update, context)
         return
 
     if decision.route == ROUTE_CANCEL:
@@ -388,6 +416,7 @@ async def text_message(update, context) -> None:
         return
 
     if decision.route == ROUTE_PROFILE_FINALIZE:
+        set_confirmed_profile(context.user_data, profile_draft(context.user_data))
         set_state(context.user_data, STATE_MAIN_MENU)
         set_pending_slot(context.user_data, None)
         await send_text(
@@ -545,7 +574,7 @@ async def button_callback(update, context) -> None:
         return
 
     if decision.route == ROUTE_OPEN_PROFILE:
-        await profile_command(update, context)
+        await start_profile_input(update, context)
         return
 
     if decision.route == ROUTE_CANCEL:
@@ -576,6 +605,7 @@ async def button_callback(update, context) -> None:
         return
 
     if decision.route == ROUTE_PROFILE_FINALIZE:
+        set_confirmed_profile(context.user_data, profile_draft(context.user_data))
         set_state(context.user_data, STATE_MAIN_MENU)
         set_pending_slot(context.user_data, None)
         await send_text(
@@ -630,6 +660,16 @@ async def unknown_command(update, context) -> None:
         await send_text(update, service.auth_required_text(catalog), keyboard_layout=None)
         return
     inbound = parse_update(update)
+    repair = detect_repair_intent(inbound.text)
+    if has_confirmed_profile(context.user_data) and repair is not None:
+        if repair.target_state == STATE_PROFILE_EDIT_SELECT:
+            await open_profile_edit_selector(update, context)
+        else:
+            await open_profile_target_edit(update, context, repair.target_state)
+        return
+    if detect_profile_view_intent(inbound.text):
+        await show_current_profile(update, context)
+        return
     intent = command_to_intent(inbound.command)
     if intent != INTENT_UNKNOWN_COMMAND:
         return

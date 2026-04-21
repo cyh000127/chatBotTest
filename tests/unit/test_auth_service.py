@@ -2,10 +2,12 @@ from PROJECT.auth.service import authenticate_login_id
 from PROJECT.dispatch.session_dispatcher import (
     auth_failures,
     authenticate_session,
+    confirmed_profile,
     current_user_name,
     increment_auth_failures,
     is_authenticated,
     reset_session,
+    set_confirmed_profile,
 )
 
 
@@ -34,3 +36,10 @@ def test_authenticate_session_resets_failure_count():
     increment_auth_failures(user_data)
     authenticate_session(user_data, login_id="okccc5", user_name="최윤혁")
     assert auth_failures(user_data) == 0
+
+
+def test_confirmed_profile_survives_reset():
+    user_data = {}
+    set_confirmed_profile(user_data, {"name": "최윤혁"})
+    reset_session(user_data)
+    assert confirmed_profile(user_data) == {"name": "최윤혁"}

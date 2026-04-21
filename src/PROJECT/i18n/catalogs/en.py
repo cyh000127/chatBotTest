@@ -71,6 +71,7 @@ FALLBACK_MESSAGES = {
 
 PROFILE_CONFIRMED_MESSAGE = "Input confirmed.\nSaved in the current session."
 PROFILE_EDIT_MESSAGE = "Choose which field you want to edit."
+PROFILE_NOT_FOUND_MESSAGE = "There is no saved profile yet.\nPlease complete profile input first."
 PROFILE_NAME_PROMPT = "Please enter your name."
 PROFILE_RESIDENCE_PROMPT = "Please enter your residence."
 PROFILE_CITY_PROMPT = "Please enter your city/province.\nExample: Seoul, Gyeonggi-do"
@@ -110,6 +111,24 @@ def format_profile_confirmation(
         f"- District/County/City: {district}\n"
         f"- Birth date: {birth_date}\n"
         "\nChoose [Confirm] if correct, or [Edit] to change it."
+    )
+
+
+def format_profile_summary(
+    *,
+    name: str,
+    birth_date: str,
+    city: str,
+    district: str,
+    residence: str,
+) -> str:
+    return (
+        "This is your saved profile.\n"
+        f"- Name: {name}\n"
+        f"- Residence: {residence}\n"
+        f"- City/Province: {city}\n"
+        f"- District/County/City: {district}\n"
+        f"- Birth date: {birth_date}"
     )
 
 

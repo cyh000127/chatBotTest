@@ -94,6 +94,24 @@ def confirmation_text(draft: ProfileDraft, catalog) -> str:
     )
 
 
+def summary_text(draft: ProfileDraft, catalog) -> str:
+    return catalog.format_profile_summary(
+        name=draft.name,
+        birth_date=draft.birth_date or "-",
+        city=draft.city,
+        district=draft.district,
+        residence=draft.residence,
+    )
+
+
+def edit_selection_text(draft: ProfileDraft, catalog) -> str:
+    return f"{summary_text(draft, catalog)}\n\n{catalog.PROFILE_EDIT_MESSAGE}"
+
+
+def no_profile_text(catalog) -> str:
+    return catalog.PROFILE_NOT_FOUND_MESSAGE
+
+
 def reset_draft_for_repair(draft: ProfileDraft, target_state: str) -> ProfileDraft:
     if target_state == STATE_PROFILE_NAME:
         return update_draft(

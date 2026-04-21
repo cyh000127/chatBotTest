@@ -71,6 +71,7 @@ FALLBACK_MESSAGES = {
 
 PROFILE_CONFIRMED_MESSAGE = "입력을 확인했습니다.\n현재 세션에 저장해두었어요."
 PROFILE_EDIT_MESSAGE = "수정할 항목을 선택해주세요."
+PROFILE_NOT_FOUND_MESSAGE = "아직 저장된 프로필이 없습니다.\n먼저 프로필 입력을 완료해주세요."
 PROFILE_NAME_PROMPT = "이름을 입력해주세요."
 PROFILE_RESIDENCE_PROMPT = "거주지를 입력해주세요."
 PROFILE_CITY_PROMPT = "시/도를 입력해주세요.\n예: 서울특별시, 경기도"
@@ -110,6 +111,24 @@ def format_profile_confirmation(
         f"- 구/군/시: {district}\n"
         f"- 생년월일: {birth_date}\n"
         "\n맞으면 [확인], 수정하려면 [수정]을 눌러주세요."
+    )
+
+
+def format_profile_summary(
+    *,
+    name: str,
+    birth_date: str,
+    city: str,
+    district: str,
+    residence: str,
+) -> str:
+    return (
+        "현재 저장된 프로필입니다.\n"
+        f"- 이름: {name}\n"
+        f"- 거주지: {residence}\n"
+        f"- 시/도: {city}\n"
+        f"- 구/군/시: {district}\n"
+        f"- 생년월일: {birth_date}"
     )
 
 WEATHER_CODE_LABELS = {

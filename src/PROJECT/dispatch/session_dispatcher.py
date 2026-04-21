@@ -8,6 +8,7 @@ def _default_session() -> dict:
         "history": [],
         "selected_city": None,
         "profile_draft": None,
+        "confirmed_profile": None,
         "pending_slot": None,
         "locale": DEFAULT_LOCALE,
         "authenticated": False,
@@ -26,11 +27,13 @@ def reset_session(user_data: dict) -> dict:
     authenticated = get_session(user_data).get("authenticated", False) if "session" in user_data else False
     login_id = get_session(user_data).get("login_id") if "session" in user_data else None
     user_name = get_session(user_data).get("user_name") if "session" in user_data else None
+    confirmed_profile = get_session(user_data).get("confirmed_profile") if "session" in user_data else None
     user_data["session"] = _default_session()
     user_data["session"]["locale"] = locale
     user_data["session"]["authenticated"] = authenticated
     user_data["session"]["login_id"] = login_id
     user_data["session"]["user_name"] = user_name
+    user_data["session"]["confirmed_profile"] = confirmed_profile
     return user_data["session"]
 
 
@@ -76,6 +79,18 @@ def set_profile_draft(user_data: dict, draft: dict | None) -> None:
 
 def profile_draft(user_data: dict) -> dict | None:
     return get_session(user_data)["profile_draft"]
+
+
+def set_confirmed_profile(user_data: dict, draft: dict | None) -> None:
+    get_session(user_data)["confirmed_profile"] = draft
+
+
+def confirmed_profile(user_data: dict) -> dict | None:
+    return get_session(user_data)["confirmed_profile"]
+
+
+def has_confirmed_profile(user_data: dict) -> bool:
+    return confirmed_profile(user_data) is not None
 
 
 def set_pending_slot(user_data: dict, pending_slot: str | None) -> None:
