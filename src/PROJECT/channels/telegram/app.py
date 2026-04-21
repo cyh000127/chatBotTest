@@ -2,6 +2,7 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, f
 
 from PROJECT.channels.telegram.handlers.commands import cancel_command, fertilizer_command, help_command, language_command, menu_command, profile_command, start_command
 from PROJECT.channels.telegram.handlers.messages import button_callback, text_message, unknown_command
+from PROJECT.llm import GeminiRecoveryClassifier
 from PROJECT.settings import Settings
 
 
@@ -13,6 +14,7 @@ def create_application(settings: Settings):
         .build()
     )
     application.bot_data["settings"] = settings
+    application.bot_data["gemini_recovery_classifier"] = GeminiRecoveryClassifier(settings.gemini) if settings.gemini is not None else None
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("menu", menu_command))

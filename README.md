@@ -18,6 +18,7 @@ python -m PROJECT.main
 - `/fertilizer` 비료 입력 정상 경로
 - 뒤로가기, 취소, 처음부터
 - 상태별 fallback, 알 수 없는 입력 처리
+- Gemini recovery classifier 설정/파서 준비
 
 ## 구조
 
@@ -32,3 +33,4 @@ python -m PROJECT.main
 - [`docs/README.md`](./docs/README.md): 프로젝트 내부 문서 인덱스
 - [`docs/STAGE2_RULE_ENGINE.md`](./docs/STAGE2_RULE_ENGINE.md): 2단계 규칙 엔진 구조
 - [`docs/RULE_FIRST_LLM_HANDOFF.md`](./docs/RULE_FIRST_LLM_HANDOFF.md): 3단계 LLM 호출 전제 조건
+- [`docs/GEMINI_RECOVERY_SETUP.md`](./docs/GEMINI_RECOVERY_SETUP.md): Gemini 설정과 recovery parser 구조
