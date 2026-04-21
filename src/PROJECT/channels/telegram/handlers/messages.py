@@ -92,6 +92,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_state,
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
+from PROJECT.llm import LlmEditAction
 from PROJECT.rule_engine import (
     ValidationClassification,
     assemble_recovery_context,
@@ -136,6 +137,34 @@ FERTILIZER_EDIT_CALLBACK_TO_STATE = {
     "amount": STATE_FERTILIZER_AMOUNT,
     "date": STATE_FERTILIZER_DATE,
 }
+
+LLM_EDIT_ACTION_TO_TARGET = {
+    LlmEditAction.PROFILE_EDIT_SELECT.value: ("profile", STATE_PROFILE_EDIT_SELECT),
+    LlmEditAction.PROFILE_EDIT_NAME.value: ("profile", STATE_PROFILE_NAME),
+    LlmEditAction.PROFILE_EDIT_RESIDENCE.value: ("profile", STATE_PROFILE_RESIDENCE),
+    LlmEditAction.PROFILE_EDIT_CITY.value: ("profile", STATE_PROFILE_CITY),
+    LlmEditAction.PROFILE_EDIT_DISTRICT.value: ("profile", STATE_PROFILE_DISTRICT),
+    LlmEditAction.PROFILE_EDIT_BIRTH_DATE.value: ("profile", STATE_PROFILE_BIRTH_YEAR),
+    LlmEditAction.FERTILIZER_EDIT_SELECT.value: ("fertilizer", STATE_FERTILIZER_CONFIRM),
+    LlmEditAction.FERTILIZER_EDIT_USED.value: ("fertilizer", STATE_FERTILIZER_USED),
+    LlmEditAction.FERTILIZER_EDIT_KIND.value: ("fertilizer", STATE_FERTILIZER_KIND),
+    LlmEditAction.FERTILIZER_EDIT_PRODUCT.value: ("fertilizer", STATE_FERTILIZER_PRODUCT),
+    LlmEditAction.FERTILIZER_EDIT_AMOUNT.value: ("fertilizer", STATE_FERTILIZER_AMOUNT),
+    LlmEditAction.FERTILIZER_EDIT_DATE.value: ("fertilizer", STATE_FERTILIZER_DATE),
+}
+
+LLM_MIN_CONFIDENCE = 0.6
+EDIT_INTENT_HINT_MARKERS = (
+    "수정",
+    "변경",
+    "고쳐",
+    "바꾸",
+    "잘못",
+    "틀렸",
+    "edit",
+    "change",
+    "wrong",
+)
 
 
 def current_catalog(context):
@@ -245,18 +274,75 @@ async def open_current_fertilizer_target_edit(update, context, target_state: str
     )
 
 
-async def send_repair_confirmation(update, context, *, domain: str, target_state: str, use_confirmed: bool) -> None:
+async def send_repair_confirmation(
+    update,
+    context,
+    *,
+    domain: str,
+    target_state: str,
+    use_confirmed: bool,
+    candidate_value: str | None = None,
+) -> None:
     catalog = current_catalog(context)
     scope = "confirmed" if use_confirmed else "draft"
     if domain == "profile":
         text = profile_service.repair_confirmation_text(target_state, catalog)
     else:
         text = fertilizer_service.repair_confirmation_text(target_state, catalog)
+    if candidate_value:
+        text = f"{text}\n\n{catalog.LLM_REPAIR_CANDIDATE_HINT.format(candidate_value=candidate_value)}"
     await send_text(
         update,
         text,
         keyboard_layout=repair_confirmation_keyboard(domain, scope, target_state, catalog),
     )
+
+
+async def maybe_send_llm_repair_confirmation(
+    update,
+    context,
+    *,
+    text: str,
+    allowed_actions: tuple[str, ...],
+    use_confirmed: bool,
+) -> bool:
+    resolver = context.bot_data.get("gemini_edit_intent_resolver")
+    lowered = text.strip().lower()
+    if resolver is None or not lowered:
+        return False
+    if not any(marker in lowered for marker in EDIT_INTENT_HINT_MARKERS):
+        return False
+
+    try:
+        result = await resolver.classify(
+            text=text,
+            locale=current_locale(context.user_data),
+            allowed_actions=allowed_actions,
+        )
+    except Exception:
+        return False
+
+    if result.needs_human or not result.needs_confirmation:
+        return False
+    if result.action == LlmEditAction.UNSUPPORTED:
+        return False
+    if result.confidence is None or result.confidence < LLM_MIN_CONFIDENCE:
+        return False
+
+    route = LLM_EDIT_ACTION_TO_TARGET.get(result.action.value)
+    if route is None:
+        return False
+
+    domain, target_state = route
+    await send_repair_confirmation(
+        update,
+        context,
+        domain=domain,
+        target_state=target_state,
+        use_confirmed=use_confirmed,
+        candidate_value=result.candidate_value,
+    )
+    return True
 
 
 async def apply_profile_direct_update(update, context, resolution, *, use_confirmed: bool) -> None:
@@ -647,6 +733,26 @@ async def text_message(update, context) -> None:
             )
             return
 
+        if state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}:
+            handled_by_llm = await maybe_send_llm_repair_confirmation(
+                update,
+                context,
+                text=inbound.text,
+                allowed_actions=(
+                    LlmEditAction.PROFILE_EDIT_SELECT.value,
+                    LlmEditAction.PROFILE_EDIT_NAME.value,
+                    LlmEditAction.PROFILE_EDIT_RESIDENCE.value,
+                    LlmEditAction.PROFILE_EDIT_CITY.value,
+                    LlmEditAction.PROFILE_EDIT_DISTRICT.value,
+                    LlmEditAction.PROFILE_EDIT_BIRTH_DATE.value,
+                    LlmEditAction.UNSUPPORTED.value,
+                ),
+                use_confirmed=False,
+            )
+            if handled_by_llm:
+                reset_recovery_attempts(context.user_data)
+                return
+
     if state in FERTILIZER_STATES:
         fertilizer_direct_update = detect_fertilizer_direct_update(
             inbound.text,
@@ -674,6 +780,26 @@ async def text_message(update, context) -> None:
                 use_confirmed=False,
             )
             return
+
+        if state == STATE_FERTILIZER_CONFIRM:
+            handled_by_llm = await maybe_send_llm_repair_confirmation(
+                update,
+                context,
+                text=inbound.text,
+                allowed_actions=(
+                    LlmEditAction.FERTILIZER_EDIT_SELECT.value,
+                    LlmEditAction.FERTILIZER_EDIT_USED.value,
+                    LlmEditAction.FERTILIZER_EDIT_KIND.value,
+                    LlmEditAction.FERTILIZER_EDIT_PRODUCT.value,
+                    LlmEditAction.FERTILIZER_EDIT_AMOUNT.value,
+                    LlmEditAction.FERTILIZER_EDIT_DATE.value,
+                    LlmEditAction.UNSUPPORTED.value,
+                ),
+                use_confirmed=False,
+            )
+            if handled_by_llm:
+                reset_recovery_attempts(context.user_data)
+                return
 
     if state not in PROFILE_STATES and has_confirmed_profile(context.user_data):
         profile_direct_update = detect_profile_direct_update(inbound.text, allow_implicit=True)
@@ -704,6 +830,25 @@ async def text_message(update, context) -> None:
             await show_current_profile(update, context)
             return
 
+        handled_by_llm = await maybe_send_llm_repair_confirmation(
+            update,
+            context,
+            text=inbound.text,
+            allowed_actions=(
+                LlmEditAction.PROFILE_EDIT_SELECT.value,
+                LlmEditAction.PROFILE_EDIT_NAME.value,
+                LlmEditAction.PROFILE_EDIT_RESIDENCE.value,
+                LlmEditAction.PROFILE_EDIT_CITY.value,
+                LlmEditAction.PROFILE_EDIT_DISTRICT.value,
+                LlmEditAction.PROFILE_EDIT_BIRTH_DATE.value,
+                LlmEditAction.UNSUPPORTED.value,
+            ),
+            use_confirmed=True,
+        )
+        if handled_by_llm:
+            reset_recovery_attempts(context.user_data)
+            return
+
     if state not in FERTILIZER_STATES and has_confirmed_fertilizer(context.user_data):
         fertilizer_direct_update = detect_fertilizer_direct_update(inbound.text, allow_implicit=True)
         if fertilizer_direct_update is not None:
@@ -727,6 +872,25 @@ async def text_message(update, context) -> None:
                 target_state=repair.target_state,
                 use_confirmed=True,
             )
+            return
+
+        handled_by_llm = await maybe_send_llm_repair_confirmation(
+            update,
+            context,
+            text=inbound.text,
+            allowed_actions=(
+                LlmEditAction.FERTILIZER_EDIT_SELECT.value,
+                LlmEditAction.FERTILIZER_EDIT_USED.value,
+                LlmEditAction.FERTILIZER_EDIT_KIND.value,
+                LlmEditAction.FERTILIZER_EDIT_PRODUCT.value,
+                LlmEditAction.FERTILIZER_EDIT_AMOUNT.value,
+                LlmEditAction.FERTILIZER_EDIT_DATE.value,
+                LlmEditAction.UNSUPPORTED.value,
+            ),
+            use_confirmed=True,
+        )
+        if handled_by_llm:
+            reset_recovery_attempts(context.user_data)
             return
 
     intent, payload = text_to_intent(
