@@ -17,6 +17,11 @@ BUTTON_EDIT_RESIDENCE = "Residence"
 BUTTON_EDIT_CITY = "City/Province"
 BUTTON_EDIT_DISTRICT = "District/County/City"
 BUTTON_EDIT_BIRTH_DATE = "Birth date"
+BUTTON_FERTILIZER_EDIT_USED = "Fertilizer use"
+BUTTON_FERTILIZER_EDIT_KIND = "Fertilizer type"
+BUTTON_FERTILIZER_EDIT_PRODUCT = "Product name"
+BUTTON_FERTILIZER_EDIT_AMOUNT = "Amount"
+BUTTON_FERTILIZER_EDIT_DATE = "Applied date"
 BUTTON_PREV_YEARS = "Previous 12 years"
 BUTTON_NEXT_YEARS = "Next 12 years"
 BUTTON_FERTILIZER_KIND_COMPOUND = "Compound"
@@ -69,14 +74,14 @@ HELP_MESSAGE = (
 )
 
 FALLBACK_MESSAGES = {
-    "default": "Unknown input.\nUse menu buttons or /help.",
-    "weather": "Unknown input.\nChoose a city button or use 'Back'.",
-    "cancelled": "The current task is cancelled.\nUse 'Start over' or /start to begin again.",
-    "profile_input": "Please enter the requested profile value again.",
-    "profile_followup": "Additional confirmation is needed.\nPlease follow the prompt again.",
-    "profile_confirm": "A draft is ready.\nChoose [Confirm] or [Edit].",
-    "fertilizer_input": "Please enter the fertilizer value again.\nExample: Compound fertilizer, 20kg, 2026-04-21",
-    "fertilizer_confirm": "A fertilizer draft is ready.\nPress [Confirm] or go back to change it.",
+    "default": "I could not understand the request right away.\nWould you choose one of the related items below?",
+    "weather": "I could not understand the request right away.\nPlease choose a city below or press Back.",
+    "cancelled": "The current task is cancelled.\nWould you choose one of the related items below to continue?",
+    "profile_input": "I could not process the profile input right away.\nWould you choose which related profile item to continue or change?",
+    "profile_followup": "Additional confirmation is needed.\nWould you choose one of the related items below?",
+    "profile_confirm": "You are in the profile confirmation step.\nWould you choose whether to confirm or edit below?",
+    "fertilizer_input": "I could not process the fertilizer input right away.\nWould you choose which related fertilizer item to continue or change?",
+    "fertilizer_confirm": "You are in the fertilizer confirmation step.\nWould you choose whether to confirm or edit below?",
 }
 CHEAP_GATE_SUPPORT_MESSAGE = (
     "This looks like a request for a human operator or support.\n"

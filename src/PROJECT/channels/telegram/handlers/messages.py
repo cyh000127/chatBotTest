@@ -39,7 +39,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_RESIDENCE,
 )
 from PROJECT.conversations.sample_menu import service
-from PROJECT.conversations.sample_menu.keyboards import keyboard_layout_for_state
+from PROJECT.conversations.sample_menu.keyboards import fallback_keyboard_layout_for_state, keyboard_layout_for_state
 from PROJECT.conversations.sample_menu.states import STATE_AUTH_ID_INPUT, STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.dispatch.command_router import (
     ROUTE_CANCEL,
@@ -121,6 +121,14 @@ PROFILE_EDIT_CALLBACK_TO_STATE = {
     "city": STATE_PROFILE_CITY,
     "district": STATE_PROFILE_DISTRICT,
     "birth_date": STATE_PROFILE_BIRTH_YEAR,
+}
+
+FERTILIZER_EDIT_CALLBACK_TO_STATE = {
+    "used": STATE_FERTILIZER_USED,
+    "kind": STATE_FERTILIZER_KIND,
+    "product": STATE_FERTILIZER_PRODUCT,
+    "amount": STATE_FERTILIZER_AMOUNT,
+    "date": STATE_FERTILIZER_DATE,
 }
 
 
@@ -281,6 +289,8 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "profile_day", {"day": int(data.rsplit(":", 1)[1])}
     if data.startswith("profile:edit:"):
         return "profile_edit_select", {"target": data.rsplit(":", 1)[1]}
+    if data.startswith("fertilizer:edit:"):
+        return "fertilizer_edit_select", {"target": data.rsplit(":", 1)[1]}
     if data.startswith("fertilizer:used:"):
         return "fertilizer_used", {"used": data.rsplit(":", 1)[1] == "yes"}
     if data.startswith("fertilizer:kind:"):
@@ -798,7 +808,11 @@ async def text_message(update, context) -> None:
         await send_text(
             update,
             service.cheap_gate_text(late_gate, fallback_key, catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=fallback_keyboard_layout_for_state(
+                current_state(context.user_data),
+                catalog,
+                profile_draft(context.user_data),
+            ),
         )
         return
 
@@ -806,7 +820,11 @@ async def text_message(update, context) -> None:
     await send_text(
         update,
         service.cheap_gate_text(late_gate, fallback_key, catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=fallback_keyboard_layout_for_state(
+            current_state(context.user_data),
+            catalog,
+            profile_draft(context.user_data),
+        ),
     )
 
 
@@ -898,6 +916,22 @@ async def button_callback(update, context) -> None:
             update,
             profile_service.repair_message(target_state, current_catalog(context)),
             keyboard_layout=profile_service.keyboard_for_state(target_state, draft, current_catalog(context)),
+        )
+        return
+
+    if action == "fertilizer_edit_select":
+        await clear_callback_markup(update)
+        target_state = FERTILIZER_EDIT_CALLBACK_TO_STATE.get(payload["target"])
+        if target_state is None:
+            await send_fertilizer_prompt(update, context, STATE_FERTILIZER_CONFIRM)
+            return
+        draft = fertilizer_service.reset_draft_for_repair(current_fertilizer(context), target_state)
+        set_fertilizer_draft(context.user_data, draft.to_dict())
+        set_state(context.user_data, target_state, push_history=True)
+        await send_text(
+            update,
+            fertilizer_service.repair_message(target_state, current_catalog(context)),
+            keyboard_layout=fertilizer_service.keyboard_for_state(target_state, current_catalog(context)),
         )
         return
 
@@ -1034,7 +1068,11 @@ async def button_callback(update, context) -> None:
     await send_text(
         update,
         service.fallback_text(fallback_key_for_state(current_state(context.user_data)), catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=fallback_keyboard_layout_for_state(
+            current_state(context.user_data),
+            catalog,
+            profile_draft(context.user_data),
+        ),
     )
 
 
@@ -1060,5 +1098,9 @@ async def unknown_command(update, context) -> None:
     await send_text(
         update,
         service.unknown_command_text(catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=fallback_keyboard_layout_for_state(
+            current_state(context.user_data),
+            catalog,
+            profile_draft(context.user_data),
+        ),
     )

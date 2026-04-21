@@ -17,6 +17,11 @@ BUTTON_EDIT_RESIDENCE = "거주지"
 BUTTON_EDIT_CITY = "시/도"
 BUTTON_EDIT_DISTRICT = "구/군/시"
 BUTTON_EDIT_BIRTH_DATE = "생년월일"
+BUTTON_FERTILIZER_EDIT_USED = "비료 사용 여부"
+BUTTON_FERTILIZER_EDIT_KIND = "비료 유형"
+BUTTON_FERTILIZER_EDIT_PRODUCT = "제품명"
+BUTTON_FERTILIZER_EDIT_AMOUNT = "사용량"
+BUTTON_FERTILIZER_EDIT_DATE = "사용일"
 BUTTON_PREV_YEARS = "이전 12년"
 BUTTON_NEXT_YEARS = "다음 12년"
 BUTTON_FERTILIZER_KIND_COMPOUND = "복합비료"
@@ -69,14 +74,14 @@ HELP_MESSAGE = (
 )
 
 FALLBACK_MESSAGES = {
-    "default": "알 수 없는 입력입니다.\n메뉴 버튼이나 /help 를 사용하세요.",
-    "weather": "알 수 없는 입력입니다.\n도시 버튼을 선택하거나 '뒤로가기'를 사용하세요.",
-    "cancelled": "현재 작업은 취소된 상태입니다.\n'처음부터' 또는 /start 로 다시 시작하세요.",
-    "profile_input": "프로필 입력 형식으로 다시 보내주세요.\n예: 김민수 서울 강남 1998년 4월 20일",
-    "profile_followup": "추가 확인이 필요합니다.\n안내된 형식으로 다시 입력하거나 버튼을 눌러주세요.",
-    "profile_confirm": "초안이 준비돼 있어요.\n[확인] 또는 [수정]을 선택해주세요.",
-    "fertilizer_input": "비료 입력 형식으로 다시 보내주세요.\n예: 복합비료, 20kg, 2026-04-21",
-    "fertilizer_confirm": "비료 입력 초안이 준비됐어요.\n[확인]을 누르거나 뒤로가기로 수정해주세요.",
+    "default": "요청을 바로 이해하지 못했어요.\n아래 관련 항목 중 원하시는 것을 선택해주시겠어요?",
+    "weather": "요청을 바로 이해하지 못했어요.\n아래 관련 항목 중에서 도시를 선택하거나 뒤로가기를 눌러주세요.",
+    "cancelled": "현재 작업은 취소된 상태예요.\n아래 관련 항목 중에서 다시 진행할 작업을 선택해주시겠어요?",
+    "profile_input": "프로필 입력을 바로 처리하지 못했어요.\n아래 관련 항목 중 수정하거나 이어서 입력할 항목을 선택해주시겠어요?",
+    "profile_followup": "추가 확인이 필요해요.\n아래 관련 항목 중 원하는 항목을 선택해주시겠어요?",
+    "profile_confirm": "프로필 확인 단계예요.\n아래 관련 항목 중 확인하거나 수정할 항목을 선택해주시겠어요?",
+    "fertilizer_input": "비료 입력을 바로 처리하지 못했어요.\n아래 관련 항목 중 수정하거나 이어서 입력할 항목을 선택해주시겠어요?",
+    "fertilizer_confirm": "비료 확인 단계예요.\n아래 관련 항목 중 확인하거나 수정할 항목을 선택해주시겠어요.",
 }
 CHEAP_GATE_SUPPORT_MESSAGE = (
     "사람 상담 또는 운영자 연결 요청으로 이해했습니다.\n"

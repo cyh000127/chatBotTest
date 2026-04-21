@@ -53,3 +53,22 @@ def fertilizer_confirm_keyboard(catalog) -> list[list[dict[str, str]]]:
         ],
         [_button(catalog.BUTTON_RESTART, "intent:restart")],
     ]
+
+
+def fertilizer_edit_select_keyboard(catalog) -> list[list[dict[str, str]]]:
+    return [
+        [
+            _button(catalog.BUTTON_FERTILIZER_EDIT_USED, "fertilizer:edit:used"),
+            _button(catalog.BUTTON_FERTILIZER_EDIT_KIND, "fertilizer:edit:kind"),
+        ],
+        [
+            _button(catalog.BUTTON_FERTILIZER_EDIT_PRODUCT, "fertilizer:edit:product"),
+            _button(catalog.BUTTON_FERTILIZER_EDIT_AMOUNT, "fertilizer:edit:amount"),
+        ],
+        [_button(catalog.BUTTON_FERTILIZER_EDIT_DATE, "fertilizer:edit:date")],
+        [
+            _button(catalog.BUTTON_BACK, "intent:back"),
+            _button(catalog.BUTTON_CANCEL, "intent:cancel"),
+        ],
+        [_button(catalog.BUTTON_RESTART, "intent:restart")],
+    ]
