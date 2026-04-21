@@ -19,6 +19,7 @@ def _default_session() -> dict:
         "auth_failures": 0,
         "recovery_attempts": 0,
         "last_recovery_context": None,
+        "pending_repair_confirmation": None,
     }
 
 
@@ -191,3 +192,11 @@ def set_last_recovery_context(user_data: dict, recovery_context: dict | None) ->
 
 def last_recovery_context(user_data: dict) -> dict | None:
     return get_session(user_data).get("last_recovery_context")
+
+
+def set_pending_repair_confirmation(user_data: dict, payload: dict | None) -> None:
+    get_session(user_data)["pending_repair_confirmation"] = payload
+
+
+def pending_repair_confirmation(user_data: dict) -> dict | None:
+    return get_session(user_data).get("pending_repair_confirmation")

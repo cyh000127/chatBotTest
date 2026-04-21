@@ -66,7 +66,20 @@ def cancelled_keyboard(catalog) -> list[list[dict[str, str]]]:
     ]]
 
 
-def repair_confirmation_keyboard(domain: str, scope: str, target_state: str, catalog) -> list[list[dict[str, str]]]:
+def repair_confirmation_keyboard(
+    domain: str,
+    scope: str,
+    target_state: str,
+    catalog,
+    *,
+    has_candidate: bool = False,
+) -> list[list[dict[str, str]]]:
+    if has_candidate:
+        return [
+            [_button(catalog.BUTTON_APPLY_SUGGESTED_VALUE, "repair:candidate:apply")],
+            [_button(catalog.BUTTON_ENTER_VALUE_DIRECTLY, f"repair:confirm:{domain}:{scope}:{target_state}")],
+            [_button(catalog.BUTTON_KEEP_CURRENT, "repair:cancel")],
+        ]
     return [
         [_button(catalog.BUTTON_EDIT_START, f"repair:confirm:{domain}:{scope}:{target_state}")],
         [_button(catalog.BUTTON_KEEP_CURRENT, "repair:cancel")],

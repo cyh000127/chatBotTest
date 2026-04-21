@@ -8,8 +8,10 @@ from PROJECT.dispatch.session_dispatcher import (
     has_confirmed_profile,
     increment_auth_failures,
     last_recovery_context,
+    pending_repair_confirmation,
     reset_session,
     set_last_recovery_context,
+    set_pending_repair_confirmation,
     set_confirmed_profile,
     set_selected_city,
     set_state,
@@ -59,3 +61,12 @@ def test_last_recovery_context_is_preserved_across_reset_session():
     reset_session(user_data)
 
     assert last_recovery_context(user_data) == {"current_step": "weather_menu"}
+
+
+def test_pending_repair_confirmation_helper_works():
+    user_data = {}
+    payload = {"domain": "fertilizer", "target_state": "fertilizer_product"}
+
+    set_pending_repair_confirmation(user_data, payload)
+
+    assert pending_repair_confirmation(user_data) == payload

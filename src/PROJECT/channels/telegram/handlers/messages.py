@@ -76,6 +76,7 @@ from PROJECT.dispatch.session_dispatcher import (
     has_confirmed_profile,
     increment_recovery_attempts,
     is_authenticated,
+    pending_repair_confirmation,
     pending_slot,
     profile_draft,
     recovery_attempts,
@@ -86,6 +87,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_last_recovery_context,
     set_confirmed_profile,
     set_locale,
+    set_pending_repair_confirmation,
     set_pending_slot,
     set_profile_draft,
     set_selected_city,
@@ -274,6 +276,121 @@ async def open_current_fertilizer_target_edit(update, context, target_state: str
     )
 
 
+def parse_profile_candidate_changes(target_state: str, candidate_value: str) -> dict | None:
+    if target_state == STATE_PROFILE_NAME:
+        name = profile_service.parse_name(candidate_value)
+        return {"name": name} if name is not None else None
+    if target_state == STATE_PROFILE_RESIDENCE:
+        residence = profile_service.parse_free_text(candidate_value)
+        return {"residence": residence} if residence is not None else None
+    if target_state == STATE_PROFILE_CITY:
+        city = profile_service.parse_free_text(candidate_value)
+        return {"city": city} if city is not None else None
+    if target_state == STATE_PROFILE_DISTRICT:
+        district = profile_service.parse_free_text(candidate_value)
+        return {"district": district} if district is not None else None
+    if target_state == STATE_PROFILE_BIRTH_YEAR:
+        birth_date = profile_service.parse_birth_date_text(candidate_value)
+        if birth_date is None:
+            return None
+        return {
+            "birth_year": birth_date[0],
+            "birth_month": birth_date[1],
+            "birth_day": birth_date[2],
+        }
+    return None
+
+
+def parse_fertilizer_candidate_changes(target_state: str, candidate_value: str) -> dict | None:
+    if target_state == STATE_FERTILIZER_USED:
+        used = fertilizer_service.parse_used(candidate_value)
+        return {"used": used} if used is not None else None
+    if target_state == STATE_FERTILIZER_KIND:
+        kind = fertilizer_service.parse_kind(candidate_value)
+        return {"kind": kind} if kind is not None else None
+    if target_state == STATE_FERTILIZER_PRODUCT:
+        product_name = fertilizer_service.parse_product_name(candidate_value)
+        return {"product_name": product_name} if product_name is not None else None
+    if target_state == STATE_FERTILIZER_AMOUNT:
+        amount = fertilizer_service.parse_amount(candidate_value)
+        if amount is None:
+            return None
+        return {"amount_value": amount[0], "amount_unit": amount[1]}
+    if target_state == STATE_FERTILIZER_DATE:
+        applied_date = fertilizer_service.parse_applied_date(candidate_value)
+        return {"applied_date": applied_date} if applied_date is not None else None
+    return None
+
+
+def parse_candidate_changes(domain: str, target_state: str, candidate_value: str | None) -> dict | None:
+    if not candidate_value:
+        return None
+    if domain == "profile":
+        return parse_profile_candidate_changes(target_state, candidate_value)
+    if domain == "fertilizer":
+        return parse_fertilizer_candidate_changes(target_state, candidate_value)
+    return None
+
+
+async def continue_repair_flow(update, context, *, domain: str, target_state: str, use_confirmed: bool) -> None:
+    if domain == "profile":
+        if use_confirmed:
+            if target_state == STATE_PROFILE_EDIT_SELECT:
+                await open_profile_edit_selector(update, context)
+            else:
+                await open_profile_target_edit(update, context, target_state)
+            return
+        if target_state == STATE_PROFILE_EDIT_SELECT:
+            await open_current_profile_edit_selector(update, context)
+        else:
+            await open_current_profile_target_edit(update, context, target_state)
+        return
+
+    if use_confirmed:
+        if target_state == STATE_FERTILIZER_CONFIRM:
+            await open_fertilizer_edit_selector(update, context)
+        else:
+            await open_fertilizer_target_edit(update, context, target_state)
+        return
+    if target_state == STATE_FERTILIZER_CONFIRM:
+        await open_current_fertilizer_edit_selector(update, context)
+    else:
+        await open_current_fertilizer_target_edit(update, context, target_state)
+
+
+async def apply_profile_changes(update, context, *, changes: dict, use_confirmed: bool) -> None:
+    base_draft = confirmed_profile_draft(context) if use_confirmed else current_profile(context)
+    updated = profile_service.update_draft(base_draft, **changes)
+
+    if use_confirmed:
+        reset_session(context.user_data)
+    set_profile_draft(context.user_data, updated.to_dict())
+    set_pending_slot(context.user_data, None)
+    set_state(context.user_data, STATE_PROFILE_CONFIRM)
+    await send_profile_confirmation(update, context)
+
+
+async def apply_fertilizer_changes(update, context, *, target_state: str, changes: dict, use_confirmed: bool) -> None:
+    base_draft = confirmed_fertilizer_draft(context) if use_confirmed else current_fertilizer(context)
+    updated = fertilizer_service.update_draft(base_draft, **changes)
+
+    if target_state == STATE_FERTILIZER_USED and changes.get("used") is False:
+        updated = fertilizer_service.update_draft(
+            updated,
+            kind="",
+            product_name="",
+            amount_value=None,
+            amount_unit="",
+            applied_date="",
+        )
+
+    if use_confirmed:
+        reset_session(context.user_data)
+    set_fertilizer_draft(context.user_data, updated.to_dict())
+    set_state(context.user_data, STATE_FERTILIZER_CONFIRM)
+    await send_fertilizer_confirmation(update, context)
+
+
 async def send_repair_confirmation(
     update,
     context,
@@ -289,12 +406,30 @@ async def send_repair_confirmation(
         text = profile_service.repair_confirmation_text(target_state, catalog)
     else:
         text = fertilizer_service.repair_confirmation_text(target_state, catalog)
-    if candidate_value:
+    parsed_candidate = parse_candidate_changes(domain, target_state, candidate_value)
+    if parsed_candidate is not None and candidate_value:
         text = f"{text}\n\n{catalog.LLM_REPAIR_CANDIDATE_HINT.format(candidate_value=candidate_value)}"
+        set_pending_repair_confirmation(
+            context.user_data,
+            {
+                "domain": domain,
+                "scope": scope,
+                "target_state": target_state,
+                "candidate_value": candidate_value,
+            },
+        )
+    else:
+        set_pending_repair_confirmation(context.user_data, None)
     await send_text(
         update,
         text,
-        keyboard_layout=repair_confirmation_keyboard(domain, scope, target_state, catalog),
+        keyboard_layout=repair_confirmation_keyboard(
+            domain,
+            scope,
+            target_state,
+            catalog,
+            has_candidate=parsed_candidate is not None,
+        ),
     )
 
 
@@ -345,49 +480,6 @@ async def maybe_send_llm_repair_confirmation(
     return True
 
 
-async def apply_profile_direct_update(update, context, resolution, *, use_confirmed: bool) -> None:
-    catalog = current_catalog(context)
-    base_draft = confirmed_profile_draft(context) if use_confirmed else current_profile(context)
-    updated = profile_service.update_draft(base_draft, **resolution.changes)
-
-    if use_confirmed:
-        reset_session(context.user_data)
-    set_profile_draft(context.user_data, updated.to_dict())
-    set_pending_slot(context.user_data, None)
-    set_state(context.user_data, STATE_PROFILE_CONFIRM)
-    await send_text(
-        update,
-        f"{catalog.PROFILE_DIRECT_UPDATE_MESSAGE}\n\n{profile_service.confirmation_text(updated, catalog)}",
-        keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, updated, catalog),
-    )
-
-
-async def apply_fertilizer_direct_update(update, context, resolution, *, use_confirmed: bool) -> None:
-    catalog = current_catalog(context)
-    base_draft = confirmed_fertilizer_draft(context) if use_confirmed else current_fertilizer(context)
-    updated = fertilizer_service.update_draft(base_draft, **resolution.changes)
-
-    if resolution.target_state == STATE_FERTILIZER_USED and resolution.changes.get("used") is False:
-        updated = fertilizer_service.update_draft(
-            updated,
-            kind="",
-            product_name="",
-            amount_value=None,
-            amount_unit="",
-            applied_date="",
-        )
-
-    if use_confirmed:
-        reset_session(context.user_data)
-    set_fertilizer_draft(context.user_data, updated.to_dict())
-    set_state(context.user_data, STATE_FERTILIZER_CONFIRM)
-    await send_text(
-        update,
-        f"{catalog.FERTILIZER_DIRECT_UPDATE_MESSAGE}\n\n{fertilizer_service.confirmation_text(updated, catalog)}",
-        keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_CONFIRM, catalog),
-    )
-
-
 async def finish_profile_edit_if_needed(update, context, edited_state: str) -> bool:
     edit_target = pending_slot(context.user_data)
     if edit_target is None:
@@ -429,6 +521,8 @@ async def finish_profile_edit_if_needed(update, context, edited_state: str) -> b
 def parse_callback_data(data: str) -> tuple[str, dict]:
     if data.startswith("intent:"):
         return data.split(":", 1)[1], {}
+    if data == "repair:candidate:apply":
+        return "repair_candidate_apply", {}
     if data.startswith("repair:confirm:"):
         _, _, domain, scope, target_state = data.split(":", 4)
         return "repair_confirm", {"domain": domain, "scope": scope, "target_state": target_state}
@@ -1108,35 +1202,65 @@ async def button_callback(update, context) -> None:
     if action == "repair_confirm":
         await clear_callback_markup(update)
         reset_recovery_attempts(context.user_data)
+        set_pending_repair_confirmation(context.user_data, None)
         target_state = payload["target_state"]
         use_confirmed = payload["scope"] == "confirmed"
-        if payload["domain"] == "profile":
-            if use_confirmed:
-                if target_state == STATE_PROFILE_EDIT_SELECT:
-                    await open_profile_edit_selector(update, context)
-                else:
-                    await open_profile_target_edit(update, context, target_state)
-                return
-            if target_state == STATE_PROFILE_EDIT_SELECT:
-                await open_current_profile_edit_selector(update, context)
-            else:
-                await open_current_profile_target_edit(update, context, target_state)
+        await continue_repair_flow(
+            update,
+            context,
+            domain=payload["domain"],
+            target_state=target_state,
+            use_confirmed=use_confirmed,
+        )
+        return
+
+    if action == "repair_candidate_apply":
+        await clear_callback_markup(update)
+        reset_recovery_attempts(context.user_data)
+        pending_confirmation = pending_repair_confirmation(context.user_data)
+        set_pending_repair_confirmation(context.user_data, None)
+        if pending_confirmation is None:
+            await send_text(
+                update,
+                service.fallback_text(fallback_key_for_state(current_state(context.user_data)), current_catalog(context)),
+                keyboard_layout=fallback_keyboard_layout_for_state(
+                    current_state(context.user_data),
+                    current_catalog(context),
+                    profile_draft(context.user_data),
+                ),
+            )
             return
 
-        if use_confirmed:
-            if target_state == STATE_FERTILIZER_CONFIRM:
-                await open_fertilizer_edit_selector(update, context)
-            else:
-                await open_fertilizer_target_edit(update, context, target_state)
+        domain = pending_confirmation["domain"]
+        target_state = pending_confirmation["target_state"]
+        use_confirmed = pending_confirmation["scope"] == "confirmed"
+        candidate_value = pending_confirmation.get("candidate_value")
+        changes = parse_candidate_changes(domain, target_state, candidate_value)
+        if changes is None:
+            await continue_repair_flow(
+                update,
+                context,
+                domain=domain,
+                target_state=target_state,
+                use_confirmed=use_confirmed,
+            )
             return
-        if target_state == STATE_FERTILIZER_CONFIRM:
-            await open_current_fertilizer_edit_selector(update, context)
-        else:
-            await open_current_fertilizer_target_edit(update, context, target_state)
+
+        if domain == "profile":
+            await apply_profile_changes(update, context, changes=changes, use_confirmed=use_confirmed)
+            return
+        await apply_fertilizer_changes(
+            update,
+            context,
+            target_state=target_state,
+            changes=changes,
+            use_confirmed=use_confirmed,
+        )
         return
 
     if action == "repair_cancel":
         await clear_callback_markup(update)
+        set_pending_repair_confirmation(context.user_data, None)
         await send_text(
             update,
             service.fallback_text(fallback_key_for_state(current_state(context.user_data)), current_catalog(context)),
