@@ -25,3 +25,9 @@ python -m PROJECT.main
 - `dispatch/*`: 세션 상태 기반 라우팅
 - `conversations/sample_menu/*`: 메뉴 플로우 상태, 키보드, 메시지 조합
 - `i18n/catalogs/ko.py`: 사용자 노출 문구
+
+## 문서
+
+- [`docs/README.md`](./docs/README.md): 프로젝트 내부 문서 인덱스
+- [`docs/STAGE2_RULE_ENGINE.md`](./docs/STAGE2_RULE_ENGINE.md): 2단계 규칙 엔진 구조
+- [`docs/RULE_FIRST_LLM_HANDOFF.md`](./docs/RULE_FIRST_LLM_HANDOFF.md): 3단계 LLM 호출 전제 조건
