@@ -44,6 +44,14 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
                 source=RuleSource.INTENT_RULE,
                 matched_rule=f"command:{command_name}",
             )
+        if command_name == "프로필":
+            canonical_intent = registry.INTENT_PROFILE_EDIT_START if "수정" in collapsed else registry.INTENT_PROFILE_VIEW
+            return IntentDecision(
+                canonical_intent=canonical_intent,
+                current_step=current_step,
+                source=RuleSource.INTENT_RULE,
+                matched_rule="command:/프로필",
+            )
 
     button_intent = BUTTON_TO_INTENT.get(normalized_text)
     if button_intent is not None:

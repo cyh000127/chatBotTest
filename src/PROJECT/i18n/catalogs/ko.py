@@ -68,6 +68,14 @@ FALLBACK_MESSAGES = {
     "profile_followup": "추가 확인이 필요합니다.\n안내된 형식으로 다시 입력하거나 버튼을 눌러주세요.",
     "profile_confirm": "초안이 준비돼 있어요.\n[확인] 또는 [수정]을 선택해주세요.",
 }
+CHEAP_GATE_SUPPORT_MESSAGE = (
+    "사람 상담 또는 운영자 연결 요청으로 이해했습니다.\n"
+    "현재는 실시간 상담 전환이 연결되어 있지 않습니다. /help 또는 /menu 기준으로 다시 진행해주세요."
+)
+CHEAP_GATE_RETRY_LIMIT_MESSAGE = (
+    "입력을 여러 번 이해하지 못했습니다.\n"
+    "현재 단계는 자동 규칙 처리 범위를 벗어났습니다. /menu 또는 /start 로 다시 진행해주세요."
+)
 
 PROFILE_CONFIRMED_MESSAGE = "입력을 확인했습니다.\n현재 세션에 저장해두었어요."
 PROFILE_EDIT_MESSAGE = "수정할 항목을 선택해주세요."

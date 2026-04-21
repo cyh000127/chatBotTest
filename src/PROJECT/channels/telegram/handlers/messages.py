@@ -52,10 +52,13 @@ from PROJECT.dispatch.session_dispatcher import (
     current_state,
     go_back,
     has_confirmed_profile,
+    increment_recovery_attempts,
     is_authenticated,
     pending_slot,
     profile_draft,
+    recovery_attempts,
     reset_session,
+    reset_recovery_attempts,
     set_confirmed_profile,
     set_locale,
     set_pending_slot,
@@ -64,6 +67,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_state,
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
+from PROJECT.rule_engine import ValidationClassification, classify_cheap_gate
 
 PROFILE_STATES = {
     STATE_PROFILE_NAME,
@@ -292,6 +296,7 @@ async def handle_profile_state(update, context, state: str, text: str) -> bool:
 async def text_message(update, context) -> None:
     inbound = parse_update(update)
     state = current_state(context.user_data)
+    session_locale = current_locale(context.user_data)
     if not is_authenticated(context.user_data):
         catalog = current_catalog(context)
         if state == STATE_AUTH_ID_INPUT:
@@ -300,12 +305,31 @@ async def text_message(update, context) -> None:
         await send_text(update, service.auth_required_text(catalog), keyboard_layout=None)
         return
 
+    early_gate = classify_cheap_gate(
+        inbound.text,
+        current_step=state,
+        locale=session_locale,
+    )
+    if early_gate.classification == ValidationClassification.NEEDS_HANDOFF and early_gate.reason in {
+        "explicit_support_request",
+        "manual_handoff_request",
+    }:
+        catalog = current_catalog(context)
+        reset_recovery_attempts(context.user_data)
+        await send_text(
+            update,
+            service.cheap_gate_text(early_gate, fallback_key_for_state(state), catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
     if state == STATE_LANGUAGE_SELECT:
         locale = resolve_language_choice(inbound.text)
         if locale is not None:
             set_locale(context.user_data, locale)
             set_state(context.user_data, STATE_MAIN_MENU)
             catalog = current_catalog(context)
+            reset_recovery_attempts(context.user_data)
             await send_text(
                 update,
                 service.language_changed_text(catalog),
@@ -326,6 +350,7 @@ async def text_message(update, context) -> None:
             if repair.target_state == STATE_PROFILE_EDIT_SELECT:
                 set_pending_slot(context.user_data, None)
                 set_state(context.user_data, STATE_PROFILE_EDIT_SELECT)
+                reset_recovery_attempts(context.user_data)
                 await send_text(
                     update,
                     profile_service.edit_selection_text(current_profile(context), catalog),
@@ -339,6 +364,7 @@ async def text_message(update, context) -> None:
             else:
                 set_pending_slot(context.user_data, None)
             set_state(context.user_data, repair.target_state)
+            reset_recovery_attempts(context.user_data)
             await send_text(
                 update,
                 profile_service.repair_message(repair.target_state, catalog),
@@ -349,24 +375,27 @@ async def text_message(update, context) -> None:
     if state not in PROFILE_STATES and has_confirmed_profile(context.user_data):
         repair = detect_repair_intent(inbound.text)
         if repair is not None:
+            reset_recovery_attempts(context.user_data)
             if repair.target_state == STATE_PROFILE_EDIT_SELECT:
                 await open_profile_edit_selector(update, context)
             else:
                 await open_profile_target_edit(update, context, repair.target_state)
             return
         if detect_profile_view_intent(inbound.text):
+            reset_recovery_attempts(context.user_data)
             await show_current_profile(update, context)
             return
 
     intent, payload = text_to_intent(
         inbound.text,
         current_step=state,
-        locale=current_locale(context.user_data),
+        locale=session_locale,
     )
     decision = route_message(state, intent, payload)
     catalog = current_catalog(context)
 
     if decision.route == ROUTE_HELP:
+        reset_recovery_attempts(context.user_data)
         await send_text(
             update,
             service.help_text(catalog),
@@ -376,6 +405,7 @@ async def text_message(update, context) -> None:
 
     if decision.route == ROUTE_MAIN_MENU:
         reset_session(context.user_data)
+        reset_recovery_attempts(context.user_data)
         await send_text(
             update,
             service.main_menu_text(catalog),
@@ -384,11 +414,13 @@ async def text_message(update, context) -> None:
         return
 
     if decision.route == ROUTE_OPEN_PROFILE:
+        reset_recovery_attempts(context.user_data)
         await start_profile_input(update, context)
         return
 
     if decision.route == ROUTE_CANCEL:
         cancel_session(context.user_data)
+        reset_recovery_attempts(context.user_data)
         await send_text(
             update,
             service.cancel_text(catalog),
@@ -398,6 +430,7 @@ async def text_message(update, context) -> None:
 
     if decision.route == ROUTE_GO_BACK:
         previous_state = go_back(context.user_data)
+        reset_recovery_attempts(context.user_data)
         if previous_state in PROFILE_STATES:
             await send_profile_prompt(update, context, previous_state)
             return
@@ -412,6 +445,7 @@ async def text_message(update, context) -> None:
     if decision.route == ROUTE_PROFILE_EDIT:
         set_state(context.user_data, decision.next_state or STATE_PROFILE_EDIT_SELECT, push_history=decision.push_history)
         set_pending_slot(context.user_data, None)
+        reset_recovery_attempts(context.user_data)
         await send_text(
             update,
             profile_service.edit_text(catalog),
@@ -423,6 +457,7 @@ async def text_message(update, context) -> None:
         set_confirmed_profile(context.user_data, profile_draft(context.user_data))
         set_state(context.user_data, STATE_MAIN_MENU)
         set_pending_slot(context.user_data, None)
+        reset_recovery_attempts(context.user_data)
         await send_text(
             update,
             profile_service.confirmed_text(catalog),
@@ -433,9 +468,11 @@ async def text_message(update, context) -> None:
     if state in PROFILE_STATES:
         handled = await handle_profile_state(update, context, state, inbound.text)
         if handled:
+            reset_recovery_attempts(context.user_data)
             return
 
     if decision.route == ROUTE_SHOW_DATE:
+        reset_recovery_attempts(context.user_data)
         await send_text(
             update,
             service.today_date_text(catalog),
@@ -445,6 +482,7 @@ async def text_message(update, context) -> None:
 
     if decision.route == ROUTE_SHOW_WEATHER_MENU:
         set_state(context.user_data, decision.next_state, push_history=decision.push_history)
+        reset_recovery_attempts(context.user_data)
         await send_text(
             update,
             service.weather_menu_text(catalog),
@@ -460,6 +498,7 @@ async def text_message(update, context) -> None:
             message = service.weather_result_text(snapshot, catalog)
         except httpx.HTTPError:
             message = service.weather_error_text(catalog)
+        reset_recovery_attempts(context.user_data)
         await send_text(
             update,
             message,
@@ -467,9 +506,26 @@ async def text_message(update, context) -> None:
         )
         return
 
+    fallback_key = fallback_key_for_state(current_state(context.user_data))
+    late_gate = classify_cheap_gate(
+        inbound.text,
+        current_step=current_state(context.user_data),
+        locale=current_locale(context.user_data),
+        recovery_attempt_count=recovery_attempts(context.user_data) + 1,
+    )
+    if late_gate.classification == ValidationClassification.NEEDS_HANDOFF:
+        reset_recovery_attempts(context.user_data)
+        await send_text(
+            update,
+            service.cheap_gate_text(late_gate, fallback_key, catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
+    increment_recovery_attempts(context.user_data)
     await send_text(
         update,
-        service.fallback_text(fallback_key_for_state(current_state(context.user_data)), catalog),
+        service.cheap_gate_text(late_gate, fallback_key, catalog),
         keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
     )
 

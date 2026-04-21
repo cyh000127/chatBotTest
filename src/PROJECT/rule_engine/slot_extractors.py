@@ -72,7 +72,7 @@ def extract_korean_name_candidate(
     stopwords = stopwords or PROFILE_NAME_STOPWORDS
     reserved_tokens = reserved_tokens or PROFILE_PLACE_TOKENS
 
-    labeled = re.search(r"이름(?:은|는|이)?\s*([가-힣]{2,4})", text)
+    labeled = re.search(r"이름(?:은|는|이)?\s*([가-힣]{2,4})(?:\s|이고|입니다|이에요|이예요|$)", text)
     if labeled:
         candidate = labeled.group(1)
         return (

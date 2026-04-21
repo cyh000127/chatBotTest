@@ -7,6 +7,7 @@ from PROJECT.rule_engine.contracts import (
     ValidationClassification,
     ValidationResult,
 )
+from PROJECT.rule_engine.cheap_gate import MAX_RECOVERY_ATTEMPTS, classify_cheap_gate
 from PROJECT.rule_engine.aliases import (
     CITY_ALIASES,
     DISTRICT_EXAMPLES_BY_CITY,
@@ -49,6 +50,8 @@ __all__ = [
     "PROFILE_PENDING_DISTRICT_FOR_CITY",
     "PROFILE_PENDING_NAME",
     "PROFILE_PENDING_RESIDENCE",
+    "MAX_RECOVERY_ATTEMPTS",
+    "classify_cheap_gate",
     "classify_global_intent",
     "classify_global_intent_text",
     "classify_step_local_intent",

@@ -68,6 +68,14 @@ FALLBACK_MESSAGES = {
     "profile_followup": "Additional confirmation is needed.\nPlease follow the prompt again.",
     "profile_confirm": "A draft is ready.\nChoose [Confirm] or [Edit].",
 }
+CHEAP_GATE_SUPPORT_MESSAGE = (
+    "This looks like a request for a human operator or support.\n"
+    "Real-time handoff is not connected yet. Please continue with /help or /menu."
+)
+CHEAP_GATE_RETRY_LIMIT_MESSAGE = (
+    "The input could not be resolved after several attempts.\n"
+    "This step is outside the current rule-based scope. Please restart with /menu or /start."
+)
 
 PROFILE_CONFIRMED_MESSAGE = "Input confirmed.\nSaved in the current session."
 PROFILE_EDIT_MESSAGE = "Choose which field you want to edit."

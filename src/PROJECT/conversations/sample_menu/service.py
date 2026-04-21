@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU, STATE_WEATHER_MENU
+from PROJECT.rule_engine.contracts import ValidationResult
 from PROJECT.settings import Settings
 
 KST = timezone(timedelta(hours=9), name="KST")
@@ -79,6 +80,14 @@ def weather_error_text(catalog) -> str:
 
 def fallback_text(key: str, catalog) -> str:
     return catalog.FALLBACK_MESSAGES[key]
+
+
+def cheap_gate_text(result: ValidationResult, fallback_key: str, catalog) -> str:
+    if result.reason in {"explicit_support_request", "manual_handoff_request"}:
+        return catalog.CHEAP_GATE_SUPPORT_MESSAGE
+    if result.reason == "recovery_retry_limit_exceeded":
+        return catalog.CHEAP_GATE_RETRY_LIMIT_MESSAGE
+    return fallback_text(fallback_key, catalog)
 
 
 def unknown_command_text(catalog) -> str:

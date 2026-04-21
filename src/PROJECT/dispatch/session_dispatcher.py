@@ -15,6 +15,7 @@ def _default_session() -> dict:
         "login_id": None,
         "user_name": None,
         "auth_failures": 0,
+        "recovery_attempts": 0,
     }
 
 
@@ -141,3 +142,17 @@ def increment_auth_failures(user_data: dict) -> int:
 
 def reset_auth_failures(user_data: dict) -> None:
     get_session(user_data)["auth_failures"] = 0
+
+
+def recovery_attempts(user_data: dict) -> int:
+    return int(get_session(user_data).get("recovery_attempts", 0))
+
+
+def increment_recovery_attempts(user_data: dict) -> int:
+    session = get_session(user_data)
+    session["recovery_attempts"] = int(session.get("recovery_attempts", 0)) + 1
+    return session["recovery_attempts"]
+
+
+def reset_recovery_attempts(user_data: dict) -> None:
+    get_session(user_data)["recovery_attempts"] = 0
