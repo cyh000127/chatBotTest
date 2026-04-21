@@ -1,13 +1,4 @@
 from PROJECT.canonical_intents import registry
-from PROJECT.conversations.fertilizer_intake.states import (
-    STATE_FERTILIZER_AMOUNT,
-    STATE_FERTILIZER_CONFIRM,
-    STATE_FERTILIZER_DATE,
-    STATE_FERTILIZER_KIND,
-    STATE_FERTILIZER_PRODUCT,
-    STATE_FERTILIZER_USED,
-)
-from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_DAY,
@@ -30,6 +21,7 @@ from PROJECT.conversations.sample_menu.states import (
 )
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.rule_engine.contracts import RecoveryContextDraft, ValidationResult
+from PROJECT.rule_engine.step_schema import render_shared_step_question, shared_step_schema_for_step
 
 
 def assemble_recovery_context(
@@ -47,7 +39,6 @@ def assemble_recovery_context(
     pending_slot: str | None = None,
     selected_city: str | None = None,
 ) -> RecoveryContextDraft:
-    catalog = get_catalog(locale)
     prompt_schema = prompt_schema_for_state(
         current_step,
         locale=locale,
@@ -95,7 +86,19 @@ def prompt_schema_for_state(
 ) -> dict[str, str | tuple[str, ...]]:
     catalog = get_catalog(locale)
     draft = profile_service.draft_from_dict(profile_draft_data)
-    fertilizer_draft = fertilizer_service.draft_from_dict(fertilizer_draft_data)
+    shared_schema = shared_step_schema_for_step(current_step)
+    if shared_schema is not None:
+        question = render_shared_step_question(
+            current_step,
+            locale=locale,
+            context_data={"fertilizer_draft_data": fertilizer_draft_data},
+        )
+        return {
+            "current_question": question or "",
+            "expected_input_type": shared_schema.expected_input_type,
+            "allowed_value_shape": shared_schema.allowed_value_shape,
+            "hard_constraints": shared_schema.hard_constraints,
+        }
 
     if current_step == STATE_AUTH_ID_INPUT:
         return {
@@ -238,66 +241,6 @@ def prompt_schema_for_state(
             "allowed_value_shape": "one_of:name|residence|city|district|birth_date",
             "hard_constraints": (
                 "selected_field_must_be_supported_profile_field",
-            ),
-        }
-
-    if current_step == STATE_FERTILIZER_USED:
-        return {
-            "current_question": catalog.FERTILIZER_USED_PROMPT,
-            "expected_input_type": "binary_yes_no",
-            "allowed_value_shape": "one_of:used|not_used",
-            "hard_constraints": (
-                "fertilizer_usage_flag_required",
-            ),
-        }
-
-    if current_step == STATE_FERTILIZER_KIND:
-        return {
-            "current_question": catalog.FERTILIZER_KIND_PROMPT,
-            "expected_input_type": "fertilizer_kind",
-            "allowed_value_shape": "one_of:compound|urea|compost|liquid",
-            "hard_constraints": (
-                "fertilizer_kind_must_be_supported",
-            ),
-        }
-
-    if current_step == STATE_FERTILIZER_PRODUCT:
-        return {
-            "current_question": catalog.FERTILIZER_PRODUCT_PROMPT,
-            "expected_input_type": "product_name",
-            "allowed_value_shape": "free_text_product_name",
-            "hard_constraints": (
-                "product_name_required_before_amount",
-            ),
-        }
-
-    if current_step == STATE_FERTILIZER_AMOUNT:
-        return {
-            "current_question": catalog.FERTILIZER_AMOUNT_PROMPT,
-            "expected_input_type": "amount_with_unit",
-            "allowed_value_shape": "supported_amount_unit_pair",
-            "hard_constraints": (
-                "amount_requires_supported_unit",
-            ),
-        }
-
-    if current_step == STATE_FERTILIZER_DATE:
-        return {
-            "current_question": catalog.FERTILIZER_DATE_PROMPT,
-            "expected_input_type": "applied_date",
-            "allowed_value_shape": "absolute_or_limited_relative_date",
-            "hard_constraints": (
-                "applied_date_required_before_confirm",
-            ),
-        }
-
-    if current_step == STATE_FERTILIZER_CONFIRM:
-        return {
-            "current_question": fertilizer_service.confirmation_text(fertilizer_draft, catalog),
-            "expected_input_type": "confirmation_action",
-            "allowed_value_shape": "one_of:confirm|back|cancel",
-            "hard_constraints": (
-                "fertilizer_entry_must_be_reviewed_before_finalize",
             ),
         }
 

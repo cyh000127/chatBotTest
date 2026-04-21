@@ -1,0 +1,5 @@
+STATE_YIELD_READY = "yield_ready"
+STATE_YIELD_FIELD = "yield_field"
+STATE_YIELD_AMOUNT = "yield_amount"
+STATE_YIELD_DATE = "yield_date"
+STATE_YIELD_CONFIRM = "yield_confirm"

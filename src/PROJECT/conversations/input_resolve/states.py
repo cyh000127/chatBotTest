@@ -1,0 +1,5 @@
+STATE_INPUT_RESOLVE_TARGET = "input_resolve_target"
+STATE_INPUT_RESOLVE_METHOD = "input_resolve_method"
+STATE_INPUT_RESOLVE_RAW_INPUT = "input_resolve_raw_input"
+STATE_INPUT_RESOLVE_CANDIDATES = "input_resolve_candidates"
+STATE_INPUT_RESOLVE_DECISION = "input_resolve_decision"

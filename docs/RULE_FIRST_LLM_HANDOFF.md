@@ -88,4 +88,10 @@ LLM 호출 전에 아래 입력은 규칙으로 먼저 닫는다.
 - profile draft와 선택 상태를 `recent_messages_summary`로 요약
 - handoff 직전에 세션에 마지막 recovery context 저장
 
+현재 기준으로 shared step schema는 아래 수준까지 구현되어 있다.
+
+- `fertilizer` step schema를 공통 registry로 정의
+- `yield` step schema를 flow 구현 전 상태로 선반영
+- `input.resolve` step schema를 shared resolution subflow 기준으로 정의
+
 즉 지금은 “LLM을 붙이는 작업”이 아니라 “LLM 없이도 최대한 버티는 규칙 엔진을 만드는 작업”이다.

@@ -131,6 +131,16 @@ FERTILIZER_AMOUNT_FALLBACK = "사용량을 다시 입력해주세요.\n예: 20kg
 FERTILIZER_DATE_FALLBACK = "사용일을 다시 입력해주세요.\n예: 2026-04-21, 오늘, 어제"
 FERTILIZER_CONFIRM_FALLBACK = "[확인]을 누르거나 뒤로가기로 수정해주세요."
 FERTILIZER_CONFIRMED_MESSAGE = "비료 입력을 저장용 초안으로 확인했습니다.\n현재 세션에 보관해두었어요."
+YIELD_READY_PROMPT = "수확 준비가 되었나요?"
+YIELD_FIELD_PROMPT = "수확한 필드를 선택하거나 입력해주세요."
+YIELD_AMOUNT_PROMPT = "수확량을 입력해주세요.\n예: 320kg"
+YIELD_DATE_PROMPT = "수확일을 입력해주세요.\n예: 2026-04-21, 오늘, 어제"
+YIELD_CONFIRM_PROMPT = "수확 입력 내용을 확인해주세요."
+INPUT_RESOLVE_TARGET_PROMPT = "어떤 값을 확정해야 하는지 선택해주세요."
+INPUT_RESOLVE_METHOD_PROMPT = "입력 방식을 선택해주세요.\n텍스트 입력, OCR 이미지, 다시 시도 중 하나로 진행합니다."
+INPUT_RESOLVE_RAW_INPUT_PROMPT = "확정할 원문을 입력하거나 제출해주세요."
+INPUT_RESOLVE_CANDIDATES_PROMPT = "후보를 확인하고 1~3번 중 선택하거나 다시 입력해주세요."
+INPUT_RESOLVE_DECISION_PROMPT = "후보 확정, 다시 시도, 운영 검토 중 하나를 선택해주세요."
 
 
 def format_profile_confirmation(

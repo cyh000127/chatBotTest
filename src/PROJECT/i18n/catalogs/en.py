@@ -131,6 +131,16 @@ FERTILIZER_AMOUNT_FALLBACK = "Please enter the amount again.\nExample: 20kg, one
 FERTILIZER_DATE_FALLBACK = "Please enter the date again.\nExample: 2026-04-21, today, yesterday"
 FERTILIZER_CONFIRM_FALLBACK = "Press [Confirm] or go back to change it."
 FERTILIZER_CONFIRMED_MESSAGE = "The fertilizer entry has been saved as a session draft."
+YIELD_READY_PROMPT = "Is the harvest ready?"
+YIELD_FIELD_PROMPT = "Select or enter the harvested field."
+YIELD_AMOUNT_PROMPT = "Enter the harvest amount.\nExample: 320kg"
+YIELD_DATE_PROMPT = "Enter the harvest date.\nExample: 2026-04-21, today, yesterday"
+YIELD_CONFIRM_PROMPT = "Please confirm the yield entry."
+INPUT_RESOLVE_TARGET_PROMPT = "Choose which value needs canonical resolution."
+INPUT_RESOLVE_METHOD_PROMPT = "Choose the input method.\nContinue with typed text, OCR image, or retry."
+INPUT_RESOLVE_RAW_INPUT_PROMPT = "Enter or submit the raw text to resolve."
+INPUT_RESOLVE_CANDIDATES_PROMPT = "Review the candidates and choose 1-3, or retry."
+INPUT_RESOLVE_DECISION_PROMPT = "Choose resolved, retry, or manual review."
 
 
 def format_profile_confirmation(
