@@ -10,6 +10,8 @@ BUTTON_CANCEL = "취소"
 BUTTON_RESTART = "처음부터"
 BUTTON_CONFIRM = "확인"
 BUTTON_EDIT = "수정"
+BUTTON_EDIT_START = "수정 시작"
+BUTTON_KEEP_CURRENT = "그대로 둘래요"
 BUTTON_YES = "예"
 BUTTON_NO = "아니오"
 BUTTON_EDIT_NAME = "이름"
@@ -94,6 +96,7 @@ CHEAP_GATE_RETRY_LIMIT_MESSAGE = (
 
 PROFILE_CONFIRMED_MESSAGE = "입력을 확인했습니다.\n현재 세션에 저장해두었어요."
 PROFILE_EDIT_MESSAGE = "수정할 항목을 선택해주세요."
+PROFILE_EDIT_SELECTION_CONFIRMATION_MESSAGE = "프로필에서 수정할 항목을 다시 선택하시려는 거죠?\n[{edit_button}]을 누르면 수정 항목 선택 화면을 열게요."
 PROFILE_NOT_FOUND_MESSAGE = "아직 저장된 프로필이 없습니다.\n먼저 프로필 입력을 완료해주세요."
 PROFILE_NAME_PROMPT = "이름을 입력해주세요."
 PROFILE_RESIDENCE_PROMPT = "거주지를 입력해주세요."
@@ -137,6 +140,8 @@ FERTILIZER_AMOUNT_FALLBACK = "사용량을 다시 입력해주세요.\n예: 20kg
 FERTILIZER_DATE_FALLBACK = "사용일을 다시 입력해주세요.\n예: 2026-04-21, 오늘, 어제"
 FERTILIZER_CONFIRM_FALLBACK = "[확인]을 누르거나 뒤로가기로 수정해주세요."
 FERTILIZER_CONFIRMED_MESSAGE = "비료 입력을 저장용 초안으로 확인했습니다.\n현재 세션에 보관해두었어요."
+FERTILIZER_EDIT_MESSAGE = "수정할 비료 항목을 선택해주세요."
+FERTILIZER_EDIT_SELECTION_CONFIRMATION_MESSAGE = "비료 입력에서 수정할 항목을 다시 선택하시려는 거죠?\n[{edit_button}]을 누르면 수정 항목 선택 화면을 열게요."
 FERTILIZER_NOT_FOUND_MESSAGE = "아직 저장된 비료 입력이 없습니다.\n먼저 비료 입력을 완료해주세요."
 FERTILIZER_REPAIR_USED_MESSAGE = "비료 사용 여부부터 다시 입력할게요."
 FERTILIZER_REPAIR_KIND_MESSAGE = "비료 유형을 다시 입력할게요."
@@ -172,6 +177,13 @@ def format_profile_confirmation(
         f"- 구/군/시: {district}\n"
         f"- 생년월일: {birth_date}\n"
         "\n맞으면 [확인], 수정하려면 [수정]을 눌러주세요."
+    )
+
+
+def format_repair_confirmation(*, field_label: str, edit_button: str) -> str:
+    return (
+        f"{field_label} 항목을 수정하시려는 거죠?\n"
+        f"[{edit_button}]을 누르면 해당 항목을 다시 입력받을게요."
     )
 
 
@@ -215,6 +227,29 @@ def format_fertilizer_confirmation(
         f"- 사용량: {amount_text}\n"
         f"- 사용일: {applied_date}\n\n"
         "맞으면 [확인]을 눌러주세요."
+    )
+
+
+def format_fertilizer_summary(
+    *,
+    used: bool | None,
+    kind_label: str,
+    product_name: str,
+    amount_text: str,
+    applied_date: str,
+) -> str:
+    if used is False:
+        return (
+            "현재 저장된 비료 입력입니다.\n"
+            "- 비료 사용 여부: 사용 안 함"
+        )
+    return (
+        "현재 저장된 비료 입력입니다.\n"
+        f"- 비료 사용 여부: {'사용함' if used else '-'}\n"
+        f"- 비료 유형: {kind_label}\n"
+        f"- 제품명: {product_name}\n"
+        f"- 사용량: {amount_text}\n"
+        f"- 사용일: {applied_date}"
     )
 
 WEATHER_CODE_LABELS = {

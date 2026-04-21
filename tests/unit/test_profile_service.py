@@ -64,3 +64,10 @@ def test_edit_select_keyboard_contains_profile_fields():
     assert ko.BUTTON_EDIT_CITY in labels
     assert ko.BUTTON_EDIT_DISTRICT in labels
     assert ko.BUTTON_EDIT_BIRTH_DATE in labels
+
+
+def test_profile_repair_confirmation_text_mentions_target_field():
+    text = service.repair_confirmation_text(STATE_PROFILE_NAME, ko)
+
+    assert ko.BUTTON_EDIT_NAME in text
+    assert ko.BUTTON_EDIT_START in text

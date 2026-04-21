@@ -41,3 +41,23 @@ def test_fertilizer_confirmation_text_formats_summary():
     assert "한아름 복합비료" in text
     assert "20 kg" in text
     assert "2026-04-21" in text
+
+
+def test_fertilizer_edit_selection_text_and_repair_confirmation():
+    draft = service.update_draft(
+        service.new_draft(),
+        used=True,
+        kind="compound",
+        product_name="한아름 복합비료",
+        amount_value=20.0,
+        amount_unit="kg",
+        applied_date="2026-04-21",
+    )
+
+    summary = service.edit_selection_text(draft, ko)
+    confirmation = service.repair_confirmation_text(STATE_FERTILIZER_KIND, ko)
+
+    assert ko.FERTILIZER_EDIT_MESSAGE in summary
+    assert "한아름 복합비료" in summary
+    assert ko.BUTTON_FERTILIZER_EDIT_KIND in confirmation
+    assert ko.BUTTON_EDIT_START in confirmation

@@ -10,6 +10,8 @@ BUTTON_CANCEL = "Cancel"
 BUTTON_RESTART = "Start over"
 BUTTON_CONFIRM = "Confirm"
 BUTTON_EDIT = "Edit"
+BUTTON_EDIT_START = "Start edit"
+BUTTON_KEEP_CURRENT = "Keep current"
 BUTTON_YES = "Yes"
 BUTTON_NO = "No"
 BUTTON_EDIT_NAME = "Name"
@@ -94,6 +96,7 @@ CHEAP_GATE_RETRY_LIMIT_MESSAGE = (
 
 PROFILE_CONFIRMED_MESSAGE = "Input confirmed.\nSaved in the current session."
 PROFILE_EDIT_MESSAGE = "Choose which field you want to edit."
+PROFILE_EDIT_SELECTION_CONFIRMATION_MESSAGE = "You want to choose which profile field to edit again, right?\nPress [{edit_button}] and I will open the edit selection screen."
 PROFILE_NOT_FOUND_MESSAGE = "There is no saved profile yet.\nPlease complete profile input first."
 PROFILE_NAME_PROMPT = "Please enter your name."
 PROFILE_RESIDENCE_PROMPT = "Please enter your residence."
@@ -137,6 +140,8 @@ FERTILIZER_AMOUNT_FALLBACK = "Please enter the amount again.\nExample: 20kg, one
 FERTILIZER_DATE_FALLBACK = "Please enter the date again.\nExample: 2026-04-21, today, yesterday"
 FERTILIZER_CONFIRM_FALLBACK = "Press [Confirm] or go back to change it."
 FERTILIZER_CONFIRMED_MESSAGE = "The fertilizer entry has been saved as a session draft."
+FERTILIZER_EDIT_MESSAGE = "Choose which fertilizer field to edit."
+FERTILIZER_EDIT_SELECTION_CONFIRMATION_MESSAGE = "You want to choose which fertilizer field to edit again, right?\nPress [{edit_button}] and I will open the edit selection screen."
 FERTILIZER_NOT_FOUND_MESSAGE = "There is no saved fertilizer entry yet.\nPlease complete fertilizer input first."
 FERTILIZER_REPAIR_USED_MESSAGE = "Let's re-enter whether fertilizer was used."
 FERTILIZER_REPAIR_KIND_MESSAGE = "Let's re-enter the fertilizer type."
@@ -172,6 +177,13 @@ def format_profile_confirmation(
         f"- District/County/City: {district}\n"
         f"- Birth date: {birth_date}\n"
         "\nChoose [Confirm] if correct, or [Edit] to change it."
+    )
+
+
+def format_repair_confirmation(*, field_label: str, edit_button: str) -> str:
+    return (
+        f"You want to edit the {field_label} field, right?\n"
+        f"Press [{edit_button}] and I will ask for that value again."
     )
 
 
@@ -215,6 +227,29 @@ def format_fertilizer_confirmation(
         f"- Amount: {amount_text}\n"
         f"- Applied date: {applied_date}\n\n"
         "Press [Confirm] if this is correct."
+    )
+
+
+def format_fertilizer_summary(
+    *,
+    used: bool | None,
+    kind_label: str,
+    product_name: str,
+    amount_text: str,
+    applied_date: str,
+) -> str:
+    if used is False:
+        return (
+            "Here is the saved fertilizer entry.\n"
+            "- Fertilizer used: No"
+        )
+    return (
+        "Here is the saved fertilizer entry.\n"
+        f"- Fertilizer used: {'Yes' if used else '-'}\n"
+        f"- Type: {kind_label}\n"
+        f"- Product: {product_name}\n"
+        f"- Amount: {amount_text}\n"
+        f"- Applied date: {applied_date}"
     )
 
 

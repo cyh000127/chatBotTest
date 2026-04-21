@@ -160,6 +160,20 @@ def confirmation_text(draft: FertilizerDraft, catalog) -> str:
     )
 
 
+def summary_text(draft: FertilizerDraft, catalog) -> str:
+    return catalog.format_fertilizer_summary(
+        used=draft.used,
+        kind_label=catalog.FERTILIZER_KIND_LABELS.get(draft.kind, draft.kind or "-"),
+        product_name=draft.product_name or "-",
+        amount_text=format_amount(draft),
+        applied_date=draft.applied_date or "-",
+    )
+
+
+def edit_selection_text(draft: FertilizerDraft, catalog) -> str:
+    return f"{summary_text(draft, catalog)}\n\n{catalog.FERTILIZER_EDIT_MESSAGE}"
+
+
 def confirmed_text(catalog) -> str:
     return catalog.FERTILIZER_CONFIRMED_MESSAGE
 
@@ -212,6 +226,21 @@ def repair_message(target_state: str, catalog) -> str:
         STATE_FERTILIZER_DATE: catalog.FERTILIZER_REPAIR_DATE_MESSAGE,
     }
     return mapping.get(target_state, catalog.FERTILIZER_USED_PROMPT)
+
+
+def repair_confirmation_text(target_state: str, catalog) -> str:
+    if target_state == STATE_FERTILIZER_CONFIRM:
+        return catalog.FERTILIZER_EDIT_SELECTION_CONFIRMATION_MESSAGE.format(edit_button=catalog.BUTTON_EDIT_START)
+
+    field_labels = {
+        STATE_FERTILIZER_USED: catalog.BUTTON_FERTILIZER_EDIT_USED,
+        STATE_FERTILIZER_KIND: catalog.BUTTON_FERTILIZER_EDIT_KIND,
+        STATE_FERTILIZER_PRODUCT: catalog.BUTTON_FERTILIZER_EDIT_PRODUCT,
+        STATE_FERTILIZER_AMOUNT: catalog.BUTTON_FERTILIZER_EDIT_AMOUNT,
+        STATE_FERTILIZER_DATE: catalog.BUTTON_FERTILIZER_EDIT_DATE,
+    }
+    field_label = field_labels.get(target_state, catalog.BUTTON_EDIT)
+    return catalog.format_repair_confirmation(field_label=field_label, edit_button=catalog.BUTTON_EDIT_START)
 
 
 def fallback_text_for_state(state: str, catalog) -> str:

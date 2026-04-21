@@ -1,7 +1,8 @@
 from PROJECT.auth.service import authenticate_login_id
 from PROJECT.adapters.outbound.reply_sender import send_text
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
-from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_USED
+from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
+from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_USED
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_EDIT_SELECT, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu import service
@@ -147,6 +148,28 @@ async def open_fertilizer_target_edit(update, context, target_state: str) -> boo
         update,
         fertilizer_service.repair_message(target_state, catalog),
         keyboard_layout=fertilizer_service.keyboard_for_state(target_state, catalog),
+    )
+    return True
+
+
+async def open_fertilizer_edit_selector(update, context) -> bool:
+    catalog = catalog_for(context)
+    if not has_confirmed_fertilizer(context.user_data):
+        await send_text(
+            update,
+            fertilizer_service.no_fertilizer_text(catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return False
+
+    confirmed = fertilizer_service.draft_from_dict(confirmed_fertilizer(context.user_data))
+    reset_session(context.user_data)
+    set_fertilizer_draft(context.user_data, confirmed.to_dict())
+    set_state(context.user_data, STATE_FERTILIZER_CONFIRM)
+    await send_text(
+        update,
+        fertilizer_service.edit_selection_text(confirmed, catalog),
+        keyboard_layout=fertilizer_keyboards.fertilizer_edit_select_keyboard(catalog),
     )
     return True
 

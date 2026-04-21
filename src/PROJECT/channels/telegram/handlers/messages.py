@@ -9,6 +9,7 @@ from PROJECT.channels.telegram.handlers.commands import (
     attempt_auth,
     cancel_command,
     help_command,
+    open_fertilizer_edit_selector,
     menu_command,
     open_fertilizer_target_edit,
     open_profile_edit_selector,
@@ -18,6 +19,7 @@ from PROJECT.channels.telegram.handlers.commands import (
     start_profile_input,
 )
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
+from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
 from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_AMOUNT,
     STATE_FERTILIZER_CONFIRM,
@@ -39,7 +41,11 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_RESIDENCE,
 )
 from PROJECT.conversations.sample_menu import service
-from PROJECT.conversations.sample_menu.keyboards import fallback_keyboard_layout_for_state, keyboard_layout_for_state
+from PROJECT.conversations.sample_menu.keyboards import (
+    fallback_keyboard_layout_for_state,
+    keyboard_layout_for_state,
+    repair_confirmation_keyboard,
+)
 from PROJECT.conversations.sample_menu.states import STATE_AUTH_ID_INPUT, STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.dispatch.command_router import (
     ROUTE_CANCEL,
@@ -191,6 +197,68 @@ async def send_fertilizer_confirmation(update, context) -> None:
     )
 
 
+async def open_current_profile_edit_selector(update, context) -> None:
+    catalog = current_catalog(context)
+    set_pending_slot(context.user_data, None)
+    set_state(context.user_data, STATE_PROFILE_EDIT_SELECT)
+    await send_text(
+        update,
+        profile_service.edit_selection_text(current_profile(context), catalog),
+        keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_EDIT_SELECT, current_profile(context), catalog),
+    )
+
+
+async def open_current_profile_target_edit(update, context, target_state: str) -> None:
+    catalog = current_catalog(context)
+    draft = profile_service.reset_draft_for_repair(current_profile(context), target_state)
+    set_profile_draft(context.user_data, draft.to_dict())
+    if current_state(context.user_data) in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}:
+        set_pending_slot(context.user_data, target_state)
+    else:
+        set_pending_slot(context.user_data, None)
+    set_state(context.user_data, target_state)
+    await send_text(
+        update,
+        profile_service.repair_message(target_state, catalog),
+        keyboard_layout=profile_service.keyboard_for_state(target_state, draft, catalog),
+    )
+
+
+async def open_current_fertilizer_edit_selector(update, context) -> None:
+    catalog = current_catalog(context)
+    set_state(context.user_data, STATE_FERTILIZER_CONFIRM)
+    await send_text(
+        update,
+        fertilizer_service.edit_selection_text(current_fertilizer(context), catalog),
+        keyboard_layout=fertilizer_keyboards.fertilizer_edit_select_keyboard(catalog),
+    )
+
+
+async def open_current_fertilizer_target_edit(update, context, target_state: str) -> None:
+    draft = fertilizer_service.reset_draft_for_repair(current_fertilizer(context), target_state)
+    set_fertilizer_draft(context.user_data, draft.to_dict())
+    set_state(context.user_data, target_state)
+    await send_text(
+        update,
+        fertilizer_service.repair_message(target_state, current_catalog(context)),
+        keyboard_layout=fertilizer_service.keyboard_for_state(target_state, current_catalog(context)),
+    )
+
+
+async def send_repair_confirmation(update, context, *, domain: str, target_state: str, use_confirmed: bool) -> None:
+    catalog = current_catalog(context)
+    scope = "confirmed" if use_confirmed else "draft"
+    if domain == "profile":
+        text = profile_service.repair_confirmation_text(target_state, catalog)
+    else:
+        text = fertilizer_service.repair_confirmation_text(target_state, catalog)
+    await send_text(
+        update,
+        text,
+        keyboard_layout=repair_confirmation_keyboard(domain, scope, target_state, catalog),
+    )
+
+
 async def apply_profile_direct_update(update, context, resolution, *, use_confirmed: bool) -> None:
     catalog = current_catalog(context)
     base_draft = confirmed_profile_draft(context) if use_confirmed else current_profile(context)
@@ -275,6 +343,11 @@ async def finish_profile_edit_if_needed(update, context, edited_state: str) -> b
 def parse_callback_data(data: str) -> tuple[str, dict]:
     if data.startswith("intent:"):
         return data.split(":", 1)[1], {}
+    if data.startswith("repair:confirm:"):
+        _, _, domain, scope, target_state = data.split(":", 4)
+        return "repair_confirm", {"domain": domain, "scope": scope, "target_state": target_state}
+    if data == "repair:cancel":
+        return "repair_cancel", {}
     if data.startswith("city:"):
         return registry.INTENT_SELECT_CITY, {"city": data.split(":", 1)[1]}
     if data.startswith("language:"):
@@ -553,34 +626,24 @@ async def text_message(update, context) -> None:
         )
         if profile_direct_update is not None:
             reset_recovery_attempts(context.user_data)
-            await apply_profile_direct_update(update, context, profile_direct_update, use_confirmed=False)
+            await send_repair_confirmation(
+                update,
+                context,
+                domain="profile",
+                target_state=profile_direct_update.target_state,
+                use_confirmed=False,
+            )
             return
 
         repair = detect_repair_intent(inbound.text)
-        if repair is not None:
-            catalog = current_catalog(context)
-            if repair.target_state == STATE_PROFILE_EDIT_SELECT:
-                set_pending_slot(context.user_data, None)
-                set_state(context.user_data, STATE_PROFILE_EDIT_SELECT)
-                reset_recovery_attempts(context.user_data)
-                await send_text(
-                    update,
-                    profile_service.edit_selection_text(current_profile(context), catalog),
-                    keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_EDIT_SELECT, current_profile(context), catalog),
-                )
-                return
-            draft = profile_service.reset_draft_for_repair(current_profile(context), repair.target_state)
-            set_profile_draft(context.user_data, draft.to_dict())
-            if state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}:
-                set_pending_slot(context.user_data, repair.target_state)
-            else:
-                set_pending_slot(context.user_data, None)
-            set_state(context.user_data, repair.target_state)
+        if repair is not None and repair.target_state in PROFILE_STATES:
             reset_recovery_attempts(context.user_data)
-            await send_text(
+            await send_repair_confirmation(
                 update,
-                profile_service.repair_message(repair.target_state, catalog),
-                keyboard_layout=profile_service.keyboard_for_state(repair.target_state, draft, catalog),
+                context,
+                domain="profile",
+                target_state=repair.target_state,
+                use_confirmed=False,
             )
             return
 
@@ -591,19 +654,24 @@ async def text_message(update, context) -> None:
         )
         if fertilizer_direct_update is not None:
             reset_recovery_attempts(context.user_data)
-            await apply_fertilizer_direct_update(update, context, fertilizer_direct_update, use_confirmed=False)
+            await send_repair_confirmation(
+                update,
+                context,
+                domain="fertilizer",
+                target_state=fertilizer_direct_update.target_state,
+                use_confirmed=False,
+            )
             return
 
         repair = detect_repair_intent(inbound.text)
         if repair is not None and repair.target_state in FERTILIZER_STATES:
-            draft = fertilizer_service.reset_draft_for_repair(current_fertilizer(context), repair.target_state)
-            set_fertilizer_draft(context.user_data, draft.to_dict())
-            set_state(context.user_data, repair.target_state)
             reset_recovery_attempts(context.user_data)
-            await send_text(
+            await send_repair_confirmation(
                 update,
-                fertilizer_service.repair_message(repair.target_state, current_catalog(context)),
-                keyboard_layout=fertilizer_service.keyboard_for_state(repair.target_state, current_catalog(context)),
+                context,
+                domain="fertilizer",
+                target_state=repair.target_state,
+                use_confirmed=False,
             )
             return
 
@@ -611,16 +679,25 @@ async def text_message(update, context) -> None:
         profile_direct_update = detect_profile_direct_update(inbound.text, allow_implicit=True)
         if profile_direct_update is not None:
             reset_recovery_attempts(context.user_data)
-            await apply_profile_direct_update(update, context, profile_direct_update, use_confirmed=True)
+            await send_repair_confirmation(
+                update,
+                context,
+                domain="profile",
+                target_state=profile_direct_update.target_state,
+                use_confirmed=True,
+            )
             return
 
         repair = detect_repair_intent(inbound.text)
-        if repair is not None:
+        if repair is not None and repair.target_state in PROFILE_STATES:
             reset_recovery_attempts(context.user_data)
-            if repair.target_state == STATE_PROFILE_EDIT_SELECT:
-                await open_profile_edit_selector(update, context)
-            else:
-                await open_profile_target_edit(update, context, repair.target_state)
+            await send_repair_confirmation(
+                update,
+                context,
+                domain="profile",
+                target_state=repair.target_state,
+                use_confirmed=True,
+            )
             return
         if detect_profile_view_intent(inbound.text):
             reset_recovery_attempts(context.user_data)
@@ -631,13 +708,25 @@ async def text_message(update, context) -> None:
         fertilizer_direct_update = detect_fertilizer_direct_update(inbound.text, allow_implicit=True)
         if fertilizer_direct_update is not None:
             reset_recovery_attempts(context.user_data)
-            await apply_fertilizer_direct_update(update, context, fertilizer_direct_update, use_confirmed=True)
+            await send_repair_confirmation(
+                update,
+                context,
+                domain="fertilizer",
+                target_state=fertilizer_direct_update.target_state,
+                use_confirmed=True,
+            )
             return
 
         repair = detect_repair_intent(inbound.text)
         if repair is not None and repair.target_state in FERTILIZER_STATES:
             reset_recovery_attempts(context.user_data)
-            await open_fertilizer_target_edit(update, context, repair.target_state)
+            await send_repair_confirmation(
+                update,
+                context,
+                domain="fertilizer",
+                target_state=repair.target_state,
+                use_confirmed=True,
+            )
             return
 
     intent, payload = text_to_intent(
@@ -849,6 +938,49 @@ async def button_callback(update, context) -> None:
             update,
             service.language_changed_text(catalog),
             keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
+    if action == "repair_confirm":
+        await clear_callback_markup(update)
+        reset_recovery_attempts(context.user_data)
+        target_state = payload["target_state"]
+        use_confirmed = payload["scope"] == "confirmed"
+        if payload["domain"] == "profile":
+            if use_confirmed:
+                if target_state == STATE_PROFILE_EDIT_SELECT:
+                    await open_profile_edit_selector(update, context)
+                else:
+                    await open_profile_target_edit(update, context, target_state)
+                return
+            if target_state == STATE_PROFILE_EDIT_SELECT:
+                await open_current_profile_edit_selector(update, context)
+            else:
+                await open_current_profile_target_edit(update, context, target_state)
+            return
+
+        if use_confirmed:
+            if target_state == STATE_FERTILIZER_CONFIRM:
+                await open_fertilizer_edit_selector(update, context)
+            else:
+                await open_fertilizer_target_edit(update, context, target_state)
+            return
+        if target_state == STATE_FERTILIZER_CONFIRM:
+            await open_current_fertilizer_edit_selector(update, context)
+        else:
+            await open_current_fertilizer_target_edit(update, context, target_state)
+        return
+
+    if action == "repair_cancel":
+        await clear_callback_markup(update)
+        await send_text(
+            update,
+            service.fallback_text(fallback_key_for_state(current_state(context.user_data)), current_catalog(context)),
+            keyboard_layout=fallback_keyboard_layout_for_state(
+                current_state(context.user_data),
+                current_catalog(context),
+                profile_draft(context.user_data),
+            ),
         )
         return
 
@@ -1083,11 +1215,23 @@ async def unknown_command(update, context) -> None:
         return
     inbound = parse_update(update)
     repair = detect_repair_intent(inbound.text)
-    if has_confirmed_profile(context.user_data) and repair is not None:
-        if repair.target_state == STATE_PROFILE_EDIT_SELECT:
-            await open_profile_edit_selector(update, context)
-        else:
-            await open_profile_target_edit(update, context, repair.target_state)
+    if has_confirmed_profile(context.user_data) and repair is not None and repair.target_state in PROFILE_STATES:
+        await send_repair_confirmation(
+            update,
+            context,
+            domain="profile",
+            target_state=repair.target_state,
+            use_confirmed=True,
+        )
+        return
+    if has_confirmed_fertilizer(context.user_data) and repair is not None and repair.target_state in FERTILIZER_STATES:
+        await send_repair_confirmation(
+            update,
+            context,
+            domain="fertilizer",
+            target_state=repair.target_state,
+            use_confirmed=True,
+        )
         return
     if detect_profile_view_intent(inbound.text):
         await show_current_profile(update, context)

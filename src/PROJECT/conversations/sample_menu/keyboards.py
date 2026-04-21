@@ -66,6 +66,13 @@ def cancelled_keyboard(catalog) -> list[list[dict[str, str]]]:
     ]]
 
 
+def repair_confirmation_keyboard(domain: str, scope: str, target_state: str, catalog) -> list[list[dict[str, str]]]:
+    return [
+        [_button(catalog.BUTTON_EDIT_START, f"repair:confirm:{domain}:{scope}:{target_state}")],
+        [_button(catalog.BUTTON_KEEP_CURRENT, "repair:cancel")],
+    ]
+
+
 def fallback_keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) -> list[list[dict[str, str]]]:
     if state == STATE_WEATHER_MENU:
         return weather_menu_keyboard(catalog)

@@ -202,6 +202,21 @@ def edit_text(catalog) -> str:
     return catalog.PROFILE_EDIT_MESSAGE
 
 
+def repair_confirmation_text(target_state: str, catalog) -> str:
+    if target_state == STATE_PROFILE_EDIT_SELECT:
+        return catalog.PROFILE_EDIT_SELECTION_CONFIRMATION_MESSAGE.format(edit_button=catalog.BUTTON_EDIT_START)
+
+    field_labels = {
+        STATE_PROFILE_NAME: catalog.BUTTON_EDIT_NAME,
+        STATE_PROFILE_RESIDENCE: catalog.BUTTON_EDIT_RESIDENCE,
+        STATE_PROFILE_CITY: catalog.BUTTON_EDIT_CITY,
+        STATE_PROFILE_DISTRICT: catalog.BUTTON_EDIT_DISTRICT,
+        STATE_PROFILE_BIRTH_YEAR: catalog.BUTTON_EDIT_BIRTH_DATE,
+    }
+    field_label = field_labels.get(target_state, catalog.BUTTON_EDIT)
+    return catalog.format_repair_confirmation(field_label=field_label, edit_button=catalog.BUTTON_EDIT_START)
+
+
 def fallback_text_for_state(state: str, catalog) -> str:
     mapping = {
         STATE_PROFILE_NAME: catalog.PROFILE_NAME_FALLBACK,

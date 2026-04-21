@@ -1,5 +1,5 @@
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
-from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT, STATE_FERTILIZER_USED
+from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT, STATE_FERTILIZER_CONFIRM
 from PROJECT.conversations.profile_intake import service
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
@@ -32,7 +32,7 @@ def test_detect_generic_profile_repair_intent():
 def test_detect_generic_fertilizer_repair_intent():
     decision = detect_repair_intent("아 비료 잘못씀")
     assert decision is not None
-    assert decision.target_state == STATE_FERTILIZER_USED
+    assert decision.target_state == STATE_FERTILIZER_CONFIRM
 
 
 def test_detect_fertilizer_amount_repair_intent():
