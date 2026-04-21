@@ -361,13 +361,31 @@ async def continue_repair_flow(update, context, *, domain: str, target_state: st
 async def apply_profile_changes(update, context, *, changes: dict, use_confirmed: bool) -> None:
     base_draft = confirmed_profile_draft(context) if use_confirmed else current_profile(context)
     updated = profile_service.update_draft(base_draft, **changes)
+    target_state = next(iter(changes.keys()), "")
+    state_by_change = {
+        "name": STATE_PROFILE_NAME,
+        "residence": STATE_PROFILE_RESIDENCE,
+        "city": STATE_PROFILE_CITY,
+        "district": STATE_PROFILE_DISTRICT,
+        "birth_year": STATE_PROFILE_BIRTH_YEAR,
+    }
+    preview_text = profile_service.change_preview_text(
+        base_draft,
+        updated,
+        state_by_change.get(target_state, STATE_PROFILE_EDIT_SELECT),
+        current_catalog(context),
+    )
 
     if use_confirmed:
         reset_session(context.user_data)
     set_profile_draft(context.user_data, updated.to_dict())
     set_pending_slot(context.user_data, None)
     set_state(context.user_data, STATE_PROFILE_CONFIRM)
-    await send_profile_confirmation(update, context)
+    await send_text(
+        update,
+        f"{preview_text}\n\n{profile_service.confirmation_text(updated, current_catalog(context))}",
+        keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, updated, current_catalog(context)),
+    )
 
 
 async def apply_fertilizer_changes(update, context, *, target_state: str, changes: dict, use_confirmed: bool) -> None:
@@ -388,7 +406,12 @@ async def apply_fertilizer_changes(update, context, *, target_state: str, change
         reset_session(context.user_data)
     set_fertilizer_draft(context.user_data, updated.to_dict())
     set_state(context.user_data, STATE_FERTILIZER_CONFIRM)
-    await send_fertilizer_confirmation(update, context)
+    preview_text = fertilizer_service.change_preview_text(base_draft, updated, target_state, current_catalog(context))
+    await send_text(
+        update,
+        f"{preview_text}\n\n{fertilizer_service.confirmation_text(updated, current_catalog(context))}",
+        keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_CONFIRM, current_catalog(context)),
+    )
 
 
 async def send_repair_confirmation(

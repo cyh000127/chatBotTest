@@ -243,6 +243,35 @@ def repair_confirmation_text(target_state: str, catalog) -> str:
     return catalog.format_repair_confirmation(field_label=field_label, edit_button=catalog.BUTTON_EDIT_START)
 
 
+def change_preview_text(before: FertilizerDraft, after: FertilizerDraft, target_state: str, catalog) -> str:
+    field_labels = {
+        STATE_FERTILIZER_USED: catalog.BUTTON_FERTILIZER_EDIT_USED,
+        STATE_FERTILIZER_KIND: catalog.BUTTON_FERTILIZER_EDIT_KIND,
+        STATE_FERTILIZER_PRODUCT: catalog.BUTTON_FERTILIZER_EDIT_PRODUCT,
+        STATE_FERTILIZER_AMOUNT: catalog.BUTTON_FERTILIZER_EDIT_AMOUNT,
+        STATE_FERTILIZER_DATE: catalog.BUTTON_FERTILIZER_EDIT_DATE,
+    }
+    before_values = {
+        STATE_FERTILIZER_USED: catalog.FERTILIZER_USED_LABEL_YES if before.used else catalog.FERTILIZER_USED_LABEL_NO if before.used is False else "-",
+        STATE_FERTILIZER_KIND: catalog.FERTILIZER_KIND_LABELS.get(before.kind, before.kind or "-"),
+        STATE_FERTILIZER_PRODUCT: before.product_name or "-",
+        STATE_FERTILIZER_AMOUNT: format_amount(before),
+        STATE_FERTILIZER_DATE: before.applied_date or "-",
+    }
+    after_values = {
+        STATE_FERTILIZER_USED: catalog.FERTILIZER_USED_LABEL_YES if after.used else catalog.FERTILIZER_USED_LABEL_NO if after.used is False else "-",
+        STATE_FERTILIZER_KIND: catalog.FERTILIZER_KIND_LABELS.get(after.kind, after.kind or "-"),
+        STATE_FERTILIZER_PRODUCT: after.product_name or "-",
+        STATE_FERTILIZER_AMOUNT: format_amount(after),
+        STATE_FERTILIZER_DATE: after.applied_date or "-",
+    }
+    return catalog.format_change_preview(
+        field_label=field_labels.get(target_state, catalog.BUTTON_EDIT),
+        before_value=before_values.get(target_state, "-"),
+        after_value=after_values.get(target_state, "-"),
+    )
+
+
 def fallback_text_for_state(state: str, catalog) -> str:
     mapping = {
         STATE_FERTILIZER_USED: catalog.FERTILIZER_USED_FALLBACK,

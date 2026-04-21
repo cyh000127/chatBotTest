@@ -202,6 +202,35 @@ def edit_text(catalog) -> str:
     return catalog.PROFILE_EDIT_MESSAGE
 
 
+def change_preview_text(before: ProfileDraft, after: ProfileDraft, target_state: str, catalog) -> str:
+    field_labels = {
+        STATE_PROFILE_NAME: catalog.BUTTON_EDIT_NAME,
+        STATE_PROFILE_RESIDENCE: catalog.BUTTON_EDIT_RESIDENCE,
+        STATE_PROFILE_CITY: catalog.BUTTON_EDIT_CITY,
+        STATE_PROFILE_DISTRICT: catalog.BUTTON_EDIT_DISTRICT,
+        STATE_PROFILE_BIRTH_YEAR: catalog.BUTTON_EDIT_BIRTH_DATE,
+    }
+    before_values = {
+        STATE_PROFILE_NAME: before.name or "-",
+        STATE_PROFILE_RESIDENCE: before.residence or "-",
+        STATE_PROFILE_CITY: before.city or "-",
+        STATE_PROFILE_DISTRICT: before.district or "-",
+        STATE_PROFILE_BIRTH_YEAR: before.birth_date or "-",
+    }
+    after_values = {
+        STATE_PROFILE_NAME: after.name or "-",
+        STATE_PROFILE_RESIDENCE: after.residence or "-",
+        STATE_PROFILE_CITY: after.city or "-",
+        STATE_PROFILE_DISTRICT: after.district or "-",
+        STATE_PROFILE_BIRTH_YEAR: after.birth_date or "-",
+    }
+    return catalog.format_change_preview(
+        field_label=field_labels.get(target_state, catalog.BUTTON_EDIT),
+        before_value=before_values.get(target_state, "-"),
+        after_value=after_values.get(target_state, "-"),
+    )
+
+
 def repair_confirmation_text(target_state: str, catalog) -> str:
     if target_state == STATE_PROFILE_EDIT_SELECT:
         return catalog.PROFILE_EDIT_SELECTION_CONFIRMATION_MESSAGE.format(edit_button=catalog.BUTTON_EDIT_START)

@@ -130,6 +130,8 @@ FERTILIZER_KIND_LABELS = {
     "compost": "ជីកំប៉ុស",
     "liquid": "ជីរាវ",
 }
+FERTILIZER_USED_LABEL_YES = "បានប្រើ"
+FERTILIZER_USED_LABEL_NO = "មិនបានប្រើ"
 FERTILIZER_USED_PROMPT = "តើអ្នកបានប្រើជីសម្រាប់ការងារនេះទេ?"
 FERTILIZER_KIND_PROMPT = "សូមជ្រើសរើសប្រភេទជី។"
 FERTILIZER_PRODUCT_PROMPT = "សូមបញ្ចូលឈ្មោះផលិតផល។"
@@ -187,6 +189,14 @@ def format_repair_confirmation(*, field_label: str, edit_button: str) -> str:
     return (
         f"អ្នកចង់កែធាតុ {field_label} មែនទេ?\n"
         f"ចុច [{edit_button}] ហើយខ្ញុំនឹងស្នើឲ្យបញ្ចូលតម្លៃនោះម្តងទៀត។"
+    )
+
+
+def format_change_preview(*, field_label: str, before_value: str, after_value: str) -> str:
+    return (
+        f"សូមពិនិត្យការផ្លាស់ប្តូរសម្រាប់ {field_label}។\n"
+        f"- មុន: {before_value}\n"
+        f"- ថ្មី: {after_value}"
     )
 
 

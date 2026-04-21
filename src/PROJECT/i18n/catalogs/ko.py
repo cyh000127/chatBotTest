@@ -130,6 +130,8 @@ FERTILIZER_KIND_LABELS = {
     "compost": "퇴비",
     "liquid": "액비",
 }
+FERTILIZER_USED_LABEL_YES = "사용함"
+FERTILIZER_USED_LABEL_NO = "사용 안 함"
 FERTILIZER_USED_PROMPT = "이번 작업에서 비료를 사용했나요?"
 FERTILIZER_KIND_PROMPT = "비료 유형을 선택해주세요."
 FERTILIZER_PRODUCT_PROMPT = "제품명을 입력해주세요.\n예: 한아름 복합비료"
@@ -187,6 +189,14 @@ def format_repair_confirmation(*, field_label: str, edit_button: str) -> str:
     return (
         f"{field_label} 항목을 수정하시려는 거죠?\n"
         f"[{edit_button}]을 누르면 해당 항목을 다시 입력받을게요."
+    )
+
+
+def format_change_preview(*, field_label: str, before_value: str, after_value: str) -> str:
+    return (
+        f"{field_label} 변경 내용을 확인해주세요.\n"
+        f"- 이전: {before_value}\n"
+        f"- 변경: {after_value}"
     )
 
 

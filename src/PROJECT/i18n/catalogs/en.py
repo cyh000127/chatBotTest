@@ -130,6 +130,8 @@ FERTILIZER_KIND_LABELS = {
     "compost": "Compost",
     "liquid": "Liquid",
 }
+FERTILIZER_USED_LABEL_YES = "Used"
+FERTILIZER_USED_LABEL_NO = "Not used"
 FERTILIZER_USED_PROMPT = "Did you use fertilizer for this activity?"
 FERTILIZER_KIND_PROMPT = "Choose the fertilizer type."
 FERTILIZER_PRODUCT_PROMPT = "Enter the product name.\nExample: Compound fertilizer 21-17-17"
@@ -187,6 +189,14 @@ def format_repair_confirmation(*, field_label: str, edit_button: str) -> str:
     return (
         f"You want to edit the {field_label} field, right?\n"
         f"Press [{edit_button}] and I will ask for that value again."
+    )
+
+
+def format_change_preview(*, field_label: str, before_value: str, after_value: str) -> str:
+    return (
+        f"Please review the change for {field_label}.\n"
+        f"- Before: {before_value}\n"
+        f"- New: {after_value}"
     )
 
 

@@ -4,6 +4,7 @@ from PROJECT.conversations.fertilizer_intake import service
 from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_CONFIRM,
     STATE_FERTILIZER_KIND,
+    STATE_FERTILIZER_PRODUCT,
     STATE_FERTILIZER_USED,
 )
 from PROJECT.i18n.catalogs import ko
@@ -61,3 +62,20 @@ def test_fertilizer_edit_selection_text_and_repair_confirmation():
     assert "한아름 복합비료" in summary
     assert ko.BUTTON_FERTILIZER_EDIT_KIND in confirmation
     assert ko.BUTTON_EDIT_START in confirmation
+
+
+def test_fertilizer_change_preview_text_shows_before_and_after():
+    before = service.update_draft(
+        service.new_draft(),
+        used=True,
+        kind="compound",
+        product_name="한아름 복합비료",
+    )
+    after = service.update_draft(before, product_name="새 제품명")
+
+    text = service.change_preview_text(before, after, STATE_FERTILIZER_PRODUCT, ko)
+
+    assert "이전" in text
+    assert "변경" in text
+    assert "한아름 복합비료" in text
+    assert "새 제품명" in text
