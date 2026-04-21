@@ -1,0 +1,79 @@
+{
+  "schemas": [
+    {
+      "id": "fertilizer_amount",
+      "state": "fertilizer_amount",
+      "domain": "fertilizer",
+      "canonical_intent": "fertilizer.input.start",
+      "expected_input_type": "amount_with_unit",
+      "allowed_value_shape": "supported_amount_unit_pair",
+      "hard_constraints": [
+        "amount_requires_supported_unit"
+      ],
+      "locale": "ko",
+      "expected_prompt_contains": [
+        "사용량을 입력해주세요",
+        "20kg"
+      ]
+    },
+    {
+      "id": "yield_amount",
+      "state": "yield_amount",
+      "domain": "yield",
+      "canonical_intent": "yield.input.start",
+      "expected_input_type": "yield_amount",
+      "allowed_value_shape": "numeric_or_numeric_with_supported_unit",
+      "hard_constraints": [
+        "yield_amount_requires_supported_unit_or_default_kg"
+      ],
+      "locale": "ko",
+      "expected_prompt_contains": [
+        "수확량을 입력해주세요",
+        "320kg"
+      ]
+    },
+    {
+      "id": "input_resolve_candidates",
+      "state": "input_resolve_candidates",
+      "domain": "input_resolve",
+      "canonical_intent": "input.resolve.start",
+      "expected_input_type": "candidate_selection",
+      "allowed_value_shape": "one_of:candidate_1|candidate_2|candidate_3|retry|none",
+      "hard_constraints": [
+        "candidate_selection_or_retry_required"
+      ],
+      "locale": "ko",
+      "expected_prompt_contains": [
+        "후보를 확인하고",
+        "다시 입력해주세요"
+      ]
+    },
+    {
+      "id": "fertilizer_confirm",
+      "state": "fertilizer_confirm",
+      "domain": "fertilizer",
+      "canonical_intent": "fertilizer.input.start",
+      "expected_input_type": "confirmation_action",
+      "allowed_value_shape": "one_of:confirm|back|cancel",
+      "hard_constraints": [
+        "fertilizer_entry_must_be_reviewed_before_finalize"
+      ],
+      "locale": "ko",
+      "context_data": {
+        "fertilizer_draft_data": {
+          "used": true,
+          "kind": "compound",
+          "product_name": "한아름 복합비료",
+          "amount_value": 20.0,
+          "amount_unit": "kg",
+          "applied_date": "2026-04-21"
+        }
+      },
+      "expected_prompt_contains": [
+        "한아름 복합비료",
+        "2026-04-21",
+        "맞으면 [확인]"
+      ]
+    }
+  ]
+}

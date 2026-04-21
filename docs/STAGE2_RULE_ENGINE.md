@@ -53,10 +53,8 @@
 - recovery context assembler 추가 완료
 - `fertilizer` 정상 입력 flow 이관 완료
 - `yield`, `fertilizer`, `input.resolve` 공통 step schema 추가 완료
-
-아직 없는 것:
-
-- cross-domain fixture 정리
+- cross-domain fixture 정리 완료
+- `tests/contract/fixtures` 기반 cross-domain contract test 추가 완료
 
 ## 구현 순서
 
@@ -70,7 +68,7 @@
 8. recovery context assembler 추가
 9. fertilizer flow 이관
 10. yield / input-resolve schema 추가
-11. contract test와 fixture 정리
+11. contract test와 fixture 정리 완료
 
 ## 구현 원칙
 
@@ -85,6 +83,10 @@
 
 - `feat: add stage-2 rule engine contracts`
 
-다음 커밋은 아래가 된다.
+초기 다음 커밋은 아래였다.
 
 - `feat: add shared normalization layer for rule-first processing`
+
+fixture 정리까지 끝난 현재 기준 마지막 커밋 단위 예시는 아래다.
+
+- `feat: 규칙 엔진 cross-domain fixture와 계약 테스트 추가`

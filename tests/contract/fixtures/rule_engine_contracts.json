@@ -1,0 +1,229 @@
+{
+  "normalized_inputs": [
+    {
+      "id": "fertilizer_start_ko",
+      "payload": {
+        "raw_text": "  /fertilizer 입력할게요  ",
+        "normalized_text": "/fertilizer 입력할게요",
+        "locale": "ko",
+        "tokens": [
+          "/fertilizer",
+          "입력할게요"
+        ],
+        "command": "/fertilizer",
+        "metadata": {
+          "channel": "telegram",
+          "domain": "fertilizer"
+        }
+      }
+    },
+    {
+      "id": "yield_start_ko",
+      "payload": {
+        "raw_text": "수확 입력 시작",
+        "normalized_text": "수확 입력 시작",
+        "locale": "ko",
+        "tokens": [
+          "수확",
+          "입력",
+          "시작"
+        ],
+        "command": null,
+        "metadata": {
+          "channel": "telegram",
+          "domain": "yield"
+        }
+      }
+    },
+    {
+      "id": "input_resolve_start_ko",
+      "payload": {
+        "raw_text": "제품명 후보 다시 찾기",
+        "normalized_text": "제품명 후보 다시 찾기",
+        "locale": "ko",
+        "tokens": [
+          "제품명",
+          "후보",
+          "다시",
+          "찾기"
+        ],
+        "command": null,
+        "metadata": {
+          "channel": "telegram",
+          "domain": "input_resolve"
+        }
+      }
+    }
+  ],
+  "intent_decisions": [
+    {
+      "id": "fertilizer_start",
+      "payload": {
+        "canonical_intent": "fertilizer.input.start",
+        "current_step": "entry",
+        "source": "intent_rule",
+        "confidence": 1.0,
+        "matched_rule": "fertilizer_start_keyword",
+        "payload": {
+          "entry_source": "command",
+          "domain": "fertilizer"
+        }
+      }
+    },
+    {
+      "id": "yield_start",
+      "payload": {
+        "canonical_intent": "yield.input.start",
+        "current_step": "entry",
+        "source": "intent_rule",
+        "confidence": 0.95,
+        "matched_rule": "yield_start_phrase",
+        "payload": {
+          "entry_source": "text",
+          "domain": "yield"
+        }
+      }
+    },
+    {
+      "id": "input_resolve_start",
+      "payload": {
+        "canonical_intent": "input.resolve.start",
+        "current_step": "entry",
+        "source": "intent_rule",
+        "confidence": 0.92,
+        "matched_rule": "input_resolve_phrase",
+        "payload": {
+          "entry_source": "text",
+          "domain": "input_resolve"
+        }
+      }
+    }
+  ],
+  "validation_results": [
+    {
+      "id": "fertilizer_amount_resolved",
+      "payload": {
+        "classification": "resolved",
+        "source": "validator",
+        "normalized_candidate": {
+          "field_name": "amount",
+          "raw_value": "20kg",
+          "candidate_type": "numeric_amount",
+          "source": "slot_extractor",
+          "normalized_value": {
+            "amount": 20,
+            "unit": "kg"
+          },
+          "confidence": 0.98,
+          "metadata": {
+            "domain": "fertilizer"
+          }
+        },
+        "reason": null,
+        "clarification_question": null,
+        "human_handoff_reason": null,
+        "safety_flags": [],
+        "metadata": {
+          "field": "amount"
+        }
+      }
+    },
+    {
+      "id": "yield_amount_reask",
+      "payload": {
+        "classification": "reask",
+        "source": "validator",
+        "normalized_candidate": null,
+        "reason": "unsupported_yield_unit",
+        "clarification_question": "수확량을 kg 기준으로 다시 입력해주세요.",
+        "human_handoff_reason": null,
+        "safety_flags": [],
+        "metadata": {
+          "field": "yield_amount"
+        }
+      }
+    },
+    {
+      "id": "input_resolve_handoff",
+      "payload": {
+        "classification": "needs_handoff",
+        "source": "cheap_gate",
+        "normalized_candidate": null,
+        "reason": "candidate_resolution_retry_limit",
+        "clarification_question": null,
+        "human_handoff_reason": "manual_candidate_review_required",
+        "safety_flags": [
+          "ambiguous_candidate_selection"
+        ],
+        "metadata": {
+          "domain": "input_resolve"
+        }
+      }
+    }
+  ],
+  "recovery_contexts": [
+    {
+      "id": "fertilizer_confirm_reask",
+      "payload": {
+        "canonical_intent": "fertilizer.input.start",
+        "current_step": "fertilizer_confirm",
+        "current_question": "비료 입력을 확인했어요.\n- 비료 사용 여부: 사용함\n- 비료 유형: 복합비료\n- 제품명: 한아름 복합비료\n- 사용량: 20 kg\n- 사용일: 2026-04-21\n\n맞으면 [확인]을 눌러주세요.",
+        "expected_input_type": "confirmation_action",
+        "allowed_value_shape": "one_of:confirm|back|cancel",
+        "latest_user_message": "비료 이거 다시 확인해줘",
+        "recent_messages_summary": "User is reviewing fertilizer confirmation after entering amount and applied date.",
+        "locale": "ko",
+        "recovery_attempt_count": 1,
+        "hard_constraints": [
+          "fertilizer_entry_must_be_reviewed_before_finalize"
+        ],
+        "metadata": {
+          "fallback_key": "fertilizer_confirm",
+          "validation_reason": "structured_step_mismatch"
+        }
+      }
+    },
+    {
+      "id": "yield_amount_reask",
+      "payload": {
+        "canonical_intent": "yield.input.start",
+        "current_step": "yield_amount",
+        "current_question": "수확량을 입력해주세요.\n예: 320kg",
+        "expected_input_type": "yield_amount",
+        "allowed_value_shape": "numeric_or_numeric_with_supported_unit",
+        "latest_user_message": "세 포대쯤 돼요",
+        "recent_messages_summary": "User is answering the harvest amount question after selecting one field.",
+        "locale": "ko",
+        "recovery_attempt_count": 2,
+        "hard_constraints": [
+          "yield_amount_requires_supported_unit_or_default_kg"
+        ],
+        "metadata": {
+          "fallback_key": "default",
+          "validation_reason": "structured_step_mismatch"
+        }
+      }
+    },
+    {
+      "id": "input_resolve_candidates_handoff",
+      "payload": {
+        "canonical_intent": "input.resolve.start",
+        "current_step": "input_resolve_candidates",
+        "current_question": "후보를 확인하고 1~3번 중 선택하거나 다시 입력해주세요.",
+        "expected_input_type": "candidate_selection",
+        "allowed_value_shape": "one_of:candidate_1|candidate_2|candidate_3|retry|none",
+        "latest_user_message": "다 비슷해서 모르겠어요",
+        "recent_messages_summary": "User has reviewed OCR candidates but cannot decide which product name should be chosen.",
+        "locale": "ko",
+        "recovery_attempt_count": 3,
+        "hard_constraints": [
+          "candidate_selection_or_retry_required"
+        ],
+        "metadata": {
+          "fallback_key": "default",
+          "validation_reason": "candidate_resolution_retry_limit"
+        }
+      }
+    }
+  ]
+}
