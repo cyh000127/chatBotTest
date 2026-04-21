@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-import re
+
+from PROJECT.rule_engine import normalize_body_text
 
 
 CITY_ALIASES = {
@@ -78,11 +79,7 @@ DISTRICT_EXAMPLES_BY_CITY = {
 
 
 def normalize_text(text: str) -> str:
-    normalized = text.strip()
-    normalized = re.sub(r"[,/]", " ", normalized)
-    normalized = re.sub(r"[-]", " ", normalized)
-    normalized = re.sub(r"\s+", " ", normalized)
-    return normalized
+    return normalize_body_text(text, locale="ko")
 
 
 def detect_city(normalized_text: str) -> str | None:
