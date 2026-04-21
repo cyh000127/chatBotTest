@@ -1,0 +1,8 @@
+BOT_STARTED = "bot_started"
+REPLY_SENT = "reply_sent"
+REPLY_FAILED = "reply_failed"
+RULE_REPAIR_SIGNAL_DETECTED = "rule_repair_signal_detected"
+LLM_REPAIR_SIGNAL_DETECTED = "llm_repair_signal_detected"
+LLM_REPAIR_GUIDANCE_SHOWN = "llm_repair_guidance_shown"
+REPAIR_CANDIDATE_APPLIED = "repair_candidate_applied"
+FALLBACK_SHOWN = "fallback_shown"

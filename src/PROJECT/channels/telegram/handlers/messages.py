@@ -102,6 +102,14 @@ from PROJECT.rule_engine import (
     detect_fertilizer_direct_update,
     detect_profile_direct_update,
 )
+from PROJECT.telemetry.event_logger import log_event
+from PROJECT.telemetry.events import (
+    FALLBACK_SHOWN,
+    LLM_REPAIR_GUIDANCE_SHOWN,
+    LLM_REPAIR_SIGNAL_DETECTED,
+    REPAIR_CANDIDATE_APPLIED,
+    RULE_REPAIR_SIGNAL_DETECTED,
+)
 
 PROFILE_STATES = {
     STATE_PROFILE_NAME,
@@ -386,6 +394,12 @@ async def apply_profile_changes(update, context, *, changes: dict, use_confirmed
         f"{preview_text}\n\n{profile_service.confirmation_text(updated, current_catalog(context))}",
         keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, updated, current_catalog(context)),
     )
+    log_event(
+        REPAIR_CANDIDATE_APPLIED,
+        domain="profile",
+        target_state=state_by_change.get(target_state, STATE_PROFILE_EDIT_SELECT),
+        scope="confirmed" if use_confirmed else "draft",
+    )
 
 
 async def apply_fertilizer_changes(update, context, *, target_state: str, changes: dict, use_confirmed: bool) -> None:
@@ -411,6 +425,12 @@ async def apply_fertilizer_changes(update, context, *, target_state: str, change
         update,
         f"{preview_text}\n\n{fertilizer_service.confirmation_text(updated, current_catalog(context))}",
         keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_CONFIRM, current_catalog(context)),
+    )
+    log_event(
+        REPAIR_CANDIDATE_APPLIED,
+        domain="fertilizer",
+        target_state=target_state,
+        scope="confirmed" if use_confirmed else "draft",
     )
 
 
@@ -453,6 +473,13 @@ async def send_repair_confirmation(
             catalog,
             has_candidate=parsed_candidate is not None,
         ),
+    )
+    log_event(
+        RULE_REPAIR_SIGNAL_DETECTED,
+        domain=domain,
+        target_state=target_state,
+        scope=scope,
+        has_candidate=parsed_candidate is not None,
     )
 
 
@@ -509,6 +536,18 @@ async def maybe_send_llm_repair_confirmation(
                 profile_draft(context.user_data),
             ),
         )
+        reason = (
+            "needs_human" if result.needs_human else
+            "unsupported" if result.action == LlmEditAction.UNSUPPORTED else
+            "low_confidence" if result.confidence is None or result.confidence < LLM_MIN_CONFIDENCE else
+            "clarification"
+        )
+        log_event(
+            LLM_REPAIR_GUIDANCE_SHOWN,
+            reason=reason,
+            action=result.action.value,
+            confidence=result.confidence,
+        )
         return True
 
     if not result.needs_confirmation:
@@ -526,6 +565,15 @@ async def maybe_send_llm_repair_confirmation(
         target_state=target_state,
         use_confirmed=use_confirmed,
         candidate_value=result.candidate_value,
+    )
+    log_event(
+        LLM_REPAIR_SIGNAL_DETECTED,
+        domain=domain,
+        target_state=target_state,
+        scope="confirmed" if use_confirmed else "draft",
+        confidence=result.confidence,
+        has_candidate=result.candidate_value is not None,
+        action=result.action.value,
     )
     return True
 
@@ -1211,6 +1259,12 @@ async def text_message(update, context) -> None:
                 profile_draft(context.user_data),
             ),
         )
+        log_event(
+            FALLBACK_SHOWN,
+            source="cheap_gate_handoff",
+            state=current_state(context.user_data),
+            fallback_key=fallback_key,
+        )
         return
 
     increment_recovery_attempts(context.user_data)
@@ -1222,6 +1276,12 @@ async def text_message(update, context) -> None:
             catalog,
             profile_draft(context.user_data),
         ),
+    )
+    log_event(
+        FALLBACK_SHOWN,
+        source="cheap_gate_retry",
+        state=current_state(context.user_data),
+        fallback_key=fallback_key,
     )
 
 
@@ -1544,6 +1604,12 @@ async def button_callback(update, context) -> None:
             profile_draft(context.user_data),
         ),
     )
+    log_event(
+        FALLBACK_SHOWN,
+        source="button_callback_default",
+        state=current_state(context.user_data),
+        fallback_key=fallback_key_for_state(current_state(context.user_data)),
+    )
 
 
 async def unknown_command(update, context) -> None:
@@ -1585,4 +1651,10 @@ async def unknown_command(update, context) -> None:
             catalog,
             profile_draft(context.user_data),
         ),
+    )
+    log_event(
+        FALLBACK_SHOWN,
+        source="unknown_command",
+        state=current_state(context.user_data),
+        fallback_key=fallback_key_for_state(current_state(context.user_data)),
     )
