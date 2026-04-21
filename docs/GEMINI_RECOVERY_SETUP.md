@@ -1,5 +1,11 @@
 # Gemini Recovery Setup
 
+## 문서 역할
+
+이 문서는 Gemini 연동의 설정 경로와 JSON request/response 구조를 설명하는 구현 문서다.
+
+Gemini 호출 허용 여부, `AI_MODE`, pending candidate 처리, 호출 한도 같은 운영 정책의 최종 기준은 [`CHATBOT_OPERATION_POLICY_V2.md`](./CHATBOT_OPERATION_POLICY_V2.md)를 따른다.
+
 ## 목적
 
 이 문서는 `PROJECT`에서 Gemini를 3단계 recovery classifier로 붙이기 위한 설정과 현재 구현 범위를 정리한다.
@@ -13,13 +19,14 @@
 - Gemini JSON 응답을 `LlmRecoveryResult`로 파싱하는 parser 추가
 - 텔레그램 앱 부트스트랩 시 정책 게이트를 통과한 Gemini classifier만 `bot_data`에 주입
 
-현재는 아직 메시지 핸들러에서 자동 호출하지 않는다.
+현재는 아직 recovery classifier를 메시지 핸들러 전역 경로에 자동 호출하지 않는다.
 
 중요한 점은 아래와 같다.
 
 - `GEMINI_API_KEY`가 없으면 `Settings.gemini`는 `None`이다.
 - 즉 키가 없을 때는 Gemini 설정 객체 자체를 만들지 않는다.
 - `ENABLE_LLM_EDIT_INTENT=true`가 아니면 edit-intent 보조 분류기는 주입하지 않는다.
+- 이후 정책 코드에서 `AI_MODE`가 도입되면 이 문서의 boolean 게이트는 더 세분화된 정책 모드로 대체된다.
 - 민감값은 코드 기본값으로 보관하지 않는다.
 
 ## 환경 변수
@@ -63,7 +70,9 @@ ENABLE_LLM_EDIT_INTENT=false
 
 1. step parser 실패
 2. cheap gate 통과
-3. recovery context 조립
-4. `bot_data["gemini_recovery_classifier"]` 존재 여부 확인
-5. Gemini 호출
-6. JSON 결과를 validator와 state machine으로 다시 검증
+3. rule repair 실패
+4. recovery context 조립
+5. 정책 함수가 현재 `AI_MODE`, 호출 한도, 동일 입력 재호출 여부를 확인
+6. `bot_data["gemini_recovery_classifier"]` 존재 여부 확인
+7. Gemini 호출
+8. JSON 결과를 validator와 state machine으로 다시 검증

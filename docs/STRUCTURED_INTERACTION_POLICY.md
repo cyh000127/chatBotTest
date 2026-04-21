@@ -1,5 +1,11 @@
 # Structured Interaction Policy
 
+## 문서 역할
+
+이 문서는 fallback, 자연어 수정, 제한적 LLM 상호작용의 제품 원칙과 배경을 설명하는 문서다.
+
+런타임에서 실제로 강제해야 하는 최신 운영 기준은 [`CHATBOT_OPERATION_POLICY_V2.md`](./CHATBOT_OPERATION_POLICY_V2.md)를 따른다.
+
 ## 목적
 
 이 문서는 `PROJECT`에서 아래 3개 운영 원칙을 실제 구현으로 옮기기 전에, 기획과 코드 양쪽에서 흔들리지 않도록 기준을 고정하기 위한 문서다.

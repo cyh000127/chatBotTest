@@ -1,5 +1,11 @@
 # Rule-First LLM Handoff
 
+## 문서 역할
+
+이 문서는 rule-first 파이프라인과 3단계 LLM 호출 전제 조건을 설명하는 구조 문서다.
+
+LLM 호출 허용/금지, 호출 한도, pending candidate, telemetry 같은 운영 정책의 최종 기준은 [`CHATBOT_OPERATION_POLICY_V2.md`](./CHATBOT_OPERATION_POLICY_V2.md)를 따른다.
+
 ## 목적
 
 이 문서는 `PROJECT`에서 3단계 LLM을 붙이기 전에 어떤 규칙 기반 전처리와 상태 조립이 먼저 있어야 하는지 정리한다.
