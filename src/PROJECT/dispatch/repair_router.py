@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from PROJECT.canonical_intents import registry
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
     STATE_PROFILE_CITY,
@@ -8,6 +9,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
 )
+from PROJECT.rule_engine import classify_global_intent_text
 
 REPAIR_NAME = "repair_name"
 REPAIR_RESIDENCE = "repair_residence"
@@ -24,35 +26,24 @@ class RepairDecision:
 
 
 def detect_repair_intent(text: str) -> RepairDecision | None:
-    normalized = text.strip().lstrip("/").replace(" ", "")
-    if not normalized:
+    decision = classify_global_intent_text(text, locale="ko")
+    if decision is None:
         return None
 
-    repair_markers = ("수정", "잘못", "틀렸", "다시", "변경", "고칠")
-    if not any(marker in normalized for marker in repair_markers):
-        return None
-
-    if "생년월일" in normalized or "생일" in normalized:
-        return RepairDecision(REPAIR_BIRTH_DATE, STATE_PROFILE_BIRTH_YEAR)
-    if "거주지" in normalized or "주소" in normalized:
-        return RepairDecision(REPAIR_RESIDENCE, STATE_PROFILE_RESIDENCE)
-    if "시도" in normalized or "시/도" in text or "시도명" in normalized:
-        return RepairDecision(REPAIR_CITY, STATE_PROFILE_CITY)
-    if "구군시" in normalized or "구/군/시" in text or "구군" in normalized:
-        return RepairDecision(REPAIR_DISTRICT, STATE_PROFILE_DISTRICT)
-    if "이름" in normalized:
-        return RepairDecision(REPAIR_NAME, STATE_PROFILE_NAME)
-    if "프로필" in normalized or "정보" in normalized or "profile" in normalized.lower():
-        return RepairDecision(REPAIR_PROFILE, STATE_PROFILE_EDIT_SELECT)
+    mapping = {
+        registry.INTENT_PROFILE_EDIT_NAME: RepairDecision(REPAIR_NAME, STATE_PROFILE_NAME),
+        registry.INTENT_PROFILE_EDIT_RESIDENCE: RepairDecision(REPAIR_RESIDENCE, STATE_PROFILE_RESIDENCE),
+        registry.INTENT_PROFILE_EDIT_CITY: RepairDecision(REPAIR_CITY, STATE_PROFILE_CITY),
+        registry.INTENT_PROFILE_EDIT_DISTRICT: RepairDecision(REPAIR_DISTRICT, STATE_PROFILE_DISTRICT),
+        registry.INTENT_PROFILE_EDIT_BIRTH_DATE: RepairDecision(REPAIR_BIRTH_DATE, STATE_PROFILE_BIRTH_YEAR),
+        registry.INTENT_PROFILE_EDIT_START: RepairDecision(REPAIR_PROFILE, STATE_PROFILE_EDIT_SELECT),
+    }
+    repair = mapping.get(decision.canonical_intent)
+    if repair is not None:
+        return repair
     return None
 
 
 def detect_profile_view_intent(text: str) -> bool:
-    normalized = text.strip().lstrip("/").replace(" ", "").lower()
-    if not normalized:
-        return False
-    if normalized in {"profile", "프로필", "내프로필"}:
-        return True
-    profile_markers = ("프로필", "정보", "profile")
-    view_markers = ("보여", "봐", "조회", "확인", "show", "view")
-    return any(marker in normalized for marker in profile_markers) and any(marker in normalized for marker in view_markers)
+    decision = classify_global_intent_text(text, locale="ko")
+    return decision is not None and decision.canonical_intent == registry.INTENT_PROFILE_VIEW
