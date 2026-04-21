@@ -123,6 +123,9 @@ PROFILE_REPAIR_DISTRICT_MESSAGE = "Let's re-enter the district/county/city."
 PROFILE_REPAIR_BIRTH_MESSAGE = "Let's re-enter the birth date.\nPlease choose the birth year."
 PROFILE_DIRECT_UPDATE_MESSAGE = "I applied the natural-language correction. Review it and press [Confirm]."
 LLM_REPAIR_CANDIDATE_HINT = "I understood that you want to change it to \"{candidate_value}\".\nIf that's correct, press Start edit."
+LLM_REPAIR_UNSUPPORTED_MESSAGE = "I could not determine the exact field to edit right away.\nPlease choose it directly from the related items below."
+LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "I am not confident enough about which field you want to edit.\nPlease choose it directly from the related items below."
+LLM_REPAIR_HUMAN_REVIEW_MESSAGE = "This request is difficult to classify into a single edit field automatically.\nPlease choose it directly from the related items below."
 
 FERTILIZER_KIND_LABELS = {
     "compound": "Compound",

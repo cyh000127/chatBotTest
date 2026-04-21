@@ -1,8 +1,9 @@
-from PROJECT.channels.telegram.handlers.messages import parse_candidate_changes
+from PROJECT.channels.telegram.handlers.messages import llm_repair_guidance_text, parse_candidate_changes
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_BIRTH_YEAR
 from PROJECT.conversations.sample_menu.keyboards import repair_confirmation_keyboard
 from PROJECT.i18n.translator import get_catalog
+from PROJECT.llm import LlmEditAction, LlmEditIntentResult
 
 
 def test_repair_confirmation_keyboard_switches_to_candidate_buttons():
@@ -41,3 +42,40 @@ def test_parse_fertilizer_amount_candidate_changes():
 
 def test_parse_candidate_changes_returns_none_for_invalid_value():
     assert parse_candidate_changes("fertilizer", STATE_FERTILIZER_AMOUNT, "많이") is None
+
+
+def test_llm_repair_guidance_text_for_unsupported_result():
+    catalog = get_catalog("ko")
+    result = LlmEditIntentResult(
+        action=LlmEditAction.UNSUPPORTED,
+        confidence=0.91,
+    )
+
+    text = llm_repair_guidance_text(result, catalog)
+
+    assert text == catalog.LLM_REPAIR_UNSUPPORTED_MESSAGE
+
+
+def test_llm_repair_guidance_text_for_low_confidence_result():
+    catalog = get_catalog("ko")
+    result = LlmEditIntentResult(
+        action=LlmEditAction.FERTILIZER_EDIT_PRODUCT,
+        confidence=0.4,
+    )
+
+    text = llm_repair_guidance_text(result, catalog)
+
+    assert text == catalog.LLM_REPAIR_LOW_CONFIDENCE_MESSAGE
+
+
+def test_llm_repair_guidance_text_for_human_review_result():
+    catalog = get_catalog("ko")
+    result = LlmEditIntentResult(
+        action=LlmEditAction.FERTILIZER_EDIT_PRODUCT,
+        confidence=0.95,
+        needs_human=True,
+    )
+
+    text = llm_repair_guidance_text(result, catalog)
+
+    assert text == catalog.LLM_REPAIR_HUMAN_REVIEW_MESSAGE

@@ -94,7 +94,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_state,
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
-from PROJECT.llm import LlmEditAction
+from PROJECT.llm import LlmEditAction, LlmEditIntentResult
 from PROJECT.rule_engine import (
     ValidationClassification,
     assemble_recovery_context,
@@ -456,6 +456,18 @@ async def send_repair_confirmation(
     )
 
 
+def llm_repair_guidance_text(result: LlmEditIntentResult, catalog) -> str | None:
+    if result.needs_human:
+        return catalog.LLM_REPAIR_HUMAN_REVIEW_MESSAGE
+    if result.action == LlmEditAction.UNSUPPORTED:
+        return catalog.LLM_REPAIR_UNSUPPORTED_MESSAGE
+    if result.confidence is None or result.confidence < LLM_MIN_CONFIDENCE:
+        return catalog.LLM_REPAIR_LOW_CONFIDENCE_MESSAGE
+    if result.clarification_question:
+        return result.clarification_question
+    return None
+
+
 async def maybe_send_llm_repair_confirmation(
     update,
     context,
@@ -480,11 +492,26 @@ async def maybe_send_llm_repair_confirmation(
     except Exception:
         return False
 
-    if result.needs_human or not result.needs_confirmation:
-        return False
-    if result.action == LlmEditAction.UNSUPPORTED:
-        return False
-    if result.confidence is None or result.confidence < LLM_MIN_CONFIDENCE:
+    guidance_text = llm_repair_guidance_text(result, current_catalog(context))
+    if guidance_text is not None and (
+        result.needs_human
+        or result.action == LlmEditAction.UNSUPPORTED
+        or result.confidence is None
+        or result.confidence < LLM_MIN_CONFIDENCE
+        or result.clarification_question is not None
+    ):
+        await send_text(
+            update,
+            guidance_text,
+            keyboard_layout=fallback_keyboard_layout_for_state(
+                current_state(context.user_data),
+                current_catalog(context),
+                profile_draft(context.user_data),
+            ),
+        )
+        return True
+
+    if not result.needs_confirmation:
         return False
 
     route = LLM_EDIT_ACTION_TO_TARGET.get(result.action.value)

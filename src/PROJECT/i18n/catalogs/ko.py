@@ -123,6 +123,9 @@ PROFILE_REPAIR_DISTRICT_MESSAGE = "구/군/시를 다시 입력할게요."
 PROFILE_REPAIR_BIRTH_MESSAGE = "생년월일을 다시 입력할게요.\n출생 연도를 선택해주세요."
 PROFILE_DIRECT_UPDATE_MESSAGE = "자연어 수정 내용을 반영했어요. 확인 후 [확인]을 눌러주세요."
 LLM_REPAIR_CANDIDATE_HINT = "\"{candidate_value}\"로 변경하시려는 걸로 이해했어요.\n맞다면 수정 시작을 눌러주세요."
+LLM_REPAIR_UNSUPPORTED_MESSAGE = "수정하려는 항목을 바로 정하지 못했어요.\n아래 관련 항목에서 직접 선택해주세요."
+LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "수정하려는 항목을 확실하게 판단하지 못했어요.\n아래 관련 항목에서 직접 선택해주세요."
+LLM_REPAIR_HUMAN_REVIEW_MESSAGE = "이 요청은 자동으로 수정 항목을 정하기 어려워요.\n아래 관련 항목에서 직접 선택해주세요."
 
 FERTILIZER_KIND_LABELS = {
     "compound": "복합비료",
