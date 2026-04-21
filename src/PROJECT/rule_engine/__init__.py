@@ -8,6 +8,11 @@ from PROJECT.rule_engine.contracts import (
     ValidationResult,
 )
 from PROJECT.rule_engine.cheap_gate import MAX_RECOVERY_ATTEMPTS, classify_cheap_gate
+from PROJECT.rule_engine.contextual_repairs import (
+    DirectUpdateDecision,
+    detect_fertilizer_direct_update,
+    detect_profile_direct_update,
+)
 from PROJECT.rule_engine.recovery_context import assemble_recovery_context, prompt_schema_for_state
 from PROJECT.rule_engine.step_schema import SharedStepSchema, render_shared_step_question, shared_step_schema_for_step
 from PROJECT.rule_engine.aliases import (
@@ -56,6 +61,8 @@ __all__ = [
     "SharedStepSchema",
     "assemble_recovery_context",
     "classify_cheap_gate",
+    "detect_fertilizer_direct_update",
+    "detect_profile_direct_update",
     "classify_global_intent",
     "classify_global_intent_text",
     "classify_step_local_intent",
@@ -74,6 +81,7 @@ __all__ = [
     "ValidationClassification",
     "ValidationResult",
     "extract_command_token",
+    "DirectUpdateDecision",
     "normalize_body_text",
     "normalize_user_input",
     "normalize_whitespace",

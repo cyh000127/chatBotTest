@@ -178,6 +178,22 @@ def parse_day_button(text: str) -> int | None:
     return day if 1 <= day <= 31 else None
 
 
+def parse_birth_date_text(text: str) -> tuple[int, int, int] | None:
+    for pattern in (
+        r"(?P<year>\d{4})[.\-/ ](?P<month>\d{1,2})[.\-/ ](?P<day>\d{1,2})",
+        r"(?P<year>\d{4})년\s*(?P<month>\d{1,2})월\s*(?P<day>\d{1,2})일?",
+    ):
+        match = re.search(pattern, text)
+        if not match:
+            continue
+        year = int(match.group("year"))
+        month = int(match.group("month"))
+        day = int(match.group("day"))
+        if 1900 <= year <= datetime.now().year and 1 <= month <= 12 and 1 <= day <= 31:
+            return year, month, day
+    return None
+
+
 def confirmed_text(catalog) -> str:
     return catalog.PROFILE_CONFIRMED_MESSAGE
 

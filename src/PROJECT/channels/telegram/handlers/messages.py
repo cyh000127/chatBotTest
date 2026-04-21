@@ -60,6 +60,8 @@ from PROJECT.dispatch.input_fallback import fallback_key_for_state
 from PROJECT.dispatch.repair_router import detect_profile_view_intent, detect_repair_intent
 from PROJECT.dispatch.session_dispatcher import (
     cancel_session,
+    confirmed_fertilizer,
+    confirmed_profile,
     current_locale,
     current_state,
     fertilizer_draft,
@@ -84,7 +86,13 @@ from PROJECT.dispatch.session_dispatcher import (
     set_state,
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
-from PROJECT.rule_engine import ValidationClassification, assemble_recovery_context, classify_cheap_gate
+from PROJECT.rule_engine import (
+    ValidationClassification,
+    assemble_recovery_context,
+    classify_cheap_gate,
+    detect_fertilizer_direct_update,
+    detect_profile_direct_update,
+)
 
 PROFILE_STATES = {
     STATE_PROFILE_NAME,
@@ -128,6 +136,14 @@ def current_fertilizer(context) -> fertilizer_service.FertilizerDraft:
     return fertilizer_service.draft_from_dict(fertilizer_draft(context.user_data))
 
 
+def confirmed_profile_draft(context) -> profile_service.ProfileDraft:
+    return profile_service.draft_from_dict(confirmed_profile(context.user_data))
+
+
+def confirmed_fertilizer_draft(context) -> fertilizer_service.FertilizerDraft:
+    return fertilizer_service.draft_from_dict(confirmed_fertilizer(context.user_data))
+
+
 async def send_profile_prompt(update, context, state: str, text: str | None = None) -> None:
     catalog = current_catalog(context)
     draft = current_profile(context)
@@ -163,6 +179,49 @@ async def send_fertilizer_confirmation(update, context) -> None:
     await send_text(
         update,
         fertilizer_service.confirmation_text(draft, catalog),
+        keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_CONFIRM, catalog),
+    )
+
+
+async def apply_profile_direct_update(update, context, resolution, *, use_confirmed: bool) -> None:
+    catalog = current_catalog(context)
+    base_draft = confirmed_profile_draft(context) if use_confirmed else current_profile(context)
+    updated = profile_service.update_draft(base_draft, **resolution.changes)
+
+    if use_confirmed:
+        reset_session(context.user_data)
+    set_profile_draft(context.user_data, updated.to_dict())
+    set_pending_slot(context.user_data, None)
+    set_state(context.user_data, STATE_PROFILE_CONFIRM)
+    await send_text(
+        update,
+        f"{catalog.PROFILE_DIRECT_UPDATE_MESSAGE}\n\n{profile_service.confirmation_text(updated, catalog)}",
+        keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, updated, catalog),
+    )
+
+
+async def apply_fertilizer_direct_update(update, context, resolution, *, use_confirmed: bool) -> None:
+    catalog = current_catalog(context)
+    base_draft = confirmed_fertilizer_draft(context) if use_confirmed else current_fertilizer(context)
+    updated = fertilizer_service.update_draft(base_draft, **resolution.changes)
+
+    if resolution.target_state == STATE_FERTILIZER_USED and resolution.changes.get("used") is False:
+        updated = fertilizer_service.update_draft(
+            updated,
+            kind="",
+            product_name="",
+            amount_value=None,
+            amount_unit="",
+            applied_date="",
+        )
+
+    if use_confirmed:
+        reset_session(context.user_data)
+    set_fertilizer_draft(context.user_data, updated.to_dict())
+    set_state(context.user_data, STATE_FERTILIZER_CONFIRM)
+    await send_text(
+        update,
+        f"{catalog.FERTILIZER_DIRECT_UPDATE_MESSAGE}\n\n{fertilizer_service.confirmation_text(updated, catalog)}",
         keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_CONFIRM, catalog),
     )
 
@@ -478,6 +537,15 @@ async def text_message(update, context) -> None:
         return
 
     if state in PROFILE_STATES:
+        profile_direct_update = detect_profile_direct_update(
+            inbound.text,
+            allow_implicit=state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT},
+        )
+        if profile_direct_update is not None:
+            reset_recovery_attempts(context.user_data)
+            await apply_profile_direct_update(update, context, profile_direct_update, use_confirmed=False)
+            return
+
         repair = detect_repair_intent(inbound.text)
         if repair is not None:
             catalog = current_catalog(context)
@@ -507,6 +575,15 @@ async def text_message(update, context) -> None:
             return
 
     if state in FERTILIZER_STATES:
+        fertilizer_direct_update = detect_fertilizer_direct_update(
+            inbound.text,
+            allow_implicit=state == STATE_FERTILIZER_CONFIRM,
+        )
+        if fertilizer_direct_update is not None:
+            reset_recovery_attempts(context.user_data)
+            await apply_fertilizer_direct_update(update, context, fertilizer_direct_update, use_confirmed=False)
+            return
+
         repair = detect_repair_intent(inbound.text)
         if repair is not None and repair.target_state in FERTILIZER_STATES:
             draft = fertilizer_service.reset_draft_for_repair(current_fertilizer(context), repair.target_state)
@@ -521,6 +598,12 @@ async def text_message(update, context) -> None:
             return
 
     if state not in PROFILE_STATES and has_confirmed_profile(context.user_data):
+        profile_direct_update = detect_profile_direct_update(inbound.text, allow_implicit=True)
+        if profile_direct_update is not None:
+            reset_recovery_attempts(context.user_data)
+            await apply_profile_direct_update(update, context, profile_direct_update, use_confirmed=True)
+            return
+
         repair = detect_repair_intent(inbound.text)
         if repair is not None:
             reset_recovery_attempts(context.user_data)
@@ -535,6 +618,12 @@ async def text_message(update, context) -> None:
             return
 
     if state not in FERTILIZER_STATES and has_confirmed_fertilizer(context.user_data):
+        fertilizer_direct_update = detect_fertilizer_direct_update(inbound.text, allow_implicit=True)
+        if fertilizer_direct_update is not None:
+            reset_recovery_attempts(context.user_data)
+            await apply_fertilizer_direct_update(update, context, fertilizer_direct_update, use_confirmed=True)
+            return
+
         repair = detect_repair_intent(inbound.text)
         if repair is not None and repair.target_state in FERTILIZER_STATES:
             reset_recovery_attempts(context.user_data)

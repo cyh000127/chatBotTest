@@ -111,6 +111,7 @@ PROFILE_REPAIR_RESIDENCE_MESSAGE = "거주지를 다시 입력할게요."
 PROFILE_REPAIR_CITY_MESSAGE = "시/도를 다시 입력할게요."
 PROFILE_REPAIR_DISTRICT_MESSAGE = "구/군/시를 다시 입력할게요."
 PROFILE_REPAIR_BIRTH_MESSAGE = "생년월일을 다시 입력할게요.\n출생 연도를 선택해주세요."
+PROFILE_DIRECT_UPDATE_MESSAGE = "자연어 수정 내용을 반영했어요. 확인 후 [확인]을 눌러주세요."
 
 FERTILIZER_KIND_LABELS = {
     "compound": "복합비료",
@@ -137,6 +138,7 @@ FERTILIZER_REPAIR_KIND_MESSAGE = "비료 유형을 다시 입력할게요."
 FERTILIZER_REPAIR_PRODUCT_MESSAGE = "비료 제품명을 다시 입력할게요."
 FERTILIZER_REPAIR_AMOUNT_MESSAGE = "비료 사용량을 다시 입력할게요."
 FERTILIZER_REPAIR_DATE_MESSAGE = "비료 사용일을 다시 입력할게요."
+FERTILIZER_DIRECT_UPDATE_MESSAGE = "자연어 수정 내용을 반영했어요. 확인 후 [확인]을 눌러주세요."
 YIELD_READY_PROMPT = "수확 준비가 되었나요?"
 YIELD_FIELD_PROMPT = "수확한 필드를 선택하거나 입력해주세요."
 YIELD_AMOUNT_PROMPT = "수확량을 입력해주세요.\n예: 320kg"

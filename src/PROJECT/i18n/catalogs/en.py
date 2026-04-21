@@ -111,6 +111,7 @@ PROFILE_REPAIR_RESIDENCE_MESSAGE = "Let's re-enter the residence."
 PROFILE_REPAIR_CITY_MESSAGE = "Let's re-enter the city/province."
 PROFILE_REPAIR_DISTRICT_MESSAGE = "Let's re-enter the district/county/city."
 PROFILE_REPAIR_BIRTH_MESSAGE = "Let's re-enter the birth date.\nPlease choose the birth year."
+PROFILE_DIRECT_UPDATE_MESSAGE = "I applied the natural-language correction. Review it and press [Confirm]."
 
 FERTILIZER_KIND_LABELS = {
     "compound": "Compound",
@@ -137,6 +138,7 @@ FERTILIZER_REPAIR_KIND_MESSAGE = "Let's re-enter the fertilizer type."
 FERTILIZER_REPAIR_PRODUCT_MESSAGE = "Let's re-enter the fertilizer product name."
 FERTILIZER_REPAIR_AMOUNT_MESSAGE = "Let's re-enter the fertilizer amount."
 FERTILIZER_REPAIR_DATE_MESSAGE = "Let's re-enter the fertilizer applied date."
+FERTILIZER_DIRECT_UPDATE_MESSAGE = "I applied the natural-language correction. Review it and press [Confirm]."
 YIELD_READY_PROMPT = "Is the harvest ready?"
 YIELD_FIELD_PROMPT = "Select or enter the harvested field."
 YIELD_AMOUNT_PROMPT = "Enter the harvest amount.\nExample: 320kg"
