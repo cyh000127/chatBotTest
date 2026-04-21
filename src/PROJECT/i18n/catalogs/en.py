@@ -3,12 +3,15 @@ from datetime import datetime
 BUTTON_TODAY_DATE = "Today's date"
 BUTTON_TODAY_WEATHER = "Today's weather"
 BUTTON_PROFILE = "Profile input"
+BUTTON_FERTILIZER = "Fertilizer input"
 BUTTON_HELP = "Help"
 BUTTON_BACK = "Back"
 BUTTON_CANCEL = "Cancel"
 BUTTON_RESTART = "Start over"
 BUTTON_CONFIRM = "Confirm"
 BUTTON_EDIT = "Edit"
+BUTTON_YES = "Yes"
+BUTTON_NO = "No"
 BUTTON_EDIT_NAME = "Name"
 BUTTON_EDIT_RESIDENCE = "Residence"
 BUTTON_EDIT_CITY = "City/Province"
@@ -16,6 +19,10 @@ BUTTON_EDIT_DISTRICT = "District/County/City"
 BUTTON_EDIT_BIRTH_DATE = "Birth date"
 BUTTON_PREV_YEARS = "Previous 12 years"
 BUTTON_NEXT_YEARS = "Next 12 years"
+BUTTON_FERTILIZER_KIND_COMPOUND = "Compound"
+BUTTON_FERTILIZER_KIND_UREA = "Urea"
+BUTTON_FERTILIZER_KIND_COMPOST = "Compost"
+BUTTON_FERTILIZER_KIND_LIQUID = "Liquid"
 
 LANGUAGE_NAME = "English"
 LANGUAGE_MENU_MESSAGE = "Choose a language."
@@ -54,6 +61,7 @@ HELP_MESSAGE = (
     "- /help : show help\n"
     "- /menu : open the main menu\n"
     "- /profile : start profile input\n"
+    "- /fertilizer : start fertilizer input\n"
     "- /language : change language\n"
     "- Back : go to the previous step\n"
     "- Cancel : stop the current flow\n"
@@ -67,6 +75,8 @@ FALLBACK_MESSAGES = {
     "profile_input": "Please enter the requested profile value again.",
     "profile_followup": "Additional confirmation is needed.\nPlease follow the prompt again.",
     "profile_confirm": "A draft is ready.\nChoose [Confirm] or [Edit].",
+    "fertilizer_input": "Please enter the fertilizer value again.\nExample: Compound fertilizer, 20kg, 2026-04-21",
+    "fertilizer_confirm": "A fertilizer draft is ready.\nPress [Confirm] or go back to change it.",
 }
 CHEAP_GATE_SUPPORT_MESSAGE = (
     "This looks like a request for a human operator or support.\n"
@@ -101,6 +111,26 @@ PROFILE_REPAIR_RESIDENCE_MESSAGE = "Let's re-enter the residence."
 PROFILE_REPAIR_CITY_MESSAGE = "Let's re-enter the city/province."
 PROFILE_REPAIR_DISTRICT_MESSAGE = "Let's re-enter the district/county/city."
 PROFILE_REPAIR_BIRTH_MESSAGE = "Let's re-enter the birth date.\nPlease choose the birth year."
+
+FERTILIZER_KIND_LABELS = {
+    "compound": "Compound",
+    "urea": "Urea",
+    "compost": "Compost",
+    "liquid": "Liquid",
+}
+FERTILIZER_USED_PROMPT = "Did you use fertilizer for this activity?"
+FERTILIZER_KIND_PROMPT = "Choose the fertilizer type."
+FERTILIZER_PRODUCT_PROMPT = "Enter the product name.\nExample: Compound fertilizer 21-17-17"
+FERTILIZER_AMOUNT_PROMPT = "Enter the amount used.\nExample: 20kg, one bag"
+FERTILIZER_DATE_PROMPT = "Enter the applied date.\nExample: 2026-04-21, today, yesterday"
+FERTILIZER_CONFIRM_PROMPT = "Please confirm the fertilizer entry."
+FERTILIZER_USED_FALLBACK = "Please choose Yes or No."
+FERTILIZER_KIND_FALLBACK = "Please choose a fertilizer type button."
+FERTILIZER_PRODUCT_FALLBACK = "Please enter the product name again."
+FERTILIZER_AMOUNT_FALLBACK = "Please enter the amount again.\nExample: 20kg, one bag"
+FERTILIZER_DATE_FALLBACK = "Please enter the date again.\nExample: 2026-04-21, today, yesterday"
+FERTILIZER_CONFIRM_FALLBACK = "Press [Confirm] or go back to change it."
+FERTILIZER_CONFIRMED_MESSAGE = "The fertilizer entry has been saved as a session draft."
 
 
 def format_profile_confirmation(
@@ -137,6 +167,31 @@ def format_profile_summary(
         f"- City/Province: {city}\n"
         f"- District/County/City: {district}\n"
         f"- Birth date: {birth_date}"
+    )
+
+
+def format_fertilizer_confirmation(
+    *,
+    used: bool | None,
+    kind_label: str,
+    product_name: str,
+    amount_text: str,
+    applied_date: str,
+) -> str:
+    if used is False:
+        return (
+            "Please confirm the fertilizer entry.\n"
+            "- Fertilizer used: No\n\n"
+            "Press [Confirm] if this is correct."
+        )
+    return (
+        "Please confirm the fertilizer entry.\n"
+        f"- Fertilizer used: {'Yes' if used else '-'}\n"
+        f"- Type: {kind_label}\n"
+        f"- Product: {product_name}\n"
+        f"- Amount: {amount_text}\n"
+        f"- Applied date: {applied_date}\n\n"
+        "Press [Confirm] if this is correct."
     )
 
 

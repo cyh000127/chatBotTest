@@ -41,6 +41,13 @@ def test_classify_global_intent_supports_command_routing():
     assert decision.canonical_intent == registry.INTENT_MENU
 
 
+def test_classify_global_intent_supports_fertilizer_start_phrase():
+    decision = classify_global_intent_text("비료 입력할게요")
+
+    assert decision is not None
+    assert decision.canonical_intent == registry.INTENT_FERTILIZER_INPUT_START
+
+
 def test_classify_global_intent_supports_korean_profile_view_command():
     decision = classify_global_intent_text("/프로필")
 

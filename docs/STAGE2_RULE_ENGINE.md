@@ -51,10 +51,10 @@
 - 공통 규칙 엔진 계약 추가 완료
 - 공통 cheap gate 추가 완료
 - recovery context assembler 추가 완료
+- `fertilizer` 정상 입력 flow 이관 완료
 
 아직 없는 것:
 
-- `fertilizer` flow 이관
 - `yield`, `fertilizer`, `input.resolve` 공통 step schema
 - cross-domain fixture 정리
 

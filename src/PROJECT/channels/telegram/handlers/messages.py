@@ -9,12 +9,21 @@ from PROJECT.channels.telegram.handlers.commands import (
     attempt_auth,
     cancel_command,
     help_command,
-    language_command,
     menu_command,
     open_profile_edit_selector,
     open_profile_target_edit,
     show_current_profile,
+    start_fertilizer_input,
     start_profile_input,
+)
+from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
+from PROJECT.conversations.fertilizer_intake.states import (
+    STATE_FERTILIZER_AMOUNT,
+    STATE_FERTILIZER_CONFIRM,
+    STATE_FERTILIZER_DATE,
+    STATE_FERTILIZER_KIND,
+    STATE_FERTILIZER_PRODUCT,
+    STATE_FERTILIZER_USED,
 )
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import (
@@ -33,9 +42,11 @@ from PROJECT.conversations.sample_menu.keyboards import keyboard_layout_for_stat
 from PROJECT.conversations.sample_menu.states import STATE_AUTH_ID_INPUT, STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.dispatch.command_router import (
     ROUTE_CANCEL,
+    ROUTE_FERTILIZER_FINALIZE,
     ROUTE_GO_BACK,
     ROUTE_HELP,
     ROUTE_MAIN_MENU,
+    ROUTE_OPEN_FERTILIZER,
     ROUTE_OPEN_PROFILE,
     ROUTE_PROFILE_EDIT,
     ROUTE_PROFILE_FINALIZE,
@@ -50,6 +61,7 @@ from PROJECT.dispatch.session_dispatcher import (
     cancel_session,
     current_locale,
     current_state,
+    fertilizer_draft,
     go_back,
     has_confirmed_profile,
     increment_recovery_attempts,
@@ -59,6 +71,8 @@ from PROJECT.dispatch.session_dispatcher import (
     recovery_attempts,
     reset_session,
     reset_recovery_attempts,
+    set_confirmed_fertilizer,
+    set_fertilizer_draft,
     set_last_recovery_context,
     set_confirmed_profile,
     set_locale,
@@ -82,6 +96,15 @@ PROFILE_STATES = {
     STATE_PROFILE_EDIT_SELECT,
 }
 
+FERTILIZER_STATES = {
+    STATE_FERTILIZER_USED,
+    STATE_FERTILIZER_KIND,
+    STATE_FERTILIZER_PRODUCT,
+    STATE_FERTILIZER_AMOUNT,
+    STATE_FERTILIZER_DATE,
+    STATE_FERTILIZER_CONFIRM,
+}
+
 PROFILE_EDIT_CALLBACK_TO_STATE = {
     "name": STATE_PROFILE_NAME,
     "residence": STATE_PROFILE_RESIDENCE,
@@ -97,6 +120,10 @@ def current_catalog(context):
 
 def current_profile(context) -> profile_service.ProfileDraft:
     return profile_service.draft_from_dict(profile_draft(context.user_data))
+
+
+def current_fertilizer(context) -> fertilizer_service.FertilizerDraft:
+    return fertilizer_service.draft_from_dict(fertilizer_draft(context.user_data))
 
 
 async def send_profile_prompt(update, context, state: str, text: str | None = None) -> None:
@@ -116,6 +143,25 @@ async def send_profile_confirmation(update, context) -> None:
         update,
         profile_service.confirmation_text(draft, catalog),
         keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, draft, catalog),
+    )
+
+
+async def send_fertilizer_prompt(update, context, state: str, text: str | None = None) -> None:
+    catalog = current_catalog(context)
+    await send_text(
+        update,
+        text or fertilizer_service.prompt_for_state(state, catalog),
+        keyboard_layout=fertilizer_service.keyboard_for_state(state, catalog),
+    )
+
+
+async def send_fertilizer_confirmation(update, context) -> None:
+    catalog = current_catalog(context)
+    draft = current_fertilizer(context)
+    await send_text(
+        update,
+        fertilizer_service.confirmation_text(draft, catalog),
+        keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_CONFIRM, catalog),
     )
 
 
@@ -174,6 +220,10 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "profile_day", {"day": int(data.rsplit(":", 1)[1])}
     if data.startswith("profile:edit:"):
         return "profile_edit_select", {"target": data.rsplit(":", 1)[1]}
+    if data.startswith("fertilizer:used:"):
+        return "fertilizer_used", {"used": data.rsplit(":", 1)[1] == "yes"}
+    if data.startswith("fertilizer:kind:"):
+        return "fertilizer_kind", {"kind": data.rsplit(":", 1)[1]}
     return registry.INTENT_UNKNOWN_TEXT, {}
 
 
@@ -294,6 +344,73 @@ async def handle_profile_state(update, context, state: str, text: str) -> bool:
     return False
 
 
+async def handle_fertilizer_state(update, context, state: str, text: str) -> bool:
+    catalog = current_catalog(context)
+    draft = current_fertilizer(context)
+
+    if state == STATE_FERTILIZER_USED:
+        used = fertilizer_service.parse_used(text)
+        if used is None:
+            await send_fertilizer_prompt(update, context, state, fertilizer_service.fallback_text_for_state(state, catalog))
+            return True
+        updated = fertilizer_service.update_draft(draft, used=used)
+        set_fertilizer_draft(context.user_data, updated.to_dict())
+        if used is False:
+            set_state(context.user_data, STATE_FERTILIZER_CONFIRM, push_history=True)
+            await send_fertilizer_confirmation(update, context)
+            return True
+        set_state(context.user_data, STATE_FERTILIZER_KIND, push_history=True)
+        await send_fertilizer_prompt(update, context, STATE_FERTILIZER_KIND)
+        return True
+
+    if state == STATE_FERTILIZER_KIND:
+        kind = fertilizer_service.parse_kind(text)
+        if kind is None:
+            await send_fertilizer_prompt(update, context, state, fertilizer_service.fallback_text_for_state(state, catalog))
+            return True
+        set_fertilizer_draft(context.user_data, fertilizer_service.update_draft(draft, kind=kind).to_dict())
+        set_state(context.user_data, STATE_FERTILIZER_PRODUCT, push_history=True)
+        await send_fertilizer_prompt(update, context, STATE_FERTILIZER_PRODUCT)
+        return True
+
+    if state == STATE_FERTILIZER_PRODUCT:
+        product_name = fertilizer_service.parse_product_name(text)
+        if product_name is None:
+            await send_fertilizer_prompt(update, context, state, fertilizer_service.fallback_text_for_state(state, catalog))
+            return True
+        set_fertilizer_draft(context.user_data, fertilizer_service.update_draft(draft, product_name=product_name).to_dict())
+        set_state(context.user_data, STATE_FERTILIZER_AMOUNT, push_history=True)
+        await send_fertilizer_prompt(update, context, STATE_FERTILIZER_AMOUNT)
+        return True
+
+    if state == STATE_FERTILIZER_AMOUNT:
+        amount = fertilizer_service.parse_amount(text)
+        if amount is None:
+            await send_fertilizer_prompt(update, context, state, fertilizer_service.fallback_text_for_state(state, catalog))
+            return True
+        value, unit = amount
+        set_fertilizer_draft(context.user_data, fertilizer_service.update_draft(draft, amount_value=value, amount_unit=unit).to_dict())
+        set_state(context.user_data, STATE_FERTILIZER_DATE, push_history=True)
+        await send_fertilizer_prompt(update, context, STATE_FERTILIZER_DATE)
+        return True
+
+    if state == STATE_FERTILIZER_DATE:
+        applied_date = fertilizer_service.parse_applied_date(text)
+        if applied_date is None:
+            await send_fertilizer_prompt(update, context, state, fertilizer_service.fallback_text_for_state(state, catalog))
+            return True
+        set_fertilizer_draft(context.user_data, fertilizer_service.update_draft(draft, applied_date=applied_date).to_dict())
+        set_state(context.user_data, STATE_FERTILIZER_CONFIRM, push_history=True)
+        await send_fertilizer_confirmation(update, context)
+        return True
+
+    if state == STATE_FERTILIZER_CONFIRM:
+        await send_fertilizer_prompt(update, context, state, fertilizer_service.fallback_text_for_state(state, catalog))
+        return True
+
+    return False
+
+
 async def text_message(update, context) -> None:
     inbound = parse_update(update)
     state = current_state(context.user_data)
@@ -325,6 +442,7 @@ async def text_message(update, context) -> None:
             validation_result=early_gate,
             fallback_key=fallback_key_for_state(state),
             profile_draft_data=profile_draft(context.user_data),
+            fertilizer_draft_data=fertilizer_draft(context.user_data),
             confirmed_profile_data=None,
             pending_slot=pending_slot(context.user_data),
         )
@@ -432,6 +550,11 @@ async def text_message(update, context) -> None:
         await start_profile_input(update, context)
         return
 
+    if decision.route == ROUTE_OPEN_FERTILIZER:
+        reset_recovery_attempts(context.user_data)
+        await start_fertilizer_input(update, context)
+        return
+
     if decision.route == ROUTE_CANCEL:
         cancel_session(context.user_data)
         reset_recovery_attempts(context.user_data)
@@ -479,8 +602,25 @@ async def text_message(update, context) -> None:
         )
         return
 
+    if decision.route == ROUTE_FERTILIZER_FINALIZE:
+        set_confirmed_fertilizer(context.user_data, fertilizer_draft(context.user_data))
+        set_state(context.user_data, STATE_MAIN_MENU)
+        reset_recovery_attempts(context.user_data)
+        await send_text(
+            update,
+            fertilizer_service.confirmed_text(catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
     if state in PROFILE_STATES:
         handled = await handle_profile_state(update, context, state, inbound.text)
+        if handled:
+            reset_recovery_attempts(context.user_data)
+            return
+
+    if state in FERTILIZER_STATES:
+        handled = await handle_fertilizer_state(update, context, state, inbound.text)
         if handled:
             reset_recovery_attempts(context.user_data)
             return
@@ -537,6 +677,7 @@ async def text_message(update, context) -> None:
             validation_result=late_gate,
             fallback_key=fallback_key,
             profile_draft_data=profile_draft(context.user_data),
+            fertilizer_draft_data=fertilizer_draft(context.user_data),
             confirmed_profile_data=None,
             pending_slot=pending_slot(context.user_data),
         )
@@ -648,6 +789,36 @@ async def button_callback(update, context) -> None:
         )
         return
 
+    if action == "fertilizer_used":
+        await clear_callback_markup(update)
+        if state != STATE_FERTILIZER_USED:
+            if current_state(context.user_data) in FERTILIZER_STATES:
+                await send_fertilizer_prompt(update, context, current_state(context.user_data))
+            return
+        draft = current_fertilizer(context)
+        updated = fertilizer_service.update_draft(draft, used=payload["used"])
+        set_fertilizer_draft(context.user_data, updated.to_dict())
+        if payload["used"] is False:
+            set_state(context.user_data, STATE_FERTILIZER_CONFIRM, push_history=True)
+            await send_fertilizer_confirmation(update, context)
+            return
+        set_state(context.user_data, STATE_FERTILIZER_KIND, push_history=True)
+        await send_fertilizer_prompt(update, context, STATE_FERTILIZER_KIND)
+        return
+
+    if action == "fertilizer_kind":
+        await clear_callback_markup(update)
+        if state != STATE_FERTILIZER_KIND:
+            if current_state(context.user_data) in FERTILIZER_STATES:
+                await send_fertilizer_prompt(update, context, current_state(context.user_data))
+            return
+        draft = current_fertilizer(context)
+        updated = fertilizer_service.update_draft(draft, kind=payload["kind"])
+        set_fertilizer_draft(context.user_data, updated.to_dict())
+        set_state(context.user_data, STATE_FERTILIZER_PRODUCT, push_history=True)
+        await send_fertilizer_prompt(update, context, STATE_FERTILIZER_PRODUCT)
+        return
+
     decision = route_message(state, action, payload)
     await clear_callback_markup(update)
     catalog = current_catalog(context)
@@ -662,6 +833,10 @@ async def button_callback(update, context) -> None:
 
     if decision.route == ROUTE_OPEN_PROFILE:
         await start_profile_input(update, context)
+        return
+
+    if decision.route == ROUTE_OPEN_FERTILIZER:
+        await start_fertilizer_input(update, context)
         return
 
     if decision.route == ROUTE_CANCEL:
@@ -698,6 +873,16 @@ async def button_callback(update, context) -> None:
         await send_text(
             update,
             profile_service.confirmed_text(catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
+    if decision.route == ROUTE_FERTILIZER_FINALIZE:
+        set_confirmed_fertilizer(context.user_data, fertilizer_draft(context.user_data))
+        set_state(context.user_data, STATE_MAIN_MENU)
+        await send_text(
+            update,
+            fertilizer_service.confirmed_text(catalog),
             keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
         )
         return

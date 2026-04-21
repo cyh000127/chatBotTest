@@ -52,6 +52,7 @@ def all_button_intents() -> dict[str, str]:
                 catalog.BUTTON_TODAY_DATE: registry.INTENT_SHOW_TODAY_DATE,
                 catalog.BUTTON_TODAY_WEATHER: registry.INTENT_OPEN_WEATHER_MENU,
                 catalog.BUTTON_PROFILE: registry.INTENT_PROFILE,
+                catalog.BUTTON_FERTILIZER: registry.INTENT_FERTILIZER_INPUT_START,
                 catalog.BUTTON_HELP: registry.INTENT_HELP,
                 catalog.BUTTON_BACK: registry.INTENT_BACK,
                 catalog.BUTTON_CANCEL: registry.INTENT_CANCEL,

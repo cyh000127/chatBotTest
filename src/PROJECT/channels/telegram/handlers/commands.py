@@ -1,5 +1,7 @@
 from PROJECT.auth.service import authenticate_login_id
 from PROJECT.adapters.outbound.reply_sender import send_text
+from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
+from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_USED
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_EDIT_SELECT, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu import service
@@ -17,6 +19,7 @@ from PROJECT.dispatch.session_dispatcher import (
     current_state,
     profile_draft,
     reset_session,
+    set_fertilizer_draft,
     set_pending_slot,
     set_profile_draft,
     set_state,
@@ -39,6 +42,19 @@ async def start_profile_input(update, context) -> None:
         update,
         profile_service.prompt_for_state(STATE_PROFILE_NAME, catalog),
         keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_NAME, draft, catalog),
+    )
+
+
+async def start_fertilizer_input(update, context) -> None:
+    catalog = catalog_for(context)
+    reset_session(context.user_data)
+    set_state(context.user_data, STATE_FERTILIZER_USED)
+    draft = fertilizer_service.new_draft()
+    set_fertilizer_draft(context.user_data, draft.to_dict())
+    await send_text(
+        update,
+        fertilizer_service.prompt_for_state(STATE_FERTILIZER_USED, catalog),
+        keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_USED, catalog),
     )
 
 
@@ -215,6 +231,14 @@ async def profile_command(update, context) -> None:
         await start_profile_input(update, context)
         return
     await show_current_profile(update, context)
+
+
+async def fertilizer_command(update, context) -> None:
+    catalog = catalog_for(context)
+    if not is_authenticated(context.user_data):
+        await send_text(update, service.auth_required_text(catalog), keyboard_layout=None)
+        return
+    await start_fertilizer_input(update, context)
 
 
 async def language_command(update, context) -> None:

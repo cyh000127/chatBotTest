@@ -1,3 +1,12 @@
+from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
+from PROJECT.conversations.fertilizer_intake.states import (
+    STATE_FERTILIZER_AMOUNT,
+    STATE_FERTILIZER_CONFIRM,
+    STATE_FERTILIZER_DATE,
+    STATE_FERTILIZER_KIND,
+    STATE_FERTILIZER_PRODUCT,
+    STATE_FERTILIZER_USED,
+)
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_DAY,
@@ -26,8 +35,9 @@ def main_menu_keyboard(catalog) -> list[list[dict[str, str]]]:
         ],
         [
             _button(catalog.BUTTON_PROFILE, "intent:profile"),
-            _button(catalog.BUTTON_HELP, "intent:help"),
+            _button(catalog.BUTTON_FERTILIZER, "intent:fertilizer.input.start"),
         ],
+        [_button(catalog.BUTTON_HELP, "intent:help")],
         [_button(catalog.BUTTON_RESTART, "intent:restart")],
         [_button(catalog.BUTTON_CANCEL, "intent:cancel")],
     ]
@@ -57,6 +67,15 @@ def cancelled_keyboard(catalog) -> list[list[dict[str, str]]]:
 def keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) -> list[list[dict[str, str]]]:
     if state == STATE_WEATHER_MENU:
         return weather_menu_keyboard(catalog)
+    if state in {
+        STATE_FERTILIZER_USED,
+        STATE_FERTILIZER_KIND,
+        STATE_FERTILIZER_PRODUCT,
+        STATE_FERTILIZER_AMOUNT,
+        STATE_FERTILIZER_DATE,
+        STATE_FERTILIZER_CONFIRM,
+    }:
+        return fertilizer_service.keyboard_for_state(state, catalog)
     if state in {
         STATE_PROFILE_NAME,
         STATE_PROFILE_RESIDENCE,

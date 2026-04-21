@@ -8,6 +8,7 @@ COMMAND_TO_INTENT = {
     "help": registry.INTENT_HELP,
     "menu": registry.INTENT_MENU,
     "profile": registry.INTENT_PROFILE,
+    "fertilizer": registry.INTENT_FERTILIZER_INPUT_START,
     "cancel": registry.INTENT_CANCEL,
 }
 
@@ -24,6 +25,8 @@ CITY_LABELS = {
 REPAIR_MARKERS = ("수정", "잘못", "틀렸", "다시", "변경", "고칠", "edit", "change", "fix")
 PROFILE_MARKERS = ("프로필", "정보", "내정보", "profile")
 VIEW_MARKERS = ("보여", "봐", "조회", "확인", "show", "view")
+FERTILIZER_MARKERS = ("비료", "fertilizer")
+START_MARKERS = ("입력", "등록", "기록", "시작", "할게", "할래", "start")
 
 
 def _collapsed(text: str) -> str:
@@ -134,6 +137,16 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
             current_step=current_step,
             source=RuleSource.INTENT_RULE,
             matched_rule="profile_view_phrase",
+        )
+
+    has_fertilizer = any(marker in collapsed for marker in FERTILIZER_MARKERS)
+    has_start = any(marker in collapsed for marker in START_MARKERS)
+    if has_fertilizer and has_start:
+        return IntentDecision(
+            canonical_intent=registry.INTENT_FERTILIZER_INPUT_START,
+            current_step=current_step,
+            source=RuleSource.INTENT_RULE,
+            matched_rule="fertilizer_start_phrase",
         )
 
     return None

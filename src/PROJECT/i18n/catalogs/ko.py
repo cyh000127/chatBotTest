@@ -3,12 +3,15 @@ from datetime import datetime
 BUTTON_TODAY_DATE = "오늘 날짜"
 BUTTON_TODAY_WEATHER = "오늘 날씨"
 BUTTON_PROFILE = "프로필 입력"
+BUTTON_FERTILIZER = "비료 입력"
 BUTTON_HELP = "도움말"
 BUTTON_BACK = "뒤로가기"
 BUTTON_CANCEL = "취소"
 BUTTON_RESTART = "처음부터"
 BUTTON_CONFIRM = "확인"
 BUTTON_EDIT = "수정"
+BUTTON_YES = "예"
+BUTTON_NO = "아니오"
 BUTTON_EDIT_NAME = "이름"
 BUTTON_EDIT_RESIDENCE = "거주지"
 BUTTON_EDIT_CITY = "시/도"
@@ -16,6 +19,10 @@ BUTTON_EDIT_DISTRICT = "구/군/시"
 BUTTON_EDIT_BIRTH_DATE = "생년월일"
 BUTTON_PREV_YEARS = "이전 12년"
 BUTTON_NEXT_YEARS = "다음 12년"
+BUTTON_FERTILIZER_KIND_COMPOUND = "복합비료"
+BUTTON_FERTILIZER_KIND_UREA = "요소비료"
+BUTTON_FERTILIZER_KIND_COMPOST = "퇴비"
+BUTTON_FERTILIZER_KIND_LIQUID = "액비"
 LANGUAGE_NAME = "한국어"
 LANGUAGE_MENU_MESSAGE = "언어를 선택하세요."
 LANGUAGE_CHANGED_MESSAGE = "언어가 한국어로 변경되었습니다."
@@ -54,6 +61,7 @@ HELP_MESSAGE = (
     "- /help : 도움말 보기\n"
     "- /menu : 메인 메뉴 열기\n"
     "- /profile : 프로필 입력 시작\n"
+    "- /fertilizer : 비료 입력 시작\n"
     "- /language : 언어 변경\n"
     "- 뒤로가기 : 이전 단계로 이동\n"
     "- 취소 : 현재 흐름 종료\n"
@@ -67,6 +75,8 @@ FALLBACK_MESSAGES = {
     "profile_input": "프로필 입력 형식으로 다시 보내주세요.\n예: 김민수 서울 강남 1998년 4월 20일",
     "profile_followup": "추가 확인이 필요합니다.\n안내된 형식으로 다시 입력하거나 버튼을 눌러주세요.",
     "profile_confirm": "초안이 준비돼 있어요.\n[확인] 또는 [수정]을 선택해주세요.",
+    "fertilizer_input": "비료 입력 형식으로 다시 보내주세요.\n예: 복합비료, 20kg, 2026-04-21",
+    "fertilizer_confirm": "비료 입력 초안이 준비됐어요.\n[확인]을 누르거나 뒤로가기로 수정해주세요.",
 }
 CHEAP_GATE_SUPPORT_MESSAGE = (
     "사람 상담 또는 운영자 연결 요청으로 이해했습니다.\n"
@@ -101,6 +111,26 @@ PROFILE_REPAIR_RESIDENCE_MESSAGE = "거주지를 다시 입력할게요."
 PROFILE_REPAIR_CITY_MESSAGE = "시/도를 다시 입력할게요."
 PROFILE_REPAIR_DISTRICT_MESSAGE = "구/군/시를 다시 입력할게요."
 PROFILE_REPAIR_BIRTH_MESSAGE = "생년월일을 다시 입력할게요.\n출생 연도를 선택해주세요."
+
+FERTILIZER_KIND_LABELS = {
+    "compound": "복합비료",
+    "urea": "요소비료",
+    "compost": "퇴비",
+    "liquid": "액비",
+}
+FERTILIZER_USED_PROMPT = "이번 작업에서 비료를 사용했나요?"
+FERTILIZER_KIND_PROMPT = "비료 유형을 선택해주세요."
+FERTILIZER_PRODUCT_PROMPT = "제품명을 입력해주세요.\n예: 한아름 복합비료"
+FERTILIZER_AMOUNT_PROMPT = "사용량을 입력해주세요.\n예: 20kg, 한 포"
+FERTILIZER_DATE_PROMPT = "사용일을 입력해주세요.\n예: 2026-04-21, 오늘, 어제"
+FERTILIZER_CONFIRM_PROMPT = "비료 입력 내용을 확인해주세요."
+FERTILIZER_USED_FALLBACK = "예 또는 아니오를 선택해주세요."
+FERTILIZER_KIND_FALLBACK = "비료 유형 버튼을 선택해주세요."
+FERTILIZER_PRODUCT_FALLBACK = "제품명을 다시 입력해주세요."
+FERTILIZER_AMOUNT_FALLBACK = "사용량을 다시 입력해주세요.\n예: 20kg, 한 포"
+FERTILIZER_DATE_FALLBACK = "사용일을 다시 입력해주세요.\n예: 2026-04-21, 오늘, 어제"
+FERTILIZER_CONFIRM_FALLBACK = "[확인]을 누르거나 뒤로가기로 수정해주세요."
+FERTILIZER_CONFIRMED_MESSAGE = "비료 입력을 저장용 초안으로 확인했습니다.\n현재 세션에 보관해두었어요."
 
 
 def format_profile_confirmation(
@@ -137,6 +167,31 @@ def format_profile_summary(
         f"- 시/도: {city}\n"
         f"- 구/군/시: {district}\n"
         f"- 생년월일: {birth_date}"
+    )
+
+
+def format_fertilizer_confirmation(
+    *,
+    used: bool | None,
+    kind_label: str,
+    product_name: str,
+    amount_text: str,
+    applied_date: str,
+) -> str:
+    if used is False:
+        return (
+            "비료 입력을 확인했어요.\n"
+            "- 비료 사용 여부: 사용 안 함\n\n"
+            "맞으면 [확인]을 눌러주세요."
+        )
+    return (
+        "비료 입력을 확인했어요.\n"
+        f"- 비료 사용 여부: {'사용함' if used else '-'}\n"
+        f"- 비료 유형: {kind_label}\n"
+        f"- 제품명: {product_name}\n"
+        f"- 사용량: {amount_text}\n"
+        f"- 사용일: {applied_date}\n\n"
+        "맞으면 [확인]을 눌러주세요."
     )
 
 WEATHER_CODE_LABELS = {

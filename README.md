@@ -15,6 +15,7 @@ python -m PROJECT.main
 - `/start`, `/help`, `/menu`, `/cancel`
 - 오늘 날짜 확인
 - 오늘 날씨 확인
+- `/fertilizer` 비료 입력 정상 경로
 - 뒤로가기, 취소, 처음부터
 - 상태별 fallback, 알 수 없는 입력 처리
 

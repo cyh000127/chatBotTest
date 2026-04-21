@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from PROJECT.canonical_intents import registry
+from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_USED
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_DAY,
     STATE_PROFILE_BIRTH_MONTH,
@@ -18,8 +19,10 @@ ROUTE_HELP = "help"
 ROUTE_MAIN_MENU = "main_menu"
 ROUTE_CANCEL = "cancel"
 ROUTE_OPEN_PROFILE = "open_profile"
+ROUTE_OPEN_FERTILIZER = "open_fertilizer"
 ROUTE_PROFILE_EDIT = "profile_edit"
 ROUTE_PROFILE_FINALIZE = "profile_finalize"
+ROUTE_FERTILIZER_FINALIZE = "fertilizer_finalize"
 ROUTE_GO_BACK = "go_back"
 ROUTE_SHOW_DATE = "show_date"
 ROUTE_SHOW_WEATHER_MENU = "show_weather_menu"
@@ -44,12 +47,16 @@ def route_message(state: str, intent: str, payload: dict | None = None) -> Route
         return RouteDecision(ROUTE_MAIN_MENU)
     if intent == registry.INTENT_PROFILE:
         return RouteDecision(ROUTE_OPEN_PROFILE, next_state=STATE_PROFILE_NAME)
+    if intent == registry.INTENT_FERTILIZER_INPUT_START:
+        return RouteDecision(ROUTE_OPEN_FERTILIZER, next_state=STATE_FERTILIZER_USED)
     if intent == registry.INTENT_CANCEL:
         return RouteDecision(ROUTE_CANCEL)
     if intent == registry.INTENT_BACK:
         return RouteDecision(ROUTE_GO_BACK)
     if state == STATE_PROFILE_CONFIRM and intent == registry.INTENT_CONFIRM:
         return RouteDecision(ROUTE_PROFILE_FINALIZE)
+    if state == STATE_FERTILIZER_CONFIRM and intent == registry.INTENT_CONFIRM:
+        return RouteDecision(ROUTE_FERTILIZER_FINALIZE)
     if state == STATE_PROFILE_CONFIRM and intent == registry.INTENT_EDIT:
         return RouteDecision(ROUTE_PROFILE_EDIT, next_state=STATE_PROFILE_EDIT_SELECT, push_history=True)
     if intent == registry.INTENT_SHOW_TODAY_DATE:

@@ -1,4 +1,13 @@
 from PROJECT.canonical_intents import registry
+from PROJECT.conversations.fertilizer_intake.states import (
+    STATE_FERTILIZER_AMOUNT,
+    STATE_FERTILIZER_CONFIRM,
+    STATE_FERTILIZER_DATE,
+    STATE_FERTILIZER_KIND,
+    STATE_FERTILIZER_PRODUCT,
+    STATE_FERTILIZER_USED,
+)
+from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_DAY,
@@ -33,6 +42,7 @@ def assemble_recovery_context(
     validation_result: ValidationResult | None = None,
     fallback_key: str | None = None,
     profile_draft_data: dict | None = None,
+    fertilizer_draft_data: dict | None = None,
     confirmed_profile_data: dict | None = None,
     pending_slot: str | None = None,
     selected_city: str | None = None,
@@ -42,6 +52,7 @@ def assemble_recovery_context(
         current_step,
         locale=locale,
         profile_draft_data=profile_draft_data,
+        fertilizer_draft_data=fertilizer_draft_data,
         selected_city=selected_city,
     )
 
@@ -55,6 +66,7 @@ def assemble_recovery_context(
         recent_messages_summary=_summarize_session(
             current_step=current_step,
             profile_draft_data=profile_draft_data,
+            fertilizer_draft_data=fertilizer_draft_data,
             confirmed_profile_data=confirmed_profile_data,
             pending_slot=pending_slot,
             selected_city=selected_city,
@@ -78,10 +90,12 @@ def prompt_schema_for_state(
     *,
     locale: str,
     profile_draft_data: dict | None = None,
+    fertilizer_draft_data: dict | None = None,
     selected_city: str | None = None,
 ) -> dict[str, str | tuple[str, ...]]:
     catalog = get_catalog(locale)
     draft = profile_service.draft_from_dict(profile_draft_data)
+    fertilizer_draft = fertilizer_service.draft_from_dict(fertilizer_draft_data)
 
     if current_step == STATE_AUTH_ID_INPUT:
         return {
@@ -227,6 +241,66 @@ def prompt_schema_for_state(
             ),
         }
 
+    if current_step == STATE_FERTILIZER_USED:
+        return {
+            "current_question": catalog.FERTILIZER_USED_PROMPT,
+            "expected_input_type": "binary_yes_no",
+            "allowed_value_shape": "one_of:used|not_used",
+            "hard_constraints": (
+                "fertilizer_usage_flag_required",
+            ),
+        }
+
+    if current_step == STATE_FERTILIZER_KIND:
+        return {
+            "current_question": catalog.FERTILIZER_KIND_PROMPT,
+            "expected_input_type": "fertilizer_kind",
+            "allowed_value_shape": "one_of:compound|urea|compost|liquid",
+            "hard_constraints": (
+                "fertilizer_kind_must_be_supported",
+            ),
+        }
+
+    if current_step == STATE_FERTILIZER_PRODUCT:
+        return {
+            "current_question": catalog.FERTILIZER_PRODUCT_PROMPT,
+            "expected_input_type": "product_name",
+            "allowed_value_shape": "free_text_product_name",
+            "hard_constraints": (
+                "product_name_required_before_amount",
+            ),
+        }
+
+    if current_step == STATE_FERTILIZER_AMOUNT:
+        return {
+            "current_question": catalog.FERTILIZER_AMOUNT_PROMPT,
+            "expected_input_type": "amount_with_unit",
+            "allowed_value_shape": "supported_amount_unit_pair",
+            "hard_constraints": (
+                "amount_requires_supported_unit",
+            ),
+        }
+
+    if current_step == STATE_FERTILIZER_DATE:
+        return {
+            "current_question": catalog.FERTILIZER_DATE_PROMPT,
+            "expected_input_type": "applied_date",
+            "allowed_value_shape": "absolute_or_limited_relative_date",
+            "hard_constraints": (
+                "applied_date_required_before_confirm",
+            ),
+        }
+
+    if current_step == STATE_FERTILIZER_CONFIRM:
+        return {
+            "current_question": fertilizer_service.confirmation_text(fertilizer_draft, catalog),
+            "expected_input_type": "confirmation_action",
+            "allowed_value_shape": "one_of:confirm|back|cancel",
+            "hard_constraints": (
+                "fertilizer_entry_must_be_reviewed_before_finalize",
+            ),
+        }
+
     return {
         "current_question": sample_service.main_menu_text(catalog),
         "expected_input_type": "unknown",
@@ -239,6 +313,7 @@ def _summarize_session(
     *,
     current_step: str,
     profile_draft_data: dict | None,
+    fertilizer_draft_data: dict | None,
     confirmed_profile_data: dict | None,
     pending_slot: str | None,
     selected_city: str | None,
@@ -263,6 +338,21 @@ def _summarize_session(
         filled_fields.append("birth_date")
     if filled_fields:
         summary_parts.append(f"profile_draft_fields={','.join(filled_fields)}")
+
+    if fertilizer_draft_data:
+        fertilizer_fields = []
+        if fertilizer_draft_data.get("used") is not None:
+            fertilizer_fields.append("used")
+        if fertilizer_draft_data.get("kind"):
+            fertilizer_fields.append("kind")
+        if fertilizer_draft_data.get("product_name"):
+            fertilizer_fields.append("product_name")
+        if fertilizer_draft_data.get("amount_value") is not None and fertilizer_draft_data.get("amount_unit"):
+            fertilizer_fields.append("amount")
+        if fertilizer_draft_data.get("applied_date"):
+            fertilizer_fields.append("applied_date")
+        if fertilizer_fields:
+            summary_parts.append(f"fertilizer_draft_fields={','.join(fertilizer_fields)}")
 
     if confirmed_profile_data:
         confirmed = profile_service.draft_from_dict(confirmed_profile_data)

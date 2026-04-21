@@ -1,3 +1,11 @@
+from PROJECT.conversations.fertilizer_intake.states import (
+    STATE_FERTILIZER_AMOUNT,
+    STATE_FERTILIZER_CONFIRM,
+    STATE_FERTILIZER_DATE,
+    STATE_FERTILIZER_KIND,
+    STATE_FERTILIZER_PRODUCT,
+    STATE_FERTILIZER_USED,
+)
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_DAY,
     STATE_PROFILE_BIRTH_MONTH,
@@ -39,4 +47,8 @@ def fallback_key_for_state(state: str) -> str:
         return "profile_confirm"
     if state == STATE_PROFILE_EDIT_SELECT:
         return "profile_followup"
+    if state in {STATE_FERTILIZER_USED, STATE_FERTILIZER_KIND, STATE_FERTILIZER_PRODUCT, STATE_FERTILIZER_AMOUNT, STATE_FERTILIZER_DATE}:
+        return "fertilizer_input"
+    if state == STATE_FERTILIZER_CONFIRM:
+        return "fertilizer_confirm"
     return FALLBACK_DEFAULT

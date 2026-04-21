@@ -1,0 +1,6 @@
+STATE_FERTILIZER_USED = "fertilizer_used"
+STATE_FERTILIZER_KIND = "fertilizer_kind"
+STATE_FERTILIZER_PRODUCT = "fertilizer_product"
+STATE_FERTILIZER_AMOUNT = "fertilizer_amount"
+STATE_FERTILIZER_DATE = "fertilizer_date"
+STATE_FERTILIZER_CONFIRM = "fertilizer_confirm"
