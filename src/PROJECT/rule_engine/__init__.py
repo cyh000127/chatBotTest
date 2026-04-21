@@ -7,15 +7,42 @@ from PROJECT.rule_engine.contracts import (
     ValidationClassification,
     ValidationResult,
 )
+from PROJECT.rule_engine.aliases import (
+    CITY_ALIASES,
+    DISTRICT_EXAMPLES_BY_CITY,
+    DISTRICT_RULES,
+    DistrictRule,
+    detect_city_alias,
+    detect_district_rule,
+    district_examples_for_city,
+)
 from PROJECT.rule_engine.intent_rules import classify_global_intent, classify_global_intent_text
 from PROJECT.rule_engine.normalizer import extract_command_token, normalize_body_text, normalize_user_input, normalize_whitespace
+from PROJECT.rule_engine.slot_extractors import (
+    PROFILE_NAME_STOPWORDS,
+    PROFILE_PLACE_TOKENS,
+    extract_birth_date_candidate,
+    extract_korean_name_candidate,
+)
 from PROJECT.rule_engine.step_rules import classify_step_local_intent, classify_step_local_intent_text
 
 __all__ = [
+    "CITY_ALIASES",
+    "DISTRICT_EXAMPLES_BY_CITY",
+    "DISTRICT_RULES",
+    "DistrictRule",
+    "PROFILE_NAME_STOPWORDS",
+    "PROFILE_PLACE_TOKENS",
     "classify_global_intent",
     "classify_global_intent_text",
     "classify_step_local_intent",
     "classify_step_local_intent_text",
+    "detect_city_alias",
+    "detect_district_rule",
+    "district_examples_for_city",
+    "extract_birth_date_candidate",
+    "extract_command_token",
+    "extract_korean_name_candidate",
     "IntentDecision",
     "NormalizedInput",
     "RecoveryContextDraft",
