@@ -31,6 +31,25 @@ def profile_confirm_keyboard(catalog) -> list[list[dict[str, str]]]:
     ]
 
 
+def profile_edit_select_keyboard(catalog) -> list[list[dict[str, str]]]:
+    return [
+        [
+            _button(catalog.BUTTON_EDIT_NAME, "profile:edit:name"),
+            _button(catalog.BUTTON_EDIT_RESIDENCE, "profile:edit:residence"),
+        ],
+        [
+            _button(catalog.BUTTON_EDIT_CITY, "profile:edit:city"),
+            _button(catalog.BUTTON_EDIT_DISTRICT, "profile:edit:district"),
+        ],
+        [_button(catalog.BUTTON_EDIT_BIRTH_DATE, "profile:edit:birth_date")],
+        [
+            _button(catalog.BUTTON_BACK, "intent:back"),
+            _button(catalog.BUTTON_CANCEL, "intent:cancel"),
+        ],
+        [_button(catalog.BUTTON_RESTART, "intent:restart")],
+    ]
+
+
 def profile_birth_year_keyboard(page_start: int, catalog) -> list[list[dict[str, str]]]:
     years = [str(page_start - offset) for offset in range(YEARS_PER_PAGE)]
     rows = [

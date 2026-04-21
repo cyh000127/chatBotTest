@@ -9,6 +9,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
     STATE_PROFILE_CITY,
     STATE_PROFILE_CONFIRM,
+    STATE_PROFILE_EDIT_SELECT,
     STATE_PROFILE_DISTRICT,
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
@@ -64,6 +65,8 @@ def prompt_for_state(state: str, catalog) -> str:
         return catalog.PROFILE_BIRTH_MONTH_PROMPT
     if state == STATE_PROFILE_BIRTH_DAY:
         return catalog.PROFILE_BIRTH_DAY_PROMPT
+    if state == STATE_PROFILE_EDIT_SELECT:
+        return catalog.PROFILE_EDIT_MESSAGE
     return catalog.PROFILE_ENTRY_MESSAGE
 
 
@@ -76,6 +79,8 @@ def keyboard_for_state(state: str, draft: ProfileDraft, catalog) -> list[list[st
         return keyboards.profile_birth_day_keyboard(draft.birth_year, draft.birth_month, catalog)
     if state == STATE_PROFILE_CONFIRM:
         return keyboards.profile_confirm_keyboard(catalog)
+    if state == STATE_PROFILE_EDIT_SELECT:
+        return keyboards.profile_edit_select_keyboard(catalog)
     return keyboards.profile_input_keyboard(catalog)
 
 
@@ -94,39 +99,21 @@ def reset_draft_for_repair(draft: ProfileDraft, target_state: str) -> ProfileDra
         return update_draft(
             draft,
             name="",
-            residence="",
-            city="",
-            district="",
-            birth_year=None,
-            birth_month=None,
-            birth_day=None,
         )
     if target_state == STATE_PROFILE_RESIDENCE:
         return update_draft(
             draft,
             residence="",
-            city="",
-            district="",
-            birth_year=None,
-            birth_month=None,
-            birth_day=None,
         )
     if target_state == STATE_PROFILE_CITY:
         return update_draft(
             draft,
             city="",
-            district="",
-            birth_year=None,
-            birth_month=None,
-            birth_day=None,
         )
     if target_state == STATE_PROFILE_DISTRICT:
         return update_draft(
             draft,
             district="",
-            birth_year=None,
-            birth_month=None,
-            birth_day=None,
         )
     if target_state == STATE_PROFILE_BIRTH_YEAR:
         return update_draft(
@@ -191,6 +178,7 @@ def fallback_text_for_state(state: str, catalog) -> str:
         STATE_PROFILE_BIRTH_MONTH: catalog.PROFILE_BIRTH_MONTH_FALLBACK,
         STATE_PROFILE_BIRTH_DAY: catalog.PROFILE_BIRTH_DAY_FALLBACK,
         STATE_PROFILE_CONFIRM: catalog.PROFILE_CONFIRM_FALLBACK,
+        STATE_PROFILE_EDIT_SELECT: catalog.PROFILE_EDIT_SELECT_FALLBACK,
     }
     return mapping.get(state, catalog.PROFILE_ENTRY_MESSAGE)
 

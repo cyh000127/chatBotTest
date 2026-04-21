@@ -7,6 +7,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
     STATE_PROFILE_CITY,
     STATE_PROFILE_CONFIRM,
+    STATE_PROFILE_EDIT_SELECT,
     STATE_PROFILE_DISTRICT,
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
@@ -50,7 +51,7 @@ def route_message(state: str, intent: str, payload: dict | None = None) -> Route
     if state == STATE_PROFILE_CONFIRM and intent == registry.INTENT_CONFIRM:
         return RouteDecision(ROUTE_PROFILE_FINALIZE)
     if state == STATE_PROFILE_CONFIRM and intent == registry.INTENT_EDIT:
-        return RouteDecision(ROUTE_PROFILE_EDIT, next_state=STATE_PROFILE_NAME)
+        return RouteDecision(ROUTE_PROFILE_EDIT, next_state=STATE_PROFILE_EDIT_SELECT, push_history=True)
     if intent == registry.INTENT_SHOW_TODAY_DATE:
         return RouteDecision(ROUTE_SHOW_DATE)
     if intent == registry.INTENT_OPEN_WEATHER_MENU:

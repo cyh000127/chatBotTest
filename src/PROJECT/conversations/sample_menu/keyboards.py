@@ -5,6 +5,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
     STATE_PROFILE_CITY,
     STATE_PROFILE_CONFIRM,
+    STATE_PROFILE_EDIT_SELECT,
     STATE_PROFILE_DISTRICT,
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
@@ -65,6 +66,7 @@ def keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) ->
         STATE_PROFILE_BIRTH_MONTH,
         STATE_PROFILE_BIRTH_DAY,
         STATE_PROFILE_CONFIRM,
+        STATE_PROFILE_EDIT_SELECT,
     }:
         return profile_service.keyboard_for_state(state, profile_service.draft_from_dict(draft), catalog)
     if state == STATE_LANGUAGE_SELECT:

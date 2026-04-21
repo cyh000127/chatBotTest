@@ -52,6 +52,6 @@ def test_reset_draft_for_residence_repair_clears_downstream_fields():
     updated = service.reset_draft_for_repair(draft, STATE_PROFILE_RESIDENCE)
     assert updated.name == "김민수"
     assert updated.residence == ""
-    assert updated.city == ""
-    assert updated.district == ""
-    assert updated.birth_year is None
+    assert updated.city == "서울특별시"
+    assert updated.district == "강남구"
+    assert updated.birth_year == 1998

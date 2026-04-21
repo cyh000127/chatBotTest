@@ -5,6 +5,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
     STATE_PROFILE_CITY,
     STATE_PROFILE_CONFIRM,
+    STATE_PROFILE_EDIT_SELECT,
     STATE_PROFILE_DISTRICT,
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
@@ -26,6 +27,7 @@ def test_prompt_for_each_step_exists():
     assert service.prompt_for_state(STATE_PROFILE_BIRTH_MONTH, ko)
     assert service.prompt_for_state(STATE_PROFILE_BIRTH_DAY, ko)
     assert service.prompt_for_state(STATE_PROFILE_CONFIRM, ko)
+    assert service.prompt_for_state(STATE_PROFILE_EDIT_SELECT, ko)
 
 
 def test_button_parsers():
@@ -52,3 +54,13 @@ def test_confirmation_text_formats_birth_date():
     assert "김민수" in text
     assert "서울특별시" in text
     assert "1998-04-20" in text
+
+
+def test_edit_select_keyboard_contains_profile_fields():
+    keyboard = service.keyboard_for_state(STATE_PROFILE_EDIT_SELECT, service.new_draft(), ko)
+    labels = {button["text"] for row in keyboard for button in row}
+    assert ko.BUTTON_EDIT_NAME in labels
+    assert ko.BUTTON_EDIT_RESIDENCE in labels
+    assert ko.BUTTON_EDIT_CITY in labels
+    assert ko.BUTTON_EDIT_DISTRICT in labels
+    assert ko.BUTTON_EDIT_BIRTH_DATE in labels

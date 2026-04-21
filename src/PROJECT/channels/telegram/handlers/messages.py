@@ -13,6 +13,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
     STATE_PROFILE_CITY,
     STATE_PROFILE_CONFIRM,
+    STATE_PROFILE_EDIT_SELECT,
     STATE_PROFILE_DISTRICT,
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
@@ -41,6 +42,7 @@ from PROJECT.dispatch.session_dispatcher import (
     current_state,
     go_back,
     is_authenticated,
+    pending_slot,
     profile_draft,
     reset_session,
     set_locale,
@@ -60,6 +62,15 @@ PROFILE_STATES = {
     STATE_PROFILE_BIRTH_MONTH,
     STATE_PROFILE_BIRTH_DAY,
     STATE_PROFILE_CONFIRM,
+    STATE_PROFILE_EDIT_SELECT,
+}
+
+PROFILE_EDIT_CALLBACK_TO_STATE = {
+    "name": STATE_PROFILE_NAME,
+    "residence": STATE_PROFILE_RESIDENCE,
+    "city": STATE_PROFILE_CITY,
+    "district": STATE_PROFILE_DISTRICT,
+    "birth_date": STATE_PROFILE_BIRTH_YEAR,
 }
 
 
@@ -81,6 +92,54 @@ async def send_profile_prompt(update, context, state: str, text: str | None = No
     )
 
 
+async def send_profile_confirmation(update, context) -> None:
+    catalog = current_catalog(context)
+    draft = current_profile(context)
+    await send_text(
+        update,
+        profile_service.confirmation_text(draft, catalog),
+        keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, draft, catalog),
+    )
+
+
+async def finish_profile_edit_if_needed(update, context, edited_state: str) -> bool:
+    edit_target = pending_slot(context.user_data)
+    if edit_target is None:
+        return False
+
+    if edited_state == STATE_PROFILE_NAME and edit_target == STATE_PROFILE_NAME:
+        set_pending_slot(context.user_data, None)
+        set_state(context.user_data, STATE_PROFILE_CONFIRM)
+        await send_profile_confirmation(update, context)
+        return True
+
+    if edited_state == STATE_PROFILE_RESIDENCE and edit_target == STATE_PROFILE_RESIDENCE:
+        set_pending_slot(context.user_data, None)
+        set_state(context.user_data, STATE_PROFILE_CONFIRM)
+        await send_profile_confirmation(update, context)
+        return True
+
+    if edited_state == STATE_PROFILE_CITY and edit_target == STATE_PROFILE_CITY:
+        set_pending_slot(context.user_data, None)
+        set_state(context.user_data, STATE_PROFILE_CONFIRM)
+        await send_profile_confirmation(update, context)
+        return True
+
+    if edited_state == STATE_PROFILE_DISTRICT and edit_target == STATE_PROFILE_DISTRICT:
+        set_pending_slot(context.user_data, None)
+        set_state(context.user_data, STATE_PROFILE_CONFIRM)
+        await send_profile_confirmation(update, context)
+        return True
+
+    if edited_state == STATE_PROFILE_BIRTH_DAY and edit_target == STATE_PROFILE_BIRTH_YEAR:
+        set_pending_slot(context.user_data, None)
+        set_state(context.user_data, STATE_PROFILE_CONFIRM)
+        await send_profile_confirmation(update, context)
+        return True
+
+    return False
+
+
 def parse_callback_data(data: str) -> tuple[str, dict]:
     if data.startswith("intent:"):
         return data.split(":", 1)[1], {}
@@ -96,6 +155,8 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "profile_month", {"month": int(data.rsplit(":", 1)[1])}
     if data.startswith("profile:day:"):
         return "profile_day", {"day": int(data.rsplit(":", 1)[1])}
+    if data.startswith("profile:edit:"):
+        return "profile_edit_select", {"target": data.rsplit(":", 1)[1]}
     return registry.INTENT_UNKNOWN_TEXT, {}
 
 
@@ -120,6 +181,8 @@ async def handle_profile_state(update, context, state: str, text: str) -> bool:
             await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
             return True
         set_profile_draft(context.user_data, profile_service.update_draft(draft, name=name).to_dict())
+        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_NAME):
+            return True
         set_state(context.user_data, STATE_PROFILE_RESIDENCE, push_history=True)
         await send_profile_prompt(update, context, STATE_PROFILE_RESIDENCE)
         return True
@@ -130,6 +193,8 @@ async def handle_profile_state(update, context, state: str, text: str) -> bool:
             await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
             return True
         set_profile_draft(context.user_data, profile_service.update_draft(draft, residence=residence).to_dict())
+        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_RESIDENCE):
+            return True
         set_state(context.user_data, STATE_PROFILE_CITY, push_history=True)
         await send_profile_prompt(update, context, STATE_PROFILE_CITY)
         return True
@@ -140,6 +205,8 @@ async def handle_profile_state(update, context, state: str, text: str) -> bool:
             await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
             return True
         set_profile_draft(context.user_data, profile_service.update_draft(draft, city=city).to_dict())
+        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_CITY):
+            return True
         set_state(context.user_data, STATE_PROFILE_DISTRICT, push_history=True)
         await send_profile_prompt(update, context, STATE_PROFILE_DISTRICT)
         return True
@@ -150,6 +217,8 @@ async def handle_profile_state(update, context, state: str, text: str) -> bool:
             await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
             return True
         set_profile_draft(context.user_data, profile_service.update_draft(draft, district=district).to_dict())
+        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_DISTRICT):
+            return True
         set_state(context.user_data, STATE_PROFILE_BIRTH_YEAR, push_history=True)
         await send_profile_prompt(update, context, STATE_PROFILE_BIRTH_YEAR)
         return True
@@ -195,12 +264,10 @@ async def handle_profile_state(update, context, state: str, text: str) -> bool:
             return True
         updated = profile_service.update_draft(draft, birth_day=day)
         set_profile_draft(context.user_data, updated.to_dict())
+        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_BIRTH_DAY):
+            return True
         set_state(context.user_data, STATE_PROFILE_CONFIRM, push_history=True)
-        await send_text(
-            update,
-            profile_service.confirmation_text(updated, catalog),
-            keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, updated, catalog),
-        )
+        await send_profile_confirmation(update, context)
         return True
 
     if state == STATE_PROFILE_CONFIRM:
@@ -246,6 +313,10 @@ async def text_message(update, context) -> None:
             catalog = current_catalog(context)
             draft = profile_service.reset_draft_for_repair(current_profile(context), repair.target_state)
             set_profile_draft(context.user_data, draft.to_dict())
+            if state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}:
+                set_pending_slot(context.user_data, repair.target_state)
+            else:
+                set_pending_slot(context.user_data, None)
             set_state(context.user_data, repair.target_state)
             await send_text(
                 update,
@@ -307,14 +378,12 @@ async def text_message(update, context) -> None:
         return
 
     if decision.route == ROUTE_PROFILE_EDIT:
-        set_state(context.user_data, STATE_PROFILE_NAME)
-        draft = profile_service.new_draft()
-        set_profile_draft(context.user_data, draft.to_dict())
+        set_state(context.user_data, decision.next_state or STATE_PROFILE_EDIT_SELECT, push_history=decision.push_history)
         set_pending_slot(context.user_data, None)
         await send_text(
             update,
             profile_service.edit_text(catalog),
-            keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_NAME, draft, catalog),
+            keyboard_layout=profile_service.keyboard_for_state(current_state(context.user_data), current_profile(context), catalog),
         )
         return
 
@@ -440,12 +509,26 @@ async def button_callback(update, context) -> None:
         draft = current_profile(context)
         updated = profile_service.update_draft(draft, birth_day=payload["day"])
         set_profile_draft(context.user_data, updated.to_dict())
+        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_BIRTH_DAY):
+            return
         set_state(context.user_data, STATE_PROFILE_CONFIRM, push_history=True)
-        catalog = current_catalog(context)
+        await send_profile_confirmation(update, context)
+        return
+
+    if action == "profile_edit_select":
+        await clear_callback_markup(update)
+        target_state = PROFILE_EDIT_CALLBACK_TO_STATE.get(payload["target"])
+        if target_state is None:
+            await send_profile_prompt(update, context, STATE_PROFILE_EDIT_SELECT)
+            return
+        draft = profile_service.reset_draft_for_repair(current_profile(context), target_state)
+        set_profile_draft(context.user_data, draft.to_dict())
+        set_pending_slot(context.user_data, target_state)
+        set_state(context.user_data, target_state, push_history=True)
         await send_text(
             update,
-            profile_service.confirmation_text(updated, catalog),
-            keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, updated, catalog),
+            profile_service.repair_message(target_state, current_catalog(context)),
+            keyboard_layout=profile_service.keyboard_for_state(target_state, draft, current_catalog(context)),
         )
         return
 
@@ -483,14 +566,12 @@ async def button_callback(update, context) -> None:
         return
 
     if decision.route == ROUTE_PROFILE_EDIT:
-        set_state(context.user_data, STATE_PROFILE_NAME)
-        draft = profile_service.new_draft()
-        set_profile_draft(context.user_data, draft.to_dict())
+        set_state(context.user_data, decision.next_state or STATE_PROFILE_EDIT_SELECT, push_history=decision.push_history)
         set_pending_slot(context.user_data, None)
         await send_text(
             update,
             profile_service.edit_text(catalog),
-            keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_NAME, draft, catalog),
+            keyboard_layout=profile_service.keyboard_for_state(current_state(context.user_data), current_profile(context), catalog),
         )
         return
 

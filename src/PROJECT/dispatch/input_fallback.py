@@ -4,6 +4,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
     STATE_PROFILE_CITY,
     STATE_PROFILE_CONFIRM,
+    STATE_PROFILE_EDIT_SELECT,
     STATE_PROFILE_DISTRICT,
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
@@ -36,4 +37,6 @@ def fallback_key_for_state(state: str) -> str:
         return "profile_followup"
     if state == STATE_PROFILE_CONFIRM:
         return "profile_confirm"
+    if state == STATE_PROFILE_EDIT_SELECT:
+        return "profile_followup"
     return FALLBACK_DEFAULT
