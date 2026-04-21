@@ -8,6 +8,7 @@ from PROJECT.rule_engine.contracts import (
     ValidationResult,
 )
 from PROJECT.rule_engine.cheap_gate import MAX_RECOVERY_ATTEMPTS, classify_cheap_gate
+from PROJECT.rule_engine.recovery_context import assemble_recovery_context, prompt_schema_for_state
 from PROJECT.rule_engine.aliases import (
     CITY_ALIASES,
     DISTRICT_EXAMPLES_BY_CITY,
@@ -51,6 +52,7 @@ __all__ = [
     "PROFILE_PENDING_NAME",
     "PROFILE_PENDING_RESIDENCE",
     "MAX_RECOVERY_ATTEMPTS",
+    "assemble_recovery_context",
     "classify_cheap_gate",
     "classify_global_intent",
     "classify_global_intent_text",
@@ -73,6 +75,7 @@ __all__ = [
     "normalize_body_text",
     "normalize_user_input",
     "normalize_whitespace",
+    "prompt_schema_for_state",
     "validate_profile_candidates",
     "validate_profile_followup",
 ]

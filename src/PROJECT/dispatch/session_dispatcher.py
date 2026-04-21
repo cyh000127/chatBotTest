@@ -16,6 +16,7 @@ def _default_session() -> dict:
         "user_name": None,
         "auth_failures": 0,
         "recovery_attempts": 0,
+        "last_recovery_context": None,
     }
 
 
@@ -29,12 +30,14 @@ def reset_session(user_data: dict) -> dict:
     login_id = get_session(user_data).get("login_id") if "session" in user_data else None
     user_name = get_session(user_data).get("user_name") if "session" in user_data else None
     confirmed_profile = get_session(user_data).get("confirmed_profile") if "session" in user_data else None
+    last_context = get_session(user_data).get("last_recovery_context") if "session" in user_data else None
     user_data["session"] = _default_session()
     user_data["session"]["locale"] = locale
     user_data["session"]["authenticated"] = authenticated
     user_data["session"]["login_id"] = login_id
     user_data["session"]["user_name"] = user_name
     user_data["session"]["confirmed_profile"] = confirmed_profile
+    user_data["session"]["last_recovery_context"] = last_context
     return user_data["session"]
 
 
@@ -156,3 +159,11 @@ def increment_recovery_attempts(user_data: dict) -> int:
 
 def reset_recovery_attempts(user_data: dict) -> None:
     get_session(user_data)["recovery_attempts"] = 0
+
+
+def set_last_recovery_context(user_data: dict, recovery_context: dict | None) -> None:
+    get_session(user_data)["last_recovery_context"] = recovery_context
+
+
+def last_recovery_context(user_data: dict) -> dict | None:
+    return get_session(user_data).get("last_recovery_context")

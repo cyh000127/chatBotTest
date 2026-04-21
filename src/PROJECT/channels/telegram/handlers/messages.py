@@ -59,6 +59,7 @@ from PROJECT.dispatch.session_dispatcher import (
     recovery_attempts,
     reset_session,
     reset_recovery_attempts,
+    set_last_recovery_context,
     set_confirmed_profile,
     set_locale,
     set_pending_slot,
@@ -67,7 +68,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_state,
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
-from PROJECT.rule_engine import ValidationClassification, classify_cheap_gate
+from PROJECT.rule_engine import ValidationClassification, assemble_recovery_context, classify_cheap_gate
 
 PROFILE_STATES = {
     STATE_PROFILE_NAME,
@@ -315,6 +316,19 @@ async def text_message(update, context) -> None:
         "manual_handoff_request",
     }:
         catalog = current_catalog(context)
+        recovery_context = assemble_recovery_context(
+            current_step=state,
+            latest_user_message=inbound.text,
+            locale=session_locale,
+            recovery_attempt_count=recovery_attempts(context.user_data),
+            canonical_intent=registry.INTENT_UNKNOWN_TEXT,
+            validation_result=early_gate,
+            fallback_key=fallback_key_for_state(state),
+            profile_draft_data=profile_draft(context.user_data),
+            confirmed_profile_data=None,
+            pending_slot=pending_slot(context.user_data),
+        )
+        set_last_recovery_context(context.user_data, recovery_context.to_dict())
         reset_recovery_attempts(context.user_data)
         await send_text(
             update,
@@ -514,6 +528,19 @@ async def text_message(update, context) -> None:
         recovery_attempt_count=recovery_attempts(context.user_data) + 1,
     )
     if late_gate.classification == ValidationClassification.NEEDS_HANDOFF:
+        recovery_context = assemble_recovery_context(
+            current_step=current_state(context.user_data),
+            latest_user_message=inbound.text,
+            locale=current_locale(context.user_data),
+            recovery_attempt_count=recovery_attempts(context.user_data) + 1,
+            canonical_intent=intent,
+            validation_result=late_gate,
+            fallback_key=fallback_key,
+            profile_draft_data=profile_draft(context.user_data),
+            confirmed_profile_data=None,
+            pending_slot=pending_slot(context.user_data),
+        )
+        set_last_recovery_context(context.user_data, recovery_context.to_dict())
         reset_recovery_attempts(context.user_data)
         await send_text(
             update,

@@ -82,4 +82,10 @@ LLM 호출 전에 아래 입력은 규칙으로 먼저 닫는다.
 - 반복 실패 횟수 누적 후 handoff 분류
 - 구조화 step에서의 무관 입력 reask 분류
 
+현재 기준으로 recovery context assembler는 아래 수준까지 구현되어 있다.
+
+- 상태별 `current_question`, `expected_input_type`, `allowed_value_shape` 조립
+- profile draft와 선택 상태를 `recent_messages_summary`로 요약
+- handoff 직전에 세션에 마지막 recovery context 저장
+
 즉 지금은 “LLM을 붙이는 작업”이 아니라 “LLM 없이도 최대한 버티는 규칙 엔진을 만드는 작업”이다.

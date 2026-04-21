@@ -7,7 +7,9 @@ from PROJECT.dispatch.session_dispatcher import (
     go_back,
     has_confirmed_profile,
     increment_auth_failures,
+    last_recovery_context,
     reset_session,
+    set_last_recovery_context,
     set_confirmed_profile,
     set_selected_city,
     set_state,
@@ -49,3 +51,11 @@ def test_confirmed_profile_helpers_work():
     set_confirmed_profile(user_data, {"name": "최윤혁"})
     assert has_confirmed_profile(user_data) is True
     assert confirmed_profile(user_data) == {"name": "최윤혁"}
+
+
+def test_last_recovery_context_is_preserved_across_reset_session():
+    user_data = {}
+    set_last_recovery_context(user_data, {"current_step": "weather_menu"})
+    reset_session(user_data)
+
+    assert last_recovery_context(user_data) == {"current_step": "weather_menu"}

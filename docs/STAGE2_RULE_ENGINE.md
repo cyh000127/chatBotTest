@@ -50,15 +50,13 @@
 - 프로필 관련 일부 normalization/repair 로직 존재
 - 공통 규칙 엔진 계약 추가 완료
 - 공통 cheap gate 추가 완료
+- recovery context assembler 추가 완료
 
 아직 없는 것:
 
-- 공통 `normalizer` 패키지
-- 공통 `intent_rules` 패키지
-- 공통 `slot_extractors` / `aliases` 패키지
-- 공통 `validators` 레이어
-- RecoveryContext 조립기
+- `fertilizer` flow 이관
 - `yield`, `fertilizer`, `input.resolve` 공통 step schema
+- cross-domain fixture 정리
 
 ## 구현 순서
 
