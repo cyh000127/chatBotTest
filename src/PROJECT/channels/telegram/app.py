@@ -15,7 +15,11 @@ def create_application(settings: Settings):
     )
     application.bot_data["settings"] = settings
     application.bot_data["gemini_recovery_classifier"] = GeminiRecoveryClassifier(settings.gemini) if settings.gemini is not None else None
-    application.bot_data["gemini_edit_intent_resolver"] = GeminiEditIntentResolver(settings.gemini) if settings.gemini is not None else None
+    application.bot_data["gemini_edit_intent_resolver"] = (
+        GeminiEditIntentResolver(settings.gemini)
+        if settings.gemini is not None and settings.enable_llm_edit_intent
+        else None
+    )
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("menu", menu_command))

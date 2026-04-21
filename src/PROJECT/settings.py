@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 DEFAULT_GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_GEMINI_TIMEOUT_SECONDS = 15.0
+TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,14 @@ class Settings:
     weather_api_base: str = "https://api.open-meteo.com/v1/forecast"
     timezone_name: str = "Asia/Seoul"
     gemini: GeminiSettings | None = None
+    enable_llm_edit_intent: bool = False
+
+
+def parse_bool_env(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in TRUE_ENV_VALUES
 
 
 def load_settings() -> Settings:
@@ -46,4 +55,8 @@ def load_settings() -> Settings:
             timeout_seconds=gemini_timeout_seconds,
         )
 
-    return Settings(bot_token=bot_token, gemini=gemini_settings)
+    return Settings(
+        bot_token=bot_token,
+        gemini=gemini_settings,
+        enable_llm_edit_intent=parse_bool_env("ENABLE_LLM_EDIT_INTENT", default=False),
+    )

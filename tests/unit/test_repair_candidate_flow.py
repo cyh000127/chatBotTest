@@ -1,4 +1,6 @@
-from PROJECT.channels.telegram.handlers.messages import llm_repair_guidance_text, parse_candidate_changes
+from types import SimpleNamespace
+
+from PROJECT.channels.telegram.handlers.messages import llm_edit_intent_policy_enabled, llm_repair_guidance_text, parse_candidate_changes
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_BIRTH_YEAR
 from PROJECT.conversations.sample_menu.keyboards import repair_confirmation_keyboard
@@ -79,3 +81,11 @@ def test_llm_repair_guidance_text_for_human_review_result():
     text = llm_repair_guidance_text(result, catalog)
 
     assert text == catalog.LLM_REPAIR_HUMAN_REVIEW_MESSAGE
+
+
+def test_llm_edit_intent_policy_enabled_requires_explicit_flag():
+    disabled_context = SimpleNamespace(bot_data={"settings": SimpleNamespace(enable_llm_edit_intent=False)})
+    enabled_context = SimpleNamespace(bot_data={"settings": SimpleNamespace(enable_llm_edit_intent=True)})
+
+    assert llm_edit_intent_policy_enabled(disabled_context) is False
+    assert llm_edit_intent_policy_enabled(enabled_context) is True

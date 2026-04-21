@@ -495,6 +495,11 @@ def llm_repair_guidance_text(result: LlmEditIntentResult, catalog) -> str | None
     return None
 
 
+def llm_edit_intent_policy_enabled(context) -> bool:
+    settings = context.bot_data.get("settings")
+    return bool(getattr(settings, "enable_llm_edit_intent", False))
+
+
 async def maybe_send_llm_repair_confirmation(
     update,
     context,
@@ -505,7 +510,7 @@ async def maybe_send_llm_repair_confirmation(
 ) -> bool:
     resolver = context.bot_data.get("gemini_edit_intent_resolver")
     lowered = text.strip().lower()
-    if resolver is None or not lowered:
+    if resolver is None or not lowered or not llm_edit_intent_policy_enabled(context):
         return False
     if not any(marker in lowered for marker in EDIT_INTENT_HINT_MARKERS):
         return False

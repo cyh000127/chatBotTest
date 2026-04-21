@@ -7,10 +7,11 @@
 현재 구현은 아래 범위까지 포함한다.
 
 - `.env`에 Gemini API 키를 넣을 수 있는 설정 슬롯 추가
+- `.env`에 `ENABLE_LLM_EDIT_INTENT` 정책 게이트 추가
 - `Settings`에 Gemini 설정 모델 추가
 - `RecoveryContextDraft`를 Gemini `generateContent` 요청으로 바꾸는 request builder 추가
 - Gemini JSON 응답을 `LlmRecoveryResult`로 파싱하는 parser 추가
-- 텔레그램 앱 부트스트랩 시 Gemini classifier를 `bot_data`에 주입
+- 텔레그램 앱 부트스트랩 시 정책 게이트를 통과한 Gemini classifier만 `bot_data`에 주입
 
 현재는 아직 메시지 핸들러에서 자동 호출하지 않는다.
 
@@ -18,6 +19,7 @@
 
 - `GEMINI_API_KEY`가 없으면 `Settings.gemini`는 `None`이다.
 - 즉 키가 없을 때는 Gemini 설정 객체 자체를 만들지 않는다.
+- `ENABLE_LLM_EDIT_INTENT=true`가 아니면 edit-intent 보조 분류기는 주입하지 않는다.
 - 민감값은 코드 기본값으로 보관하지 않는다.
 
 ## 환경 변수
@@ -30,6 +32,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 GEMINI_API_BASE=https://generativelanguage.googleapis.com/v1beta
 GEMINI_TIMEOUT_SECONDS=15
+ENABLE_LLM_EDIT_INTENT=false
 ```
 
 ## 구현 위치
