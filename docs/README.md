@@ -10,6 +10,8 @@
   규칙 기반 처리 우선 원칙과 3단계 LLM 호출 직전까지 필요한 구조를 정리한다.
 - [`GEMINI_RECOVERY_SETUP.md`](./GEMINI_RECOVERY_SETUP.md)
   Gemini API 키 설정, request builder, JSON parser, classifier 주입 위치를 정리한다.
+- [`STRUCTURED_INTERACTION_POLICY.md`](./STRUCTURED_INTERACTION_POLICY.md)
+  unknown fallback 버튼 유도, 자연어 수정 확인 단계, enum 제한 LLM 정책을 정리한다.
 
 ## 현재 기준
 
