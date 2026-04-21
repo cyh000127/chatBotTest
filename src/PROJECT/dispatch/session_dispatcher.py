@@ -10,6 +10,10 @@ def _default_session() -> dict:
         "profile_draft": None,
         "pending_slot": None,
         "locale": DEFAULT_LOCALE,
+        "authenticated": False,
+        "login_id": None,
+        "user_name": None,
+        "auth_failures": 0,
     }
 
 
@@ -19,8 +23,14 @@ def get_session(user_data: dict) -> dict:
 
 def reset_session(user_data: dict) -> dict:
     locale = get_session(user_data).get("locale", DEFAULT_LOCALE) if "session" in user_data else DEFAULT_LOCALE
+    authenticated = get_session(user_data).get("authenticated", False) if "session" in user_data else False
+    login_id = get_session(user_data).get("login_id") if "session" in user_data else None
+    user_name = get_session(user_data).get("user_name") if "session" in user_data else None
     user_data["session"] = _default_session()
     user_data["session"]["locale"] = locale
+    user_data["session"]["authenticated"] = authenticated
+    user_data["session"]["login_id"] = login_id
+    user_data["session"]["user_name"] = user_name
     return user_data["session"]
 
 
@@ -82,3 +92,37 @@ def set_locale(user_data: dict, locale: str) -> None:
 
 def current_locale(user_data: dict) -> str:
     return get_session(user_data)["locale"]
+
+
+def is_authenticated(user_data: dict) -> bool:
+    return bool(get_session(user_data)["authenticated"])
+
+
+def authenticate_session(user_data: dict, *, login_id: str, user_name: str) -> None:
+    session = get_session(user_data)
+    session["authenticated"] = True
+    session["login_id"] = login_id
+    session["user_name"] = user_name
+    session["auth_failures"] = 0
+
+
+def current_user_name(user_data: dict) -> str | None:
+    return get_session(user_data)["user_name"]
+
+
+def current_login_id(user_data: dict) -> str | None:
+    return get_session(user_data)["login_id"]
+
+
+def auth_failures(user_data: dict) -> int:
+    return int(get_session(user_data).get("auth_failures", 0))
+
+
+def increment_auth_failures(user_data: dict) -> int:
+    session = get_session(user_data)
+    session["auth_failures"] = int(session.get("auth_failures", 0)) + 1
+    return session["auth_failures"]
+
+
+def reset_auth_failures(user_data: dict) -> None:
+    get_session(user_data)["auth_failures"] = 0

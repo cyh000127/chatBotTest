@@ -5,7 +5,7 @@ from PROJECT.canonical_intents.mapping import command_to_intent, text_to_intent
 from PROJECT.canonical_intents import registry
 from PROJECT.canonical_intents.registry import INTENT_UNKNOWN_COMMAND
 from PROJECT.channels.telegram.parser import parse_update
-from PROJECT.channels.telegram.handlers.commands import cancel_command, help_command, language_command, menu_command, profile_command
+from PROJECT.channels.telegram.handlers.commands import attempt_auth, cancel_command, help_command, language_command, menu_command, profile_command
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_DAY,
@@ -19,7 +19,7 @@ from PROJECT.conversations.profile_intake.states import (
 )
 from PROJECT.conversations.sample_menu import service
 from PROJECT.conversations.sample_menu.keyboards import keyboard_layout_for_state
-from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
+from PROJECT.conversations.sample_menu.states import STATE_AUTH_ID_INPUT, STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.dispatch.command_router import (
     ROUTE_CANCEL,
     ROUTE_GO_BACK,
@@ -40,6 +40,7 @@ from PROJECT.dispatch.session_dispatcher import (
     current_locale,
     current_state,
     go_back,
+    is_authenticated,
     profile_draft,
     reset_session,
     set_locale,
@@ -212,6 +213,14 @@ async def handle_profile_state(update, context, state: str, text: str) -> bool:
 async def text_message(update, context) -> None:
     inbound = parse_update(update)
     state = current_state(context.user_data)
+    if not is_authenticated(context.user_data):
+        catalog = current_catalog(context)
+        if state == STATE_AUTH_ID_INPUT:
+            await attempt_auth(update, context, inbound.text)
+            return
+        await send_text(update, service.auth_required_text(catalog), keyboard_layout=None)
+        return
+
     if state == STATE_LANGUAGE_SELECT:
         locale = resolve_language_choice(inbound.text)
         if locale is not None:
@@ -370,6 +379,10 @@ async def button_callback(update, context) -> None:
 
     state = current_state(context.user_data)
     action, payload = parse_callback_data(query.data)
+    if not is_authenticated(context.user_data):
+        await clear_callback_markup(update)
+        await send_text(update, service.auth_required_text(current_catalog(context)), keyboard_layout=None)
+        return
 
     if action == "language_select":
         await clear_callback_markup(update)
@@ -532,6 +545,9 @@ async def button_callback(update, context) -> None:
 
 async def unknown_command(update, context) -> None:
     catalog = current_catalog(context)
+    if not is_authenticated(context.user_data):
+        await send_text(update, service.auth_required_text(catalog), keyboard_layout=None)
+        return
     inbound = parse_update(update)
     intent = command_to_intent(inbound.command)
     if intent != INTENT_UNKNOWN_COMMAND:

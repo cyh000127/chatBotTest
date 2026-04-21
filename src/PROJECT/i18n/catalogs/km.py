@@ -15,6 +15,12 @@ BUTTON_NEXT_YEARS = "12 ឆ្នាំបន្ទាប់"
 LANGUAGE_NAME = "ខ្មែរ"
 LANGUAGE_MENU_MESSAGE = "សូមជ្រើសរើសភាសា។"
 LANGUAGE_CHANGED_MESSAGE = "បានប្តូរភាសាទៅជាខ្មែរ។"
+AUTH_START_PROMPT = "សូមបញ្ចូលអត្តសញ្ញាណចូលប្រើ។\nឧទាហរណ៍៖ /start okccc5 ឬ okccc5"
+AUTH_REQUIRED_MESSAGE = "ត្រូវការការផ្ទៀងផ្ទាត់ជាមុនសិន។\nសូមវាយ /start ហើយបញ្ចូលអត្តសញ្ញាណរបស់អ្នក។"
+AUTH_INVALID_MESSAGE = "អត្តសញ្ញាណមិនត្រឹមត្រូវទេ។ សូមបញ្ចូលម្ដងទៀត។"
+AUTH_RETRY_LIMIT_MESSAGE = "ការផ្ទៀងផ្ទាត់បានបរាជ័យ 2 ដង។\nសូមចាប់ផ្តើមម្ដងទៀតដោយវាយ /start។"
+AUTH_WELCOME_MESSAGE = "សូមស្វាគមន៍ {user_name}!"
+AUTH_ALREADY_LOGGED_IN_MESSAGE = "សូមស្វាគមន៍មកវិញ {user_name}!"
 
 CITY_BUTTON_TO_KEY = {
     "សេអ៊ូល": "서울",

@@ -93,6 +93,30 @@ def language_changed_text(catalog) -> str:
     return catalog.LANGUAGE_CHANGED_MESSAGE
 
 
+def auth_start_text(catalog) -> str:
+    return catalog.AUTH_START_PROMPT
+
+
+def auth_required_text(catalog) -> str:
+    return catalog.AUTH_REQUIRED_MESSAGE
+
+
+def auth_invalid_text(catalog) -> str:
+    return catalog.AUTH_INVALID_MESSAGE
+
+
+def auth_retry_limit_text(catalog) -> str:
+    return catalog.AUTH_RETRY_LIMIT_MESSAGE
+
+
+def auth_welcome_text(catalog, user_name: str) -> str:
+    return catalog.AUTH_WELCOME_MESSAGE.format(user_name=user_name)
+
+
+def auth_already_logged_in_text(catalog, user_name: str) -> str:
+    return catalog.AUTH_ALREADY_LOGGED_IN_MESSAGE.format(user_name=user_name)
+
+
 async def fetch_weather(city: str, settings: Settings) -> WeatherSnapshot:
     location = WEATHER_LOCATIONS[city]
     params = {

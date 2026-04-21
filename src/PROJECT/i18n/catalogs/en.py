@@ -15,6 +15,12 @@ BUTTON_NEXT_YEARS = "Next 12 years"
 LANGUAGE_NAME = "English"
 LANGUAGE_MENU_MESSAGE = "Choose a language."
 LANGUAGE_CHANGED_MESSAGE = "Language has been changed to English."
+AUTH_START_PROMPT = "Please enter your login ID.\nExample: /start okccc5 or okccc5"
+AUTH_REQUIRED_MESSAGE = "Authentication is required.\nEnter /start and then type your login ID."
+AUTH_INVALID_MESSAGE = "The login ID is not valid. Please try again."
+AUTH_RETRY_LIMIT_MESSAGE = "Authentication failed twice.\nStarting over. Please enter /start again."
+AUTH_WELCOME_MESSAGE = "Welcome, {user_name}!"
+AUTH_ALREADY_LOGGED_IN_MESSAGE = "Welcome back, {user_name}!"
 
 CITY_BUTTON_TO_KEY = {
     "Seoul": "서울",

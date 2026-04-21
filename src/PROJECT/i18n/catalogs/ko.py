@@ -14,6 +14,12 @@ BUTTON_NEXT_YEARS = "다음 12년"
 LANGUAGE_NAME = "한국어"
 LANGUAGE_MENU_MESSAGE = "언어를 선택하세요."
 LANGUAGE_CHANGED_MESSAGE = "언어가 한국어로 변경되었습니다."
+AUTH_START_PROMPT = "아이디를 입력해주세요.\n예: /start okccc5 또는 okccc5"
+AUTH_REQUIRED_MESSAGE = "인증 후 이용할 수 있습니다.\n/start 를 입력한 뒤 아이디를 입력해주세요."
+AUTH_INVALID_MESSAGE = "정확한 아이디를 입력하지 않았습니다. 다시 입력해주세요."
+AUTH_RETRY_LIMIT_MESSAGE = "인증에 두 번 실패했습니다.\n처음부터 다시 시작합니다. /start 를 입력해주세요."
+AUTH_WELCOME_MESSAGE = "어서오세요 {user_name}님!"
+AUTH_ALREADY_LOGGED_IN_MESSAGE = "어서오세요 {user_name}님!"
 
 CITY_LABELS = ("서울", "부산", "제주")
 CITY_BUTTON_TO_KEY = {
