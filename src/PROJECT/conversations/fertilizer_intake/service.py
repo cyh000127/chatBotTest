@@ -164,6 +164,56 @@ def confirmed_text(catalog) -> str:
     return catalog.FERTILIZER_CONFIRMED_MESSAGE
 
 
+def no_fertilizer_text(catalog) -> str:
+    return catalog.FERTILIZER_NOT_FOUND_MESSAGE
+
+
+def reset_draft_for_repair(draft: FertilizerDraft, target_state: str) -> FertilizerDraft:
+    if target_state == STATE_FERTILIZER_USED:
+        return new_draft()
+    if target_state == STATE_FERTILIZER_KIND:
+        return update_draft(
+            draft,
+            kind="",
+            product_name="",
+            amount_value=None,
+            amount_unit="",
+            applied_date="",
+        )
+    if target_state == STATE_FERTILIZER_PRODUCT:
+        return update_draft(
+            draft,
+            product_name="",
+            amount_value=None,
+            amount_unit="",
+            applied_date="",
+        )
+    if target_state == STATE_FERTILIZER_AMOUNT:
+        return update_draft(
+            draft,
+            amount_value=None,
+            amount_unit="",
+            applied_date="",
+        )
+    if target_state == STATE_FERTILIZER_DATE:
+        return update_draft(
+            draft,
+            applied_date="",
+        )
+    return draft
+
+
+def repair_message(target_state: str, catalog) -> str:
+    mapping = {
+        STATE_FERTILIZER_USED: catalog.FERTILIZER_REPAIR_USED_MESSAGE,
+        STATE_FERTILIZER_KIND: catalog.FERTILIZER_REPAIR_KIND_MESSAGE,
+        STATE_FERTILIZER_PRODUCT: catalog.FERTILIZER_REPAIR_PRODUCT_MESSAGE,
+        STATE_FERTILIZER_AMOUNT: catalog.FERTILIZER_REPAIR_AMOUNT_MESSAGE,
+        STATE_FERTILIZER_DATE: catalog.FERTILIZER_REPAIR_DATE_MESSAGE,
+    }
+    return mapping.get(target_state, catalog.FERTILIZER_USED_PROMPT)
+
+
 def fallback_text_for_state(state: str, catalog) -> str:
     mapping = {
         STATE_FERTILIZER_USED: catalog.FERTILIZER_USED_FALLBACK,

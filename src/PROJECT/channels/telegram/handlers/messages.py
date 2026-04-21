@@ -10,6 +10,7 @@ from PROJECT.channels.telegram.handlers.commands import (
     cancel_command,
     help_command,
     menu_command,
+    open_fertilizer_target_edit,
     open_profile_edit_selector,
     open_profile_target_edit,
     show_current_profile,
@@ -63,6 +64,7 @@ from PROJECT.dispatch.session_dispatcher import (
     current_state,
     fertilizer_draft,
     go_back,
+    has_confirmed_fertilizer,
     has_confirmed_profile,
     increment_recovery_attempts,
     is_authenticated,
@@ -504,6 +506,20 @@ async def text_message(update, context) -> None:
             )
             return
 
+    if state in FERTILIZER_STATES:
+        repair = detect_repair_intent(inbound.text)
+        if repair is not None and repair.target_state in FERTILIZER_STATES:
+            draft = fertilizer_service.reset_draft_for_repair(current_fertilizer(context), repair.target_state)
+            set_fertilizer_draft(context.user_data, draft.to_dict())
+            set_state(context.user_data, repair.target_state)
+            reset_recovery_attempts(context.user_data)
+            await send_text(
+                update,
+                fertilizer_service.repair_message(repair.target_state, current_catalog(context)),
+                keyboard_layout=fertilizer_service.keyboard_for_state(repair.target_state, current_catalog(context)),
+            )
+            return
+
     if state not in PROFILE_STATES and has_confirmed_profile(context.user_data):
         repair = detect_repair_intent(inbound.text)
         if repair is not None:
@@ -516,6 +532,13 @@ async def text_message(update, context) -> None:
         if detect_profile_view_intent(inbound.text):
             reset_recovery_attempts(context.user_data)
             await show_current_profile(update, context)
+            return
+
+    if state not in FERTILIZER_STATES and has_confirmed_fertilizer(context.user_data):
+        repair = detect_repair_intent(inbound.text)
+        if repair is not None and repair.target_state in FERTILIZER_STATES:
+            reset_recovery_attempts(context.user_data)
+            await open_fertilizer_target_edit(update, context, repair.target_state)
             return
 
     intent, payload = text_to_intent(

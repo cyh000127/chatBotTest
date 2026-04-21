@@ -27,6 +27,11 @@ PROFILE_MARKERS = ("프로필", "정보", "내정보", "profile")
 VIEW_MARKERS = ("보여", "봐", "조회", "확인", "show", "view")
 FERTILIZER_MARKERS = ("비료", "fertilizer")
 START_MARKERS = ("입력", "등록", "기록", "시작", "할게", "할래", "start")
+FERTILIZER_PRODUCT_MARKERS = ("제품", "제품명", "상품", "브랜드", "product", "name")
+FERTILIZER_AMOUNT_MARKERS = ("양", "사용량", "수량", "kg", "포", "포대", "amount", "quantity")
+FERTILIZER_DATE_MARKERS = ("날짜", "사용일", "언제", "date", "day")
+FERTILIZER_KIND_MARKERS = ("유형", "종류", "타입", "kind", "type")
+FERTILIZER_USED_MARKERS = ("사용", "썼", "안썼", "미사용", "used", "notused")
 
 
 def _collapsed(text: str) -> str:
@@ -78,8 +83,52 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
     has_repair = any(marker in collapsed for marker in REPAIR_MARKERS)
     has_profile = any(marker in collapsed for marker in PROFILE_MARKERS)
     has_view = any(marker in collapsed for marker in VIEW_MARKERS)
+    has_fertilizer = any(marker in collapsed for marker in FERTILIZER_MARKERS)
 
     if has_repair:
+        if has_fertilizer:
+            if any(marker in collapsed for marker in FERTILIZER_AMOUNT_MARKERS):
+                return IntentDecision(
+                    canonical_intent=registry.INTENT_FERTILIZER_EDIT_AMOUNT,
+                    current_step=current_step,
+                    source=RuleSource.INTENT_RULE,
+                    matched_rule="fertilizer_edit_amount",
+                )
+            if any(marker in collapsed for marker in FERTILIZER_DATE_MARKERS):
+                return IntentDecision(
+                    canonical_intent=registry.INTENT_FERTILIZER_EDIT_DATE,
+                    current_step=current_step,
+                    source=RuleSource.INTENT_RULE,
+                    matched_rule="fertilizer_edit_date",
+                )
+            if any(marker in collapsed for marker in FERTILIZER_PRODUCT_MARKERS):
+                return IntentDecision(
+                    canonical_intent=registry.INTENT_FERTILIZER_EDIT_PRODUCT,
+                    current_step=current_step,
+                    source=RuleSource.INTENT_RULE,
+                    matched_rule="fertilizer_edit_product",
+                )
+            if any(marker in collapsed for marker in FERTILIZER_KIND_MARKERS):
+                return IntentDecision(
+                    canonical_intent=registry.INTENT_FERTILIZER_EDIT_KIND,
+                    current_step=current_step,
+                    source=RuleSource.INTENT_RULE,
+                    matched_rule="fertilizer_edit_kind",
+                )
+            if any(marker in collapsed for marker in FERTILIZER_USED_MARKERS):
+                return IntentDecision(
+                    canonical_intent=registry.INTENT_FERTILIZER_EDIT_USED,
+                    current_step=current_step,
+                    source=RuleSource.INTENT_RULE,
+                    matched_rule="fertilizer_edit_used",
+                )
+            return IntentDecision(
+                canonical_intent=registry.INTENT_FERTILIZER_EDIT_START,
+                current_step=current_step,
+                source=RuleSource.INTENT_RULE,
+                matched_rule="fertilizer_edit_start",
+            )
+
         if "생년월일" in collapsed or "생일" in collapsed or "birthdate" in collapsed or "birthday" in collapsed:
             return IntentDecision(
                 canonical_intent=registry.INTENT_PROFILE_EDIT_BIRTH_DATE,
@@ -139,7 +188,6 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
             matched_rule="profile_view_phrase",
         )
 
-    has_fertilizer = any(marker in collapsed for marker in FERTILIZER_MARKERS)
     has_start = any(marker in collapsed for marker in START_MARKERS)
     if has_fertilizer and has_start:
         return IntentDecision(

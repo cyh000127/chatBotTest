@@ -9,9 +9,11 @@ from PROJECT.conversations.sample_menu.keyboards import keyboard_layout_for_stat
 from PROJECT.conversations.sample_menu.states import STATE_AUTH_ID_INPUT, STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.dispatch.session_dispatcher import (
     authenticate_session,
+    confirmed_fertilizer,
     confirmed_profile,
     current_user_name,
     cancel_session,
+    has_confirmed_fertilizer,
     has_confirmed_profile,
     increment_auth_failures,
     is_authenticated,
@@ -122,6 +124,29 @@ async def open_profile_target_edit(update, context, target_state: str) -> bool:
         update,
         profile_service.repair_message(target_state, catalog),
         keyboard_layout=profile_service.keyboard_for_state(target_state, draft, catalog),
+    )
+    return True
+
+
+async def open_fertilizer_target_edit(update, context, target_state: str) -> bool:
+    catalog = catalog_for(context)
+    if not has_confirmed_fertilizer(context.user_data):
+        await send_text(
+            update,
+            fertilizer_service.no_fertilizer_text(catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return False
+
+    confirmed = fertilizer_service.draft_from_dict(confirmed_fertilizer(context.user_data))
+    draft = fertilizer_service.reset_draft_for_repair(confirmed, target_state)
+    reset_session(context.user_data)
+    set_fertilizer_draft(context.user_data, draft.to_dict())
+    set_state(context.user_data, target_state)
+    await send_text(
+        update,
+        fertilizer_service.repair_message(target_state, catalog),
+        keyboard_layout=fertilizer_service.keyboard_for_state(target_state, catalog),
     )
     return True
 

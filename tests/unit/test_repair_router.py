@@ -1,3 +1,5 @@
+from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
+from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT, STATE_FERTILIZER_USED
 from PROJECT.conversations.profile_intake import service
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
@@ -25,6 +27,18 @@ def test_detect_generic_profile_repair_intent():
     decision = detect_repair_intent("프로필 잘못된거 있어 수정할래")
     assert decision is not None
     assert decision.target_state == STATE_PROFILE_EDIT_SELECT
+
+
+def test_detect_generic_fertilizer_repair_intent():
+    decision = detect_repair_intent("아 비료 잘못씀")
+    assert decision is not None
+    assert decision.target_state == STATE_FERTILIZER_USED
+
+
+def test_detect_fertilizer_amount_repair_intent():
+    decision = detect_repair_intent("비료 양 잘못 입력했어요")
+    assert decision is not None
+    assert decision.target_state == STATE_FERTILIZER_AMOUNT
 
 
 def test_detect_profile_view_intent():
@@ -85,3 +99,23 @@ def test_reset_draft_for_city_repair_clears_only_city():
     assert updated.city == ""
     assert updated.district == "강남구"
     assert updated.birth_year == 1998
+
+
+def test_reset_fertilizer_draft_for_amount_repair_clears_amount_and_date():
+    draft = fertilizer_service.update_draft(
+        fertilizer_service.new_draft(),
+        used=True,
+        kind="compound",
+        product_name="한아름 복합비료",
+        amount_value=20.0,
+        amount_unit="kg",
+        applied_date="2026-04-21",
+    )
+
+    updated = fertilizer_service.reset_draft_for_repair(draft, STATE_FERTILIZER_AMOUNT)
+
+    assert updated.kind == "compound"
+    assert updated.product_name == "한아름 복합비료"
+    assert updated.amount_value is None
+    assert updated.amount_unit == ""
+    assert updated.applied_date == ""

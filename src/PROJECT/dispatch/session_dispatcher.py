@@ -117,6 +117,10 @@ def confirmed_fertilizer(user_data: dict) -> dict | None:
     return get_session(user_data)["confirmed_fertilizer"]
 
 
+def has_confirmed_fertilizer(user_data: dict) -> bool:
+    return confirmed_fertilizer(user_data) is not None
+
+
 def set_pending_slot(user_data: dict, pending_slot: str | None) -> None:
     get_session(user_data)["pending_slot"] = pending_slot
 

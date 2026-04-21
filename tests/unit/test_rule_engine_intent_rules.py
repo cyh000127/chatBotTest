@@ -48,6 +48,13 @@ def test_classify_global_intent_supports_fertilizer_start_phrase():
     assert decision.canonical_intent == registry.INTENT_FERTILIZER_INPUT_START
 
 
+def test_classify_global_intent_supports_fertilizer_repair_phrase():
+    decision = classify_global_intent_text("비료 양 잘못 입력했어요")
+
+    assert decision is not None
+    assert decision.canonical_intent == registry.INTENT_FERTILIZER_EDIT_AMOUNT
+
+
 def test_classify_global_intent_supports_korean_profile_view_command():
     decision = classify_global_intent_text("/프로필")
 
