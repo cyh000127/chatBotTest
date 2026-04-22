@@ -1,24 +1,32 @@
 # Rule-First LLM Handoff
 
-## 문서 역할
+## 1. 목적
 
-이 문서는 rule-first 파이프라인과 3단계 LLM 호출 전제 조건을 설명하는 구조 문서다.
-
-LLM 호출 허용/금지, 호출 한도, pending candidate, telemetry 같은 운영 정책의 최종 기준은 [`CHATBOT_OPERATION_POLICY_V2.md`](./CHATBOT_OPERATION_POLICY_V2.md)를 따른다.
-
-## 목적
-
-이 문서는 `PROJECT`에서 3단계 LLM을 붙이기 전에 어떤 규칙 기반 전처리와 상태 조립이 먼저 있어야 하는지 정리한다.
+이 문서는 규칙 우선 처리 원칙 아래에서 모델 호출이 허용되는 조건과 handoff 구조를 설명한다.
 
 핵심 원칙은 아래와 같다.
 
-- 규칙으로 끝낼 수 있는 입력은 2단계에서 끝낸다.
-- 3단계 LLM은 기본 경로가 아니라 예외적 회수 경로다.
-- 3단계는 자유 대화 엔진이 아니라 `현재 step recovery classifier`로 쓴다.
+- 메인 경로는 규칙 기반 처리다.
+- 모델은 현재 step recovery 판단을 돕는 제한적 보조기다.
+- handoff는 모델 실패의 대체재가 아니라 별도의 운영 경로다.
 
-## 3단계로 넘기기 전 최소 상태
+## 2. 기본 흐름
 
-향후 3단계로 넘길 때는 아래 필드만 준비한다.
+권장 런타임 순서는 다음과 같다.
+
+1. command/button
+2. step parser
+3. cheap gate
+4. rule repair
+5. model policy check
+6. model invocation
+7. schema validation
+8. validator + state machine 재검증
+9. confirm, fallback, handoff 중 하나 선택
+
+## 3. 모델로 넘기기 전 필요한 조건
+
+모델 호출 전에는 아래 정보가 정리되어 있어야 한다.
 
 - `canonical_intent`
 - `current_step`
@@ -31,73 +39,104 @@ LLM 호출 허용/금지, 호출 한도, pending candidate, telemetry 같은 운
 - `recovery_attempt_count`
 - `hard_constraints`
 
-이 구조는 현재 `RecoveryContextDraft`의 설계 기준이다.
+이 정보가 정리되지 않으면 모델 호출을 지연하거나 금지한다.
 
-## Cheap Gate
+## 4. 모델의 책임
 
-LLM 호출 전에 아래 입력은 규칙으로 먼저 닫는다.
+모델은 아래 역할만 수행한다.
 
-- 명시적 help/support 요청
-- 반복 실패 한도 초과
-- 현재 step과 무관한 입력
-- 사전에 있는 숫자/날짜/단위/동의어 패턴
-- 욕설/민원/운영 이관 키워드
+- 현재 step 관련성 판정
+- 회수 가능한 입력인지 판단
+- 구조화된 후보 생성
+- clarification question 1개 생성
+- human handoff 필요 여부 표시
 
-즉 흐름은 아래가 된다.
+모델이 수행하지 않는 역할:
 
-1. step parser
-2. cheap gate
-3. 규칙 기반 repair
-4. 그래도 남는 경우에만 3단계 LLM
+- 최종 저장
+- 승인/반려 결정
+- intent catalog 대체
+- 장문 상담 응대
+- 운영 우선순위 판단
 
-## 도메인 예시
+## 5. 허용 도메인
 
-### fertilizer
+현재 제품 범위에서 모델 보조를 고려할 수 있는 도메인은 다음과 같다.
 
-- `복합비료 20kg 한 포 썼어요`
-  규칙으로 수량/단위/제품 후보를 잡을 수 있으면 2단계 종료
-- `지난번에 쓰던 요소 비슷한 거예요`
-  규칙으로 못 좁히면 나중에 3단계 recovery 대상
+- fertilizer confirm/edit ambiguity
+- yield confirm/edit ambiguity
+- input resolve ambiguity
+- repeated structured-input recovery
 
-### yield
+## 6. 금지 도메인
 
-- `320kg`
-  숫자 패턴으로 즉시 해결
-- `지난번보다 적고 세 포대쯤 돼요`
-  규칙으로 애매하면 3단계 후보
+아래는 모델 호출 금지 대상이다.
 
-### input.resolve.start
+- 버튼/슬래시 명령
+- help/menu/support intent
+- safety gate 대상 입력
+- parser/validator로 확정 가능한 입력
+- cheap gate에서 차단된 입력
+- 데모성 기능
 
-- 후보 번호 선택, `없음`, `다시`
-  전부 규칙 기반으로 닫아야 한다
-- OCR 결과와 typed text가 반복 충돌
-  cheap gate 이후 운영 이관 또는 나중에 제한적 3단계 보조
+## 7. 출력 제약
 
-## 현재 구현 범위
+모델 출력은 JSON-only 구조여야 하며, enum 제한을 벗어나면 안 된다.
 
-현재 repo는 아직 3단계 LLM 호출을 구현하지 않는다.
+예시:
 
-지금 단계의 목표는 아래 둘이다.
+```json
+{
+  "classification": "needs_clarification",
+  "relevance_to_current_step": "high",
+  "normalized_candidate": {
+    "value": "20kg"
+  },
+  "candidate_confidence": 0.72,
+  "needs_clarification": true,
+  "clarification_question": "정확한 수치를 다시 입력해 주세요.",
+  "needs_human": false,
+  "human_handoff_reason": null,
+  "safety_flags": []
+}
+```
 
-- 2단계에서 가능한 한 넓게 규칙 기반으로 처리
-- 3단계 직전 인터페이스를 미리 고정
+## 8. Pending Candidate 규칙
 
-현재 기준으로 cheap gate는 아래 수준까지 구현되어 있다.
+- 모델이 만든 값은 pending candidate로만 저장한다.
+- confirm 전에는 authoritative value처럼 다루지 않는다.
+- discard, confirm, handoff 전환 시 telemetry를 남긴다.
 
-- 명시적 사람 상담 요청 감지
-- 반복 실패 횟수 누적 후 handoff 분류
-- 구조화 step에서의 무관 입력 reask 분류
+## 9. Handoff 기준
 
-현재 기준으로 recovery context assembler는 아래 수준까지 구현되어 있다.
+아래 경우는 모델보다 handoff가 우선이다.
 
-- 상태별 `current_question`, `expected_input_type`, `allowed_value_shape` 조립
-- profile draft와 선택 상태를 `recent_messages_summary`로 요약
-- handoff 직전에 세션에 마지막 recovery context 저장
+- explicit help 요청
+- 상담원 연결 요청
+- complaint
+- repeated failure
+- OCR/typed input 충돌 반복
+- correction/withdrawal 같은 운영성 요청
 
-현재 기준으로 shared step schema는 아래 수준까지 구현되어 있다.
+권장 route hint:
 
-- `fertilizer` step schema를 공통 registry로 정의
-- `yield` step schema를 flow 구현 전 상태로 선반영
-- `input.resolve` step schema를 shared resolution subflow 기준으로 정의
+- `support.escalate`
+- `manual_resolution_required`
+- `admin_follow_up_queue`
 
-즉 지금은 “LLM을 붙이는 작업”이 아니라 “LLM 없이도 최대한 버티는 규칙 엔진을 만드는 작업”이다.
+## 10. 실패 처리
+
+모델 호출 실패 시:
+
+- 조용히 실패하지 않는다.
+- `llm_failed` 또는 `llm_skipped_by_policy`를 남긴다.
+- `rules-only validation + admin review` fallback을 유지한다.
+- farmer-facing UX는 restart, reask, handoff 중 하나로 이어져야 한다.
+
+## 11. 최종 요약
+
+- 규칙 우선 원칙이 메인 경로다.
+- 모델은 recovery classifier로만 사용한다.
+- 모델 출력은 항상 구조화 결과로 제한한다.
+- confirm 없이 저장하지 않는다.
+- handoff는 명시적 정책 경로로 유지한다.

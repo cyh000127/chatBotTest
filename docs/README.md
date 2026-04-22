@@ -1,38 +1,50 @@
-# Docs
+# Documentation Index
 
-이 폴더는 `PROJECT`의 운영 정책, 규칙 기반 처리 구조, 그리고 제한적 LLM 연동 전제 조건을 정리하는 문서를 모아두는 곳이다.
+이 문서 묶음은 메신저 기반 구조화 입력 서비스의 상호작용 정책, 규칙 엔진 구조, 제한적 모델 보조 기준을 설명한다.
 
-## 문서 목록
+문서 전체는 아래 원칙을 따른다.
 
-- [`CHATBOT_OPERATION_POLICY_V2.md`](./CHATBOT_OPERATION_POLICY_V2.md)
-  챗봇 운영의 기준 문서다. 상위 정책 정렬 메모, pending candidate, telemetry, handoff vocabulary, LLM 호출 경계를 함께 정리한다.
-- [`STAGE2_RULE_ENGINE.md`](./STAGE2_RULE_ENGINE.md)
-  2단계 규칙 엔진의 목적, 공통 계약, 현재 구현 상태, 구현 순서를 정리한다.
-- [`RULE_FIRST_LLM_HANDOFF.md`](./RULE_FIRST_LLM_HANDOFF.md)
-  규칙 기반 처리 우선 원칙과 3단계 LLM 호출 직전까지 필요한 구조를 정리한다. 운영 판단의 최종 기준은 v2 정책 문서다.
-- [`GEMINI_RECOVERY_SETUP.md`](./GEMINI_RECOVERY_SETUP.md)
-  Gemini API 키 설정, request builder, JSON parser, classifier 주입 위치를 정리한다. 현재 repo의 `.env` `AI_MODE`는 상위 정책을 흉내 내는 source of truth가 아니라 runtime-local helper gate로 설명한다.
-- [`STRUCTURED_INTERACTION_POLICY.md`](./STRUCTURED_INTERACTION_POLICY.md)
-  unknown fallback 버튼 유도, 자연어 수정 확인 단계, enum 제한 LLM 정책의 배경과 상호작용 원칙을 정리한다.
+- 특정 회사명, 제품명, 내부 코드명은 사용하지 않는다.
+- 특정 구현 구조나 상대경로를 전제로 설명하지 않는다.
+- 운영 정책과 런타임 제약을 먼저 설명하고, 구현은 그 제약을 따르는 하위 항목으로 정리한다.
+- 문서는 독립적으로 읽혀야 하며 외부 문맥이 없어도 개요를 이해할 수 있어야 한다.
 
-## 현재 기준
+문서 구성은 다음과 같다.
 
-- 운영 정책의 최상위 기준은 [`CHATBOT_OPERATION_POLICY_V2.md`](./CHATBOT_OPERATION_POLICY_V2.md)다.
-- Gemini recovery classifier 인프라는 구현되어 있다.
-- 실제 메시지 핸들러의 edit-intent 보조 호출 범위는 v2 정책 기준으로 제한 연결되어 있다.
-- 현재 repo는 상위 policy record, fallback mode, release gate가 직접 연결되어 있지 않아 `.env` `AI_MODE`를 local helper gate로 사용한다.
-- local helper gate의 runtime 노출값으로 `llm_runtime_mode`, `manual_review_fallback_active`를 사용한다.
-- handoff vocabulary는 `support.escalate`, `manual_resolution_required`, 관리자 follow-up queue 기준으로 정렬하는 방향을 따른다.
-- 먼저 2단계 규칙 엔진을 공통 파이프라인으로 만든다.
-- `normalization -> intent routing -> slot/alias resolution -> validation/repair` 순서로 확장한다.
-- unknown 입력 경계, pending candidate, handoff vocabulary는 정책 코드와 테스트에 반영되어 있다.
+- `CHATBOT_OPERATION_POLICY_V2.md`
+  상호작용 정책, 복구 정책, handoff 기준, telemetry vocabulary를 정의한다.
+- `STAGE2_RULE_ENGINE.md`
+  규칙 엔진의 단계 구조, 공통 계약, 확장 순서를 정의한다.
+- `RULE_FIRST_LLM_HANDOFF.md`
+  규칙 우선 처리 이후에만 허용되는 모델 보조 판정 흐름을 정의한다.
+- `MODEL_RECOVERY_SETUP.md`
+  모델 기반 recovery classifier를 주입할 때 필요한 런타임 구성 조건을 설명한다.
+- `STRUCTURED_INTERACTION_POLICY.md`
+  구조화 입력, 수정 요청, fallback, confirm, handoff UX 원칙을 설명한다.
+- `FEATURE_SCOPE_BASELINE.md`
+  구현 대상 기능과 비대상 기능을 구분하는 제품 범위 기준을 정리한다.
 
-## 검증 기준
+현재 기준 핵심 요약:
 
-- 전체 검증 명령: `python -m pytest`
-- 정책 관련 핵심 검증 범위:
-  - `tests/unit/test_ai_policy.py`
-  - `tests/unit/test_repair_candidate_flow.py`
-  - `tests/unit/test_operational_boundary_scenarios.py`
-  - `tests/unit/test_rule_engine_recovery_context.py`
-  - `tests/contract/test_rule_engine_cross_domain_fixtures.py`
+- 메인 경로는 rule-first structured interaction이다.
+- 자유 대화형 응답 엔진이 아니라 단계형 입력 수집과 검증 중심 구조를 따른다.
+- 모델 호출은 예외적 보조 판정기로만 허용한다.
+- unknown 입력은 종료하지 않고 guided recovery로 회수한다.
+- 자연어 수정은 직접 반영하지 않고 수정 의도와 후보 추출 신호로만 다룬다.
+- 후보값은 pending candidate로만 저장하고, 명시적 확인 전에는 확정값으로 승격하지 않는다.
+
+현재 구현 기준의 우선 기능 범위:
+
+- 시작 진입과 언어 선택
+- 비료 입력
+- 수확량 입력
+- 자기 조회 진입점
+- input resolve 진입점
+- restart, fallback, support escalation 안내
+
+현재 구현 기준의 제외 대상:
+
+- 오늘 날짜 조회
+- 오늘 날씨 조회
+- 데모성 도시 선택 플로우
+- 로컬 샘플용 인증 흐름
