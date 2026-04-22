@@ -83,10 +83,12 @@ def fallback_text(key: str, catalog) -> str:
 
 
 def cheap_gate_text(result: ValidationResult, fallback_key: str, catalog) -> str:
-    if result.reason in {"explicit_support_request", "manual_handoff_request"}:
-        return catalog.CHEAP_GATE_SUPPORT_MESSAGE
+    if result.reason == "explicit_support_request":
+        return catalog.CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE
+    if result.reason == "manual_handoff_request":
+        return catalog.CHEAP_GATE_ADMIN_FOLLOWUP_MESSAGE
     if result.reason == "recovery_retry_limit_exceeded":
-        return catalog.CHEAP_GATE_RETRY_LIMIT_MESSAGE
+        return catalog.CHEAP_GATE_MANUAL_RESOLUTION_MESSAGE
     return fallback_text(fallback_key, catalog)
 
 

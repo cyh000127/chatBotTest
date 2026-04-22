@@ -84,6 +84,22 @@ def test_evaluate_llm_invocation_policy_returns_explicit_gate_reason():
     assert decision.reason == "local_ai_gate_disabled"
 
 
+def test_evaluate_llm_invocation_policy_distinguishes_manual_review_fallback():
+    decision = evaluate_llm_invocation_policy(
+        local_ai_gate=LocalAiGate.MANUAL_REVIEW_FALLBACK,
+        invocation_type="repair",
+        current_step="fertilizer_confirm",
+        is_structured_step=False,
+        is_confirm_step=True,
+        is_free_text=True,
+        llm_calls_in_step=0,
+        same_input_seen=False,
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "manual_review_fallback_active"
+
+
 def test_can_invoke_llm_blocks_repeat_input_and_limit_overflow():
     repeated = can_invoke_llm(
         local_ai_gate=LocalAiGate.REPAIR_ASSIST_ONLY,

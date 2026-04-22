@@ -11,6 +11,8 @@ def main() -> None:
     log_event(
         BOT_STARTED,
         local_ai_gate=settings.local_ai_gate.value,
+        llm_runtime_mode=settings.llm_runtime_mode,
+        manual_review_fallback_active=settings.manual_review_fallback_active,
         llm_recovery_enabled=settings.gemini is not None and settings.enable_llm_recovery,
         llm_edit_intent_enabled=settings.gemini is not None and settings.enable_llm_edit_intent,
     )

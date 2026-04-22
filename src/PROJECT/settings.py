@@ -43,6 +43,22 @@ class Settings:
     def enable_llm_recovery(self) -> bool:
         return local_ai_gate_allows_recovery_assist(self.local_ai_gate)
 
+    @property
+    def manual_review_fallback_active(self) -> bool:
+        return self.local_ai_gate == LocalAiGate.MANUAL_REVIEW_FALLBACK
+
+    @property
+    def runtime_rules_only(self) -> bool:
+        return self.local_ai_gate in {LocalAiGate.DISABLED, LocalAiGate.MANUAL_REVIEW_FALLBACK}
+
+    @property
+    def llm_runtime_mode(self) -> str:
+        if self.manual_review_fallback_active:
+            return "rules_only_manual_review"
+        if self.runtime_rules_only:
+            return "rules_only_disabled"
+        return "llm_assisted"
+
 
 def parse_bool_env(name: str, default: bool = False) -> bool:
     raw = os.getenv(name)

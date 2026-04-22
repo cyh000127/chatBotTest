@@ -6,6 +6,7 @@ from PROJECT.settings import GeminiSettings, Settings
 def test_create_application_registers_settings():
     application = create_application(Settings(bot_token="test-token"))
     assert application.bot_data["settings"].bot_token == "test-token"
+    assert application.bot_data["llm_runtime_mode"] == "rules_only_disabled"
     assert application.bot_data["gemini_recovery_classifier"] is None
     assert application.bot_data["gemini_edit_intent_resolver"] is None
 
@@ -24,6 +25,25 @@ def test_create_application_keeps_edit_intent_resolver_disabled_without_policy_g
         )
     )
 
+    assert application.bot_data["gemini_recovery_classifier"] is None
+    assert application.bot_data["gemini_edit_intent_resolver"] is None
+
+
+def test_create_application_keeps_rules_only_manual_review_mode_when_configured():
+    application = create_application(
+        Settings(
+            bot_token="test-token",
+            gemini=GeminiSettings(
+                api_key="test-key",
+                model="gemini-2.5-flash",
+                api_base="https://generativelanguage.googleapis.com/v1beta",
+                timeout_seconds=15.0,
+            ),
+            local_ai_gate=LocalAiGate.MANUAL_REVIEW_FALLBACK,
+        )
+    )
+
+    assert application.bot_data["llm_runtime_mode"] == "rules_only_manual_review"
     assert application.bot_data["gemini_recovery_classifier"] is None
     assert application.bot_data["gemini_edit_intent_resolver"] is None
 

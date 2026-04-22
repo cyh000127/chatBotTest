@@ -99,7 +99,9 @@ def evaluate_llm_invocation_policy(
     llm_calls_in_step: int,
     same_input_seen: bool,
 ) -> LlmInvocationPolicyDecision:
-    if local_ai_gate in {LocalAiGate.DISABLED, LocalAiGate.MANUAL_REVIEW_FALLBACK}:
+    if local_ai_gate == LocalAiGate.MANUAL_REVIEW_FALLBACK:
+        return LlmInvocationPolicyDecision(False, "manual_review_fallback_active")
+    if local_ai_gate == LocalAiGate.DISABLED:
         return LlmInvocationPolicyDecision(False, "local_ai_gate_disabled")
     if not current_step:
         return LlmInvocationPolicyDecision(False, "missing_current_step")

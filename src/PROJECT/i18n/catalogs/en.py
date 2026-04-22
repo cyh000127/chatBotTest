@@ -62,7 +62,7 @@ BACK_TO_MAIN_MESSAGE = "Returned to the previous step.\nChoose today's date or t
 BACK_TO_WEATHER_MESSAGE = "Returned to the weather selection step.\nChoose a city again."
 BACK_GENERIC_MESSAGE = "Returned to the previous state."
 WEATHER_ERROR_MESSAGE = "Could not fetch the weather.\nPlease try again shortly."
-UNKNOWN_COMMAND_MESSAGE = "Unsupported command.\nUse /help or /menu."
+UNKNOWN_COMMAND_MESSAGE = "This command is not supported.\nChoose one of the related items below or use /help."
 
 HELP_MESSAGE = (
     "Available commands:\n"
@@ -87,13 +87,20 @@ FALLBACK_MESSAGES = {
     "fertilizer_input": "I could not process the fertilizer input right away.\nWould you choose which related fertilizer item to continue or change?",
     "fertilizer_confirm": "You are in the fertilizer confirmation step.\nWould you choose whether to confirm or edit below?",
 }
-CHEAP_GATE_SUPPORT_MESSAGE = (
-    "This looks like a request for a human operator or support.\n"
-    "Real-time handoff is not connected yet. Please continue with /help or /menu."
+CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE = (
+    "This looks like a request for support or human assistance.\n"
+    "The support.escalate path is not connected to real-time chat yet.\n"
+    "Choose one of the related items below or use /help."
 )
-CHEAP_GATE_RETRY_LIMIT_MESSAGE = (
-    "The input could not be resolved after several attempts.\n"
-    "This step is outside the current rule-based scope. Please restart with /menu or /start."
+CHEAP_GATE_ADMIN_FOLLOWUP_MESSAGE = (
+    "This request looks like a case that needs administrator follow-up.\n"
+    "The admin follow-up queue is not connected to real-time chat yet.\n"
+    "Choose one of the related items below to continue."
+)
+CHEAP_GATE_MANUAL_RESOLUTION_MESSAGE = (
+    "I checked this input several times, but this step is difficult to resolve automatically.\n"
+    "This is close to a manual_resolution_required case.\n"
+    "Choose one of the related items below, or restart with /menu or /start."
 )
 
 PROFILE_CONFIRMED_MESSAGE = "Input confirmed.\nSaved in the current session."
@@ -125,7 +132,10 @@ PROFILE_DIRECT_UPDATE_MESSAGE = "I applied the natural-language correction. Revi
 LLM_REPAIR_CANDIDATE_HINT = "I understood that you want to change it to \"{candidate_value}\".\nIf that's correct, press Start edit."
 LLM_REPAIR_UNSUPPORTED_MESSAGE = "I could not determine the exact field to edit right away.\nPlease choose it directly from the related items below."
 LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "I am not confident enough about which field you want to edit.\nPlease choose it directly from the related items below."
-LLM_REPAIR_HUMAN_REVIEW_MESSAGE = "This request is difficult to classify into a single edit field automatically.\nPlease choose it directly from the related items below."
+LLM_REPAIR_HUMAN_REVIEW_MESSAGE = (
+    "This request is difficult to narrow down to one edit field automatically.\n"
+    "It may require manual review, so please choose directly from the related items below."
+)
 
 FERTILIZER_KIND_LABELS = {
     "compound": "Compound",

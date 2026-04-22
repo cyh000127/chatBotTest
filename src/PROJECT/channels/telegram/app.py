@@ -14,6 +14,7 @@ def create_application(settings: Settings):
         .build()
     )
     application.bot_data["settings"] = settings
+    application.bot_data["llm_runtime_mode"] = settings.llm_runtime_mode
     application.bot_data["gemini_recovery_classifier"] = (
         GeminiRecoveryClassifier(settings.gemini)
         if settings.gemini is not None and settings.enable_llm_recovery

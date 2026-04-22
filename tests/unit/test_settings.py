@@ -9,6 +9,8 @@ def test_settings_defaults_include_gemini_configuration():
     assert settings.local_ai_gate == LocalAiGate.DISABLED
     assert settings.enable_llm_edit_intent is False
     assert settings.enable_llm_recovery is False
+    assert settings.runtime_rules_only is True
+    assert settings.llm_runtime_mode == "rules_only_disabled"
 
 
 def test_settings_accept_explicit_gemini_configuration():
@@ -28,6 +30,18 @@ def test_settings_accept_explicit_gemini_configuration():
     assert settings.local_ai_gate == LocalAiGate.REPAIR_ASSIST_ONLY
     assert settings.enable_llm_edit_intent is True
     assert settings.enable_llm_recovery is False
+    assert settings.runtime_rules_only is False
+    assert settings.llm_runtime_mode == "llm_assisted"
+
+
+def test_settings_exposes_manual_review_fallback_mode():
+    settings = Settings(bot_token="test-token", local_ai_gate=LocalAiGate.MANUAL_REVIEW_FALLBACK)
+
+    assert settings.manual_review_fallback_active is True
+    assert settings.runtime_rules_only is True
+    assert settings.enable_llm_edit_intent is False
+    assert settings.enable_llm_recovery is False
+    assert settings.llm_runtime_mode == "rules_only_manual_review"
 
 
 def test_parse_bool_env_returns_false_by_default(monkeypatch):
