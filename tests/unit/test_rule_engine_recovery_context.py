@@ -35,6 +35,9 @@ def test_assemble_recovery_context_for_weather_menu():
     assert context.metadata["validation_reason"] == "recovery_retry_limit_exceeded"
     assert context.metadata["ux_recovery_reason"] == "repeated_failure"
     assert context.metadata["ux_next_action_hint"] == "offer_safe_exit"
+    assert context.metadata["recovery_policy_level"] == "escalation_ready"
+    assert context.metadata["recovery_should_offer_safe_exit"] is True
+    assert context.metadata["recovery_should_prioritize_buttons"] is True
     assert context.metadata["runtime_handoff_reason_hint"] == "cheap_gate_retry_limit"
     assert context.metadata["runtime_handoff_route_hint"] == "manual_resolution_required"
     assert "selected_city=서울" in context.recent_messages_summary
@@ -76,6 +79,7 @@ def test_assemble_recovery_context_for_profile_confirm_includes_draft_summary():
     assert "profile_draft_fields=name,residence,city,district,birth_date" in context.recent_messages_summary
     assert context.metadata["ux_recovery_reason"] == "support_escalation"
     assert context.metadata["ux_next_action_hint"] == "show_support_guidance"
+    assert context.metadata["recovery_policy_level"] == "escalation_ready"
     assert context.metadata["runtime_handoff_reason_hint"] == "user_requested_human_support"
     assert context.metadata["runtime_handoff_route_hint"] == "support.escalate"
     assert "- 이름: 최윤혁" in context.current_question
@@ -103,5 +107,6 @@ def test_assemble_recovery_context_for_yield_step_uses_shared_schema():
     assert context.allowed_value_shape == "numeric_or_numeric_with_supported_unit"
     assert context.metadata["ux_recovery_reason"] == "step_scope_mismatch"
     assert context.metadata["ux_next_action_hint"] == "guide_current_step"
+    assert context.metadata["recovery_policy_level"] == "guided"
     assert "yield_amount_requires_supported_unit_or_default_kg" in context.hard_constraints
     assert "수확량을 입력해주세요" in context.current_question

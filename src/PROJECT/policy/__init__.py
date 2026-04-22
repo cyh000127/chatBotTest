@@ -22,6 +22,7 @@ from PROJECT.policy.ai_policy import (
     same_input_cache_key,
     should_handoff,
 )
+from PROJECT.policy.recovery_policy import RecoveryPolicyDecision, RecoveryPolicyLevel, evaluate_recovery_policy
 
 __all__ = [
     "AiMode",
@@ -44,6 +45,9 @@ __all__ = [
     "local_ai_gate_allows_recovery_assist",
     "parse_ai_mode",
     "parse_local_ai_gate",
+    "RecoveryPolicyDecision",
+    "RecoveryPolicyLevel",
     "same_input_cache_key",
+    "evaluate_recovery_policy",
     "should_handoff",
 ]

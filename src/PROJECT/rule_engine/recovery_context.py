@@ -21,6 +21,7 @@ from PROJECT.conversations.sample_menu.states import (
 )
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.policy import classify_handoff_route
+from PROJECT.policy.recovery_policy import evaluate_recovery_policy
 from PROJECT.rule_engine.contracts import RecoveryContextDraft, ValidationResult
 from PROJECT.rule_engine.recovery_classifier import classify_recovery_ux
 from PROJECT.rule_engine.step_schema import render_shared_step_question, shared_step_schema_for_step
@@ -49,6 +50,10 @@ def assemble_recovery_context(
         selected_city=selected_city,
     )
     ux_decision = classify_recovery_ux(validation_result)
+    policy_decision = evaluate_recovery_policy(
+        recovery_attempt_count=recovery_attempt_count,
+        ux_reason=ux_decision.reason,
+    )
 
     return RecoveryContextDraft(
         canonical_intent=canonical_intent or registry.INTENT_UNKNOWN_TEXT,
@@ -77,6 +82,9 @@ def assemble_recovery_context(
             "validation_reason": validation_result.reason if validation_result is not None else None,
             "ux_recovery_reason": ux_decision.reason.value,
             "ux_next_action_hint": ux_decision.next_action_hint,
+            "recovery_policy_level": policy_decision.level.value,
+            "recovery_should_offer_safe_exit": policy_decision.should_offer_safe_exit,
+            "recovery_should_prioritize_buttons": policy_decision.should_prioritize_buttons,
             "runtime_handoff_reason_hint": validation_result.human_handoff_reason if validation_result is not None else None,
             "runtime_handoff_route_hint": (
                 classify_handoff_route(
