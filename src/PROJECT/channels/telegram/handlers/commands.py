@@ -78,6 +78,15 @@ async def start_input_resolve_entry(update, context) -> None:
     )
 
 
+async def show_support_guidance(update, context) -> None:
+    catalog = catalog_for(context)
+    await send_text(
+        update,
+        service.support_escalation_text(catalog),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+    )
+
+
 async def show_current_profile(update, context) -> bool:
     catalog = catalog_for(context)
     if not has_confirmed_profile(context.user_data):
@@ -254,6 +263,10 @@ async def myfields_command(update, context) -> None:
 
 async def input_resolve_command(update, context) -> None:
     await start_input_resolve_entry(update, context)
+
+
+async def support_command(update, context) -> None:
+    await show_support_guidance(update, context)
 
 
 async def language_command(update, context) -> None:

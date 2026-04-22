@@ -15,6 +15,7 @@ from PROJECT.channels.telegram.handlers.commands import (
     open_fertilizer_target_edit,
     open_profile_edit_selector,
     open_profile_target_edit,
+    show_support_guidance,
     show_current_profile,
     start_fertilizer_input,
     start_profile_input,
@@ -60,6 +61,7 @@ from PROJECT.dispatch.command_router import (
     ROUTE_OPEN_PROFILE,
     ROUTE_PROFILE_EDIT,
     ROUTE_PROFILE_FINALIZE,
+    ROUTE_SUPPORT_GUIDANCE,
     route_message,
 )
 from PROJECT.dispatch.input_fallback import fallback_key_for_state
@@ -1678,6 +1680,11 @@ async def text_message(update, context) -> None:
         await input_resolve_command(update, context)
         return
 
+    if decision.route == ROUTE_SUPPORT_GUIDANCE:
+        reset_recovery_attempts(context.user_data)
+        await show_support_guidance(update, context)
+        return
+
     if decision.route == ROUTE_OPEN_FERTILIZER:
         reset_recovery_attempts(context.user_data)
         await start_fertilizer_input(update, context)
@@ -2087,6 +2094,10 @@ async def button_callback(update, context) -> None:
 
     if decision.route == ROUTE_OPEN_INPUT_RESOLVE:
         await input_resolve_command(update, context)
+        return
+
+    if decision.route == ROUTE_SUPPORT_GUIDANCE:
+        await show_support_guidance(update, context)
         return
 
     if decision.route == ROUTE_OPEN_FERTILIZER:

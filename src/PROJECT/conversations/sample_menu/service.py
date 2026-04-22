@@ -58,6 +58,10 @@ def input_resolve_entry_text(catalog) -> str:
     return f"{catalog.INPUT_RESOLVE_ENTRY_MESSAGE}\n\n{catalog.INPUT_RESOLVE_TARGET_PROMPT}"
 
 
+def support_escalation_text(catalog) -> str:
+    return catalog.SUPPORT_ESCALATION_MESSAGE
+
+
 def language_menu_text(catalog) -> str:
     return catalog.LANGUAGE_MENU_MESSAGE
 

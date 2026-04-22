@@ -9,6 +9,7 @@ from PROJECT.dispatch.command_router import (
     ROUTE_OPEN_MYFIELDS,
     ROUTE_OPEN_PROFILE,
     ROUTE_PROFILE_EDIT,
+    ROUTE_SUPPORT_GUIDANCE,
     ROUTE_UNKNOWN_INPUT,
     route_message,
 )
@@ -33,6 +34,11 @@ def test_myfields_entry_routes_to_self_lookup_entry():
 def test_input_resolve_entry_routes_to_resolve_entry():
     decision = route_message(STATE_MAIN_MENU, registry.INTENT_INPUT_RESOLVE_START)
     assert decision.route == ROUTE_OPEN_INPUT_RESOLVE
+
+
+def test_support_entry_routes_to_support_guidance():
+    decision = route_message(STATE_MAIN_MENU, registry.INTENT_SUPPORT_ESCALATE)
+    assert decision.route == ROUTE_SUPPORT_GUIDANCE
 
 
 def test_profile_confirm_edit_routes_to_edit_selection():
