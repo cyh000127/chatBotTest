@@ -56,6 +56,16 @@ async def start_fertilizer_input(update, context) -> None:
     )
 
 
+async def show_myfields_entry(update, context) -> None:
+    catalog = catalog_for(context)
+    reset_session(context.user_data)
+    await send_text(
+        update,
+        service.myfields_entry_text(catalog),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+    )
+
+
 async def show_current_profile(update, context) -> bool:
     catalog = catalog_for(context)
     if not has_confirmed_profile(context.user_data):
@@ -224,6 +234,10 @@ async def profile_command(update, context) -> None:
 
 async def fertilizer_command(update, context) -> None:
     await start_fertilizer_input(update, context)
+
+
+async def myfields_command(update, context) -> None:
+    await show_myfields_entry(update, context)
 
 
 async def language_command(update, context) -> None:

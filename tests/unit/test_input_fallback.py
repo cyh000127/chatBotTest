@@ -25,6 +25,7 @@ def test_default_fallback_keyboard_uses_main_menu_buttons():
 
     assert layout[0][0]["text"] == catalog.BUTTON_PROFILE
     assert layout[0][1]["text"] == catalog.BUTTON_FERTILIZER
+    assert layout[1][0]["text"] == catalog.BUTTON_MYFIELDS
 
 
 def test_profile_fallback_keyboard_uses_current_step_navigation():

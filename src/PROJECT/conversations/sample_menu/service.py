@@ -50,6 +50,10 @@ def unknown_command_text(catalog) -> str:
     return catalog.UNKNOWN_COMMAND_MESSAGE
 
 
+def myfields_entry_text(catalog) -> str:
+    return catalog.MYFIELDS_ENTRY_MESSAGE
+
+
 def language_menu_text(catalog) -> str:
     return catalog.LANGUAGE_MENU_MESSAGE
 

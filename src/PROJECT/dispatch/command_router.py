@@ -18,6 +18,7 @@ ROUTE_HELP = "help"
 ROUTE_MAIN_MENU = "main_menu"
 ROUTE_CANCEL = "cancel"
 ROUTE_OPEN_PROFILE = "open_profile"
+ROUTE_OPEN_MYFIELDS = "open_myfields"
 ROUTE_OPEN_FERTILIZER = "open_fertilizer"
 ROUTE_PROFILE_EDIT = "profile_edit"
 ROUTE_PROFILE_FINALIZE = "profile_finalize"
@@ -43,6 +44,8 @@ def route_message(state: str, intent: str, payload: dict | None = None) -> Route
         return RouteDecision(ROUTE_MAIN_MENU)
     if intent == registry.INTENT_PROFILE:
         return RouteDecision(ROUTE_OPEN_PROFILE, next_state=STATE_PROFILE_NAME)
+    if intent == registry.INTENT_MYFIELDS_ENTRY:
+        return RouteDecision(ROUTE_OPEN_MYFIELDS)
     if intent == registry.INTENT_FERTILIZER_INPUT_START:
         return RouteDecision(ROUTE_OPEN_FERTILIZER, next_state=STATE_FERTILIZER_USED)
     if intent == registry.INTENT_CANCEL:

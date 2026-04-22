@@ -35,6 +35,7 @@ def main_menu_keyboard(catalog) -> list[list[dict[str, str]]]:
             _button(catalog.BUTTON_PROFILE, "intent:profile"),
             _button(catalog.BUTTON_FERTILIZER, "intent:fertilizer.input.start"),
         ],
+        [_button(catalog.BUTTON_MYFIELDS, "intent:myfields.entry")],
         [_button(catalog.BUTTON_HELP, "intent:help")],
         [_button(catalog.BUTTON_RESTART, "intent:restart")],
         [_button(catalog.BUTTON_CANCEL, "intent:cancel")],

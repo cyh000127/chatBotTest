@@ -7,6 +7,7 @@ COMMAND_TO_INTENT = {
     "help": registry.INTENT_HELP,
     "menu": registry.INTENT_MENU,
     "profile": registry.INTENT_PROFILE,
+    "myfields": registry.INTENT_MYFIELDS_ENTRY,
     "fertilizer": registry.INTENT_FERTILIZER_INPUT_START,
     "cancel": registry.INTENT_CANCEL,
 }

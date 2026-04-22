@@ -10,6 +10,7 @@ from PROJECT.channels.telegram.handlers.commands import (
     help_command,
     open_fertilizer_edit_selector,
     menu_command,
+    myfields_command,
     open_fertilizer_target_edit,
     open_profile_edit_selector,
     open_profile_target_edit,
@@ -53,6 +54,7 @@ from PROJECT.dispatch.command_router import (
     ROUTE_HELP,
     ROUTE_MAIN_MENU,
     ROUTE_OPEN_FERTILIZER,
+    ROUTE_OPEN_MYFIELDS,
     ROUTE_OPEN_PROFILE,
     ROUTE_PROFILE_EDIT,
     ROUTE_PROFILE_FINALIZE,
@@ -1664,6 +1666,11 @@ async def text_message(update, context) -> None:
         await start_profile_input(update, context)
         return
 
+    if decision.route == ROUTE_OPEN_MYFIELDS:
+        reset_recovery_attempts(context.user_data)
+        await myfields_command(update, context)
+        return
+
     if decision.route == ROUTE_OPEN_FERTILIZER:
         reset_recovery_attempts(context.user_data)
         await start_fertilizer_input(update, context)
@@ -2065,6 +2072,10 @@ async def button_callback(update, context) -> None:
 
     if decision.route == ROUTE_OPEN_PROFILE:
         await start_profile_input(update, context)
+        return
+
+    if decision.route == ROUTE_OPEN_MYFIELDS:
+        await myfields_command(update, context)
         return
 
     if decision.route == ROUTE_OPEN_FERTILIZER:

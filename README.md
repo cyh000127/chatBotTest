@@ -15,6 +15,7 @@ python -m PROJECT.main
 - `/start`, `/help`, `/menu`, `/cancel`
 - `/language` 언어 변경
 - 명세 범위 기준 메인 메뉴 진입
+- `/myfields` 자기 조회 진입점 안내
 - 프로필 입력, 확인, 항목별 수정
 - `/fertilizer` 비료 입력 정상 경로
 - 뒤로가기, 취소, 처음부터

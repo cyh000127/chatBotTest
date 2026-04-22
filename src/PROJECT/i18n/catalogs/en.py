@@ -4,6 +4,7 @@ BUTTON_TODAY_DATE = "Today's date"
 BUTTON_TODAY_WEATHER = "Today's weather"
 BUTTON_PROFILE = "Profile input"
 BUTTON_FERTILIZER = "Fertilizer input"
+BUTTON_MYFIELDS = "My fields"
 BUTTON_HELP = "Help"
 BUTTON_BACK = "Back"
 BUTTON_CANCEL = "Cancel"
@@ -63,6 +64,7 @@ BACK_TO_WEATHER_MESSAGE = "Returned to the weather selection step.\nChoose a cit
 BACK_GENERIC_MESSAGE = "Returned to the previous state."
 WEATHER_ERROR_MESSAGE = "Could not fetch the weather.\nPlease try again shortly."
 UNKNOWN_COMMAND_MESSAGE = "This command is not supported.\nChoose one of the related items below or use /help."
+MYFIELDS_ENTRY_MESSAGE = "This is the myfields entry point.\nFor now, the runtime exposes the entry guidance and re-entry path.\nChoose another related action below or restart with /start."
 
 HELP_MESSAGE = (
     "Available commands:\n"
@@ -70,6 +72,7 @@ HELP_MESSAGE = (
     "- /help : show help\n"
     "- /menu : open the main menu\n"
     "- /profile : start profile input\n"
+    "- /myfields : open the myfields entry point\n"
     "- /fertilizer : start fertilizer input\n"
     "- /language : change language\n"
     "- Back : go to the previous step\n"

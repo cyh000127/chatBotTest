@@ -11,6 +11,15 @@ def test_create_application_registers_settings():
     assert application.bot_data["gemini_edit_intent_resolver"] is None
 
 
+def test_create_application_registers_myfields_command():
+    application = create_application(Settings(bot_token="test-token"))
+    handlers = application.handlers[0]
+    command_handlers = [handler for handler in handlers if hasattr(handler, "commands")]
+    registered = {command for handler in command_handlers for command in handler.commands}
+
+    assert "myfields" in registered
+
+
 def test_create_application_keeps_edit_intent_resolver_disabled_without_policy_gate():
     application = create_application(
         Settings(

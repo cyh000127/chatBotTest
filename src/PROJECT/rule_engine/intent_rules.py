@@ -8,6 +8,7 @@ COMMAND_TO_INTENT = {
     "help": registry.INTENT_HELP,
     "menu": registry.INTENT_MENU,
     "profile": registry.INTENT_PROFILE,
+    "myfields": registry.INTENT_MYFIELDS_ENTRY,
     "fertilizer": registry.INTENT_FERTILIZER_INPUT_START,
     "cancel": registry.INTENT_CANCEL,
 }
@@ -21,6 +22,7 @@ REPAIR_MARKERS = ("수정", "잘못", "틀렸", "다시", "변경", "고칠", "e
 PROFILE_MARKERS = ("프로필", "정보", "내정보", "profile")
 VIEW_MARKERS = ("보여", "봐", "조회", "확인", "show", "view")
 FERTILIZER_MARKERS = ("비료", "fertilizer")
+MYFIELDS_MARKERS = ("myfields", "내농지", "농지조회", "필드조회", "내필드")
 START_MARKERS = ("입력", "등록", "기록", "시작", "할게", "할래", "start")
 FERTILIZER_PRODUCT_MARKERS = ("제품", "제품명", "상품", "브랜드", "product", "name")
 FERTILIZER_AMOUNT_MARKERS = ("양", "사용량", "수량", "kg", "포", "포대", "amount", "quantity")
@@ -69,6 +71,7 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
     has_profile = any(marker in collapsed for marker in PROFILE_MARKERS)
     has_view = any(marker in collapsed for marker in VIEW_MARKERS)
     has_fertilizer = any(marker in collapsed for marker in FERTILIZER_MARKERS)
+    has_myfields = any(marker in collapsed for marker in MYFIELDS_MARKERS)
 
     if has_repair:
         if has_fertilizer:
@@ -173,7 +176,22 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
             matched_rule="profile_view_phrase",
         )
 
+    if collapsed in {"myfields", "내농지", "농지조회", "내필드"}:
+        return IntentDecision(
+            canonical_intent=registry.INTENT_MYFIELDS_ENTRY,
+            current_step=current_step,
+            source=RuleSource.INTENT_RULE,
+            matched_rule="myfields_exact",
+        )
+
     has_start = any(marker in collapsed for marker in START_MARKERS)
+    if has_myfields and (has_view or "조회" in collapsed):
+        return IntentDecision(
+            canonical_intent=registry.INTENT_MYFIELDS_ENTRY,
+            current_step=current_step,
+            source=RuleSource.INTENT_RULE,
+            matched_rule="myfields_view_phrase",
+        )
     if has_fertilizer and has_start:
         return IntentDecision(
             canonical_intent=registry.INTENT_FERTILIZER_INPUT_START,
