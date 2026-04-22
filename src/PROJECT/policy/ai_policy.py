@@ -1,5 +1,8 @@
 from enum import StrEnum
 
+from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM
+from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT
+
 
 class AiMode(StrEnum):
     DISABLED = "disabled"
@@ -8,9 +11,19 @@ class AiMode(StrEnum):
     MANUAL_REVIEW_FALLBACK = "manual_review_fallback"
 
 
+class UnknownInputDisposition(StrEnum):
+    FALLBACK_ONLY = "fallback_only"
+    REPAIR_ASSIST_ALLOWED = "repair_assist_allowed"
+    HANDOFF_REQUIRED = "handoff_required"
+
+
 MAX_LLM_CALLS_PER_STRUCTURED_STEP = 1
 MAX_LLM_CALLS_PER_CONFIRM_STEP = 1
 MAX_RECOVERY_ATTEMPTS_BEFORE_HANDOFF = 3
+
+UNKNOWN_HANDOFF_REASONS = frozenset({"explicit_support_request", "manual_handoff_request"})
+PROFILE_UNKNOWN_LLM_STATES = frozenset({STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT})
+FERTILIZER_UNKNOWN_LLM_STATES = frozenset({STATE_FERTILIZER_CONFIRM})
 
 
 def parse_ai_mode(raw: str | None, *, default: AiMode = AiMode.DISABLED) -> AiMode:
@@ -73,3 +86,26 @@ def should_handoff(*, recovery_attempt_count: int, explicit_handoff: bool = Fals
 def same_input_cache_key(*, normalized_text: str, current_step: str | None, locale: str) -> str:
     step = current_step or "none"
     return f"{locale}:{step}:{normalized_text}"
+
+
+def classify_unknown_input_disposition(
+    *,
+    current_step: str | None,
+    domain_hint: str | None = None,
+    use_confirmed: bool = False,
+    validation_reason: str | None = None,
+) -> UnknownInputDisposition:
+    if validation_reason in UNKNOWN_HANDOFF_REASONS:
+        return UnknownInputDisposition.HANDOFF_REQUIRED
+
+    if domain_hint == "profile":
+        if use_confirmed or current_step in PROFILE_UNKNOWN_LLM_STATES:
+            return UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
+        return UnknownInputDisposition.FALLBACK_ONLY
+
+    if domain_hint == "fertilizer":
+        if use_confirmed or current_step in FERTILIZER_UNKNOWN_LLM_STATES:
+            return UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
+        return UnknownInputDisposition.FALLBACK_ONLY
+
+    return UnknownInputDisposition.FALLBACK_ONLY

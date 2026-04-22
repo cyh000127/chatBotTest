@@ -92,6 +92,13 @@
 - 메인 메뉴에서는 대분류 버튼을 우선 노출한다.
 - fallback 문구는 상태별로 다르게 유지한다.
 
+Unknown 입력의 LLM 경계는 아래처럼 고정한다.
+
+- 메인 메뉴의 generic unknown은 `fallback_only`로 처리한다.
+- profile unknown은 `STATE_PROFILE_CONFIRM`, `STATE_PROFILE_EDIT_SELECT`, 또는 confirmed snapshot 수정 문맥에서만 `repair_assist_allowed`를 줄 수 있다.
+- fertilizer unknown은 `STATE_FERTILIZER_CONFIRM` 또는 confirmed snapshot 수정 문맥에서만 `repair_assist_allowed`를 줄 수 있다.
+- support/manual handoff 성격의 unknown은 `handoff_required`로 처리하고 LLM을 금지한다.
+
 권장 예시:
 
 - 메인 메뉴

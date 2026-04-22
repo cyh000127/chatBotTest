@@ -102,7 +102,7 @@ from PROJECT.dispatch.session_dispatcher import (
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
 from PROJECT.llm import LlmEditAction, LlmEditIntentResult
-from PROJECT.policy import can_invoke_llm
+from PROJECT.policy import UnknownInputDisposition, can_invoke_llm, classify_unknown_input_disposition
 from PROJECT.rule_engine import (
     ValidationClassification,
     assemble_recovery_context,
@@ -601,16 +601,6 @@ def repair_allowed_actions(domain: str) -> tuple[str, ...]:
     raise ValueError(f"지원하지 않는 repair domain 입니다: {domain}")
 
 
-def should_attempt_llm_repair_for_domain(domain: str, *, state: str, use_confirmed: bool) -> bool:
-    if use_confirmed:
-        return domain in {"profile", "fertilizer"}
-    if domain == "profile":
-        return state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}
-    if domain == "fertilizer":
-        return state == STATE_FERTILIZER_CONFIRM
-    return False
-
-
 async def maybe_send_llm_repair_confirmation(
     update,
     context,
@@ -764,13 +754,19 @@ async def attempt_llm_repair_after_rules(
     state = current_state(context.user_data)
     if not llm_edit_intent_policy_enabled(context):
         return False
-    if not should_attempt_llm_repair_for_domain(domain, state=state, use_confirmed=use_confirmed):
+    unknown_disposition = classify_unknown_input_disposition(
+        current_step=state,
+        domain_hint=domain,
+        use_confirmed=use_confirmed,
+    )
+    if unknown_disposition != UnknownInputDisposition.REPAIR_ASSIST_ALLOWED:
+        reason = "unknown_handoff_required" if unknown_disposition == UnknownInputDisposition.HANDOFF_REQUIRED else "unknown_fallback_only"
         log_event(
             LLM_SKIPPED_BY_POLICY,
             invocation_type="repair",
             state=state,
             domain=domain,
-            reason="state_not_allowed",
+            reason=reason,
         )
         return False
     return await maybe_send_llm_repair_confirmation(
