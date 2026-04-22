@@ -174,6 +174,24 @@ LLM_EDIT_ACTION_TO_TARGET = {
 }
 
 LLM_MIN_CONFIDENCE = 0.6
+PROFILE_REPAIR_ALLOWED_ACTIONS = (
+    LlmEditAction.PROFILE_EDIT_SELECT.value,
+    LlmEditAction.PROFILE_EDIT_NAME.value,
+    LlmEditAction.PROFILE_EDIT_RESIDENCE.value,
+    LlmEditAction.PROFILE_EDIT_CITY.value,
+    LlmEditAction.PROFILE_EDIT_DISTRICT.value,
+    LlmEditAction.PROFILE_EDIT_BIRTH_DATE.value,
+    LlmEditAction.UNSUPPORTED.value,
+)
+FERTILIZER_REPAIR_ALLOWED_ACTIONS = (
+    LlmEditAction.FERTILIZER_EDIT_SELECT.value,
+    LlmEditAction.FERTILIZER_EDIT_USED.value,
+    LlmEditAction.FERTILIZER_EDIT_KIND.value,
+    LlmEditAction.FERTILIZER_EDIT_PRODUCT.value,
+    LlmEditAction.FERTILIZER_EDIT_AMOUNT.value,
+    LlmEditAction.FERTILIZER_EDIT_DATE.value,
+    LlmEditAction.UNSUPPORTED.value,
+)
 EDIT_INTENT_HINT_MARKERS = (
     "수정",
     "변경",
@@ -523,6 +541,24 @@ def llm_edit_intent_policy_enabled(context) -> bool:
     return bool(getattr(settings, "enable_llm_edit_intent", False))
 
 
+def repair_allowed_actions(domain: str) -> tuple[str, ...]:
+    if domain == "profile":
+        return PROFILE_REPAIR_ALLOWED_ACTIONS
+    if domain == "fertilizer":
+        return FERTILIZER_REPAIR_ALLOWED_ACTIONS
+    raise ValueError(f"지원하지 않는 repair domain 입니다: {domain}")
+
+
+def should_attempt_llm_repair_for_domain(domain: str, *, state: str, use_confirmed: bool) -> bool:
+    if use_confirmed:
+        return domain in {"profile", "fertilizer"}
+    if domain == "profile":
+        return state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}
+    if domain == "fertilizer":
+        return state == STATE_FERTILIZER_CONFIRM
+    return False
+
+
 async def maybe_send_llm_repair_confirmation(
     update,
     context,
@@ -626,6 +662,28 @@ async def maybe_send_llm_repair_confirmation(
         action=result.action.value,
     )
     return True
+
+
+async def attempt_llm_repair_after_rules(
+    update,
+    context,
+    *,
+    text: str,
+    domain: str,
+    use_confirmed: bool,
+) -> bool:
+    state = current_state(context.user_data)
+    if not llm_edit_intent_policy_enabled(context):
+        return False
+    if not should_attempt_llm_repair_for_domain(domain, state=state, use_confirmed=use_confirmed):
+        return False
+    return await maybe_send_llm_repair_confirmation(
+        update,
+        context,
+        text=text,
+        allowed_actions=repair_allowed_actions(domain),
+        use_confirmed=use_confirmed,
+    )
 
 
 async def finish_profile_edit_if_needed(update, context, edited_state: str) -> bool:
@@ -975,25 +1033,16 @@ async def text_message(update, context) -> None:
             )
             return
 
-        if state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}:
-            handled_by_llm = await maybe_send_llm_repair_confirmation(
-                update,
-                context,
-                text=inbound.text,
-                allowed_actions=(
-                    LlmEditAction.PROFILE_EDIT_SELECT.value,
-                    LlmEditAction.PROFILE_EDIT_NAME.value,
-                    LlmEditAction.PROFILE_EDIT_RESIDENCE.value,
-                    LlmEditAction.PROFILE_EDIT_CITY.value,
-                    LlmEditAction.PROFILE_EDIT_DISTRICT.value,
-                    LlmEditAction.PROFILE_EDIT_BIRTH_DATE.value,
-                    LlmEditAction.UNSUPPORTED.value,
-                ),
-                use_confirmed=False,
-            )
-            if handled_by_llm:
-                reset_recovery_attempts(context.user_data)
-                return
+        handled_by_llm = await attempt_llm_repair_after_rules(
+            update,
+            context,
+            text=inbound.text,
+            domain="profile",
+            use_confirmed=False,
+        )
+        if handled_by_llm:
+            reset_recovery_attempts(context.user_data)
+            return
 
     if state in FERTILIZER_STATES:
         fertilizer_direct_update = detect_fertilizer_direct_update(
@@ -1023,25 +1072,16 @@ async def text_message(update, context) -> None:
             )
             return
 
-        if state == STATE_FERTILIZER_CONFIRM:
-            handled_by_llm = await maybe_send_llm_repair_confirmation(
-                update,
-                context,
-                text=inbound.text,
-                allowed_actions=(
-                    LlmEditAction.FERTILIZER_EDIT_SELECT.value,
-                    LlmEditAction.FERTILIZER_EDIT_USED.value,
-                    LlmEditAction.FERTILIZER_EDIT_KIND.value,
-                    LlmEditAction.FERTILIZER_EDIT_PRODUCT.value,
-                    LlmEditAction.FERTILIZER_EDIT_AMOUNT.value,
-                    LlmEditAction.FERTILIZER_EDIT_DATE.value,
-                    LlmEditAction.UNSUPPORTED.value,
-                ),
-                use_confirmed=False,
-            )
-            if handled_by_llm:
-                reset_recovery_attempts(context.user_data)
-                return
+        handled_by_llm = await attempt_llm_repair_after_rules(
+            update,
+            context,
+            text=inbound.text,
+            domain="fertilizer",
+            use_confirmed=False,
+        )
+        if handled_by_llm:
+            reset_recovery_attempts(context.user_data)
+            return
 
     if state not in PROFILE_STATES and has_confirmed_profile(context.user_data):
         profile_direct_update = detect_profile_direct_update(inbound.text, allow_implicit=True)
@@ -1072,19 +1112,11 @@ async def text_message(update, context) -> None:
             await show_current_profile(update, context)
             return
 
-        handled_by_llm = await maybe_send_llm_repair_confirmation(
+        handled_by_llm = await attempt_llm_repair_after_rules(
             update,
             context,
             text=inbound.text,
-            allowed_actions=(
-                LlmEditAction.PROFILE_EDIT_SELECT.value,
-                LlmEditAction.PROFILE_EDIT_NAME.value,
-                LlmEditAction.PROFILE_EDIT_RESIDENCE.value,
-                LlmEditAction.PROFILE_EDIT_CITY.value,
-                LlmEditAction.PROFILE_EDIT_DISTRICT.value,
-                LlmEditAction.PROFILE_EDIT_BIRTH_DATE.value,
-                LlmEditAction.UNSUPPORTED.value,
-            ),
+            domain="profile",
             use_confirmed=True,
         )
         if handled_by_llm:
@@ -1116,19 +1148,11 @@ async def text_message(update, context) -> None:
             )
             return
 
-        handled_by_llm = await maybe_send_llm_repair_confirmation(
+        handled_by_llm = await attempt_llm_repair_after_rules(
             update,
             context,
             text=inbound.text,
-            allowed_actions=(
-                LlmEditAction.FERTILIZER_EDIT_SELECT.value,
-                LlmEditAction.FERTILIZER_EDIT_USED.value,
-                LlmEditAction.FERTILIZER_EDIT_KIND.value,
-                LlmEditAction.FERTILIZER_EDIT_PRODUCT.value,
-                LlmEditAction.FERTILIZER_EDIT_AMOUNT.value,
-                LlmEditAction.FERTILIZER_EDIT_DATE.value,
-                LlmEditAction.UNSUPPORTED.value,
-            ),
+            domain="fertilizer",
             use_confirmed=True,
         )
         if handled_by_llm:

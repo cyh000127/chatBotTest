@@ -1,8 +1,16 @@
 from types import SimpleNamespace
 
-from PROJECT.channels.telegram.handlers.messages import llm_edit_intent_policy_enabled, llm_repair_guidance_text, parse_candidate_changes
-from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_BIRTH_YEAR
+from PROJECT.channels.telegram.handlers.messages import (
+    FERTILIZER_REPAIR_ALLOWED_ACTIONS,
+    PROFILE_REPAIR_ALLOWED_ACTIONS,
+    llm_edit_intent_policy_enabled,
+    llm_repair_guidance_text,
+    parse_candidate_changes,
+    repair_allowed_actions,
+    should_attempt_llm_repair_for_domain,
+)
+from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT, STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_PRODUCT
+from PROJECT.conversations.profile_intake.states import STATE_PROFILE_BIRTH_YEAR, STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.keyboards import repair_confirmation_keyboard
 from PROJECT.dispatch.session_dispatcher import pending_candidate, pending_repair_confirmation, set_pending_candidate, set_pending_repair_confirmation
 from PROJECT.i18n.translator import get_catalog
@@ -90,6 +98,20 @@ def test_llm_edit_intent_policy_enabled_requires_explicit_flag():
 
     assert llm_edit_intent_policy_enabled(disabled_context) is False
     assert llm_edit_intent_policy_enabled(enabled_context) is True
+
+
+def test_repair_allowed_actions_are_centralized_by_domain():
+    assert repair_allowed_actions("profile") == PROFILE_REPAIR_ALLOWED_ACTIONS
+    assert repair_allowed_actions("fertilizer") == FERTILIZER_REPAIR_ALLOWED_ACTIONS
+
+
+def test_should_attempt_llm_repair_only_in_allowed_states():
+    assert should_attempt_llm_repair_for_domain("profile", state=STATE_PROFILE_CONFIRM, use_confirmed=False) is True
+    assert should_attempt_llm_repair_for_domain("profile", state=STATE_PROFILE_EDIT_SELECT, use_confirmed=False) is True
+    assert should_attempt_llm_repair_for_domain("profile", state=STATE_PROFILE_NAME, use_confirmed=False) is False
+    assert should_attempt_llm_repair_for_domain("fertilizer", state=STATE_FERTILIZER_CONFIRM, use_confirmed=False) is True
+    assert should_attempt_llm_repair_for_domain("fertilizer", state=STATE_FERTILIZER_PRODUCT, use_confirmed=False) is False
+    assert should_attempt_llm_repair_for_domain("fertilizer", state=STATE_FERTILIZER_PRODUCT, use_confirmed=True) is True
 
 
 def test_pending_candidate_is_stored_separately_from_repair_confirmation():
