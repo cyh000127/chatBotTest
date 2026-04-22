@@ -1135,7 +1135,11 @@ async def text_message(update, context) -> None:
             )
             return
 
-        repair = detect_repair_intent(inbound.text)
+        repair = detect_repair_intent(
+            inbound.text,
+            current_state=state,
+            domain_hint="profile",
+        )
         if repair is not None and repair.target_state in PROFILE_STATES:
             reset_recovery_attempts(context.user_data)
             log_rule_matched(
@@ -1186,7 +1190,11 @@ async def text_message(update, context) -> None:
             )
             return
 
-        repair = detect_repair_intent(inbound.text)
+        repair = detect_repair_intent(
+            inbound.text,
+            current_state=state,
+            domain_hint="fertilizer",
+        )
         if repair is not None and repair.target_state in FERTILIZER_STATES:
             reset_recovery_attempts(context.user_data)
             log_rule_matched(
@@ -1234,7 +1242,11 @@ async def text_message(update, context) -> None:
             )
             return
 
-        repair = detect_repair_intent(inbound.text)
+        repair = detect_repair_intent(
+            inbound.text,
+            current_state=STATE_PROFILE_CONFIRM,
+            domain_hint="profile",
+        )
         if repair is not None and repair.target_state in PROFILE_STATES:
             reset_recovery_attempts(context.user_data)
             log_rule_matched(
@@ -1286,7 +1298,11 @@ async def text_message(update, context) -> None:
             )
             return
 
-        repair = detect_repair_intent(inbound.text)
+        repair = detect_repair_intent(
+            inbound.text,
+            current_state=STATE_FERTILIZER_CONFIRM,
+            domain_hint="fertilizer",
+        )
         if repair is not None and repair.target_state in FERTILIZER_STATES:
             reset_recovery_attempts(context.user_data)
             log_rule_matched(
@@ -1872,22 +1888,31 @@ async def unknown_command(update, context) -> None:
         await send_text(update, service.auth_required_text(catalog), keyboard_layout=None)
         return
     inbound = parse_update(update)
-    repair = detect_repair_intent(inbound.text)
-    if has_confirmed_profile(context.user_data) and repair is not None and repair.target_state in PROFILE_STATES:
+    profile_repair = detect_repair_intent(
+        inbound.text,
+        current_state=STATE_PROFILE_CONFIRM if has_confirmed_profile(context.user_data) else current_state(context.user_data),
+        domain_hint="profile",
+    )
+    if has_confirmed_profile(context.user_data) and profile_repair is not None and profile_repair.target_state in PROFILE_STATES:
         await send_repair_confirmation(
             update,
             context,
             domain="profile",
-            target_state=repair.target_state,
+            target_state=profile_repair.target_state,
             use_confirmed=True,
         )
         return
-    if has_confirmed_fertilizer(context.user_data) and repair is not None and repair.target_state in FERTILIZER_STATES:
+    fertilizer_repair = detect_repair_intent(
+        inbound.text,
+        current_state=STATE_FERTILIZER_CONFIRM if has_confirmed_fertilizer(context.user_data) else current_state(context.user_data),
+        domain_hint="fertilizer",
+    )
+    if has_confirmed_fertilizer(context.user_data) and fertilizer_repair is not None and fertilizer_repair.target_state in FERTILIZER_STATES:
         await send_repair_confirmation(
             update,
             context,
             domain="fertilizer",
-            target_state=repair.target_state,
+            target_state=fertilizer_repair.target_state,
             use_confirmed=True,
         )
         return

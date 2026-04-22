@@ -1,9 +1,14 @@
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
-from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT, STATE_FERTILIZER_CONFIRM
+from PROJECT.conversations.fertilizer_intake.states import (
+    STATE_FERTILIZER_AMOUNT,
+    STATE_FERTILIZER_CONFIRM,
+    STATE_FERTILIZER_PRODUCT,
+)
 from PROJECT.conversations.profile_intake import service
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
     STATE_PROFILE_CITY,
+    STATE_PROFILE_CONFIRM,
     STATE_PROFILE_EDIT_SELECT,
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
@@ -39,6 +44,31 @@ def test_detect_fertilizer_amount_repair_intent():
     decision = detect_repair_intent("비료 양 잘못 입력했어요")
     assert decision is not None
     assert decision.target_state == STATE_FERTILIZER_AMOUNT
+
+
+def test_detect_contextual_fertilizer_product_repair_intent_in_confirm_state():
+    decision = detect_repair_intent(
+        "제품명 수정할래",
+        current_state=STATE_FERTILIZER_CONFIRM,
+        domain_hint="fertilizer",
+    )
+    assert decision is not None
+    assert decision.target_state == STATE_FERTILIZER_PRODUCT
+
+
+def test_detect_contextual_profile_birth_repair_intent_in_confirm_state():
+    decision = detect_repair_intent(
+        "생일 수정할래",
+        current_state=STATE_PROFILE_CONFIRM,
+        domain_hint="profile",
+    )
+    assert decision is not None
+    assert decision.target_state == STATE_PROFILE_BIRTH_YEAR
+
+
+def test_field_only_repair_phrase_is_not_global_without_context():
+    decision = detect_repair_intent("제품명 수정할래")
+    assert decision is None
 
 
 def test_detect_profile_view_intent():
