@@ -626,6 +626,17 @@ def llm_edit_intent_policy_enabled(context) -> bool:
     return bool(getattr(settings, "enable_llm_edit_intent", False))
 
 
+def llm_edit_intent_policy_skip_reason(context) -> str:
+    settings = context.bot_data.get("settings")
+    if settings is None:
+        return "edit_intent_policy_disabled"
+    if getattr(settings, "manual_review_fallback_active", False):
+        return "manual_review_fallback_active"
+    if getattr(settings, "runtime_rules_only", False):
+        return "local_ai_gate_disabled"
+    return "edit_intent_policy_disabled"
+
+
 def repair_allowed_actions(domain: str) -> tuple[str, ...]:
     if domain == "profile":
         return PROFILE_REPAIR_ALLOWED_ACTIONS
@@ -821,6 +832,14 @@ async def attempt_llm_repair_after_rules(
 ) -> bool:
     state = current_state(context.user_data)
     if not llm_edit_intent_policy_enabled(context):
+        log_event(
+            LLM_SKIPPED_BY_POLICY,
+            invocation_type="repair",
+            state=state,
+            domain=domain,
+            policy_scope="unknown_input",
+            reason=llm_edit_intent_policy_skip_reason(context),
+        )
         return False
     unknown_policy = evaluate_unknown_input_policy(
         current_step=state,
