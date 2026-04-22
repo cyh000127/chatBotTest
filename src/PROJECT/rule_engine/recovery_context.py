@@ -128,7 +128,7 @@ def prompt_schema_for_state(
         return {
             "current_question": sample_service.main_menu_text(catalog),
             "expected_input_type": "menu_selection",
-            "allowed_value_shape": "one_of:profile|fertilizer|myfields|help|restart|cancel|language",
+            "allowed_value_shape": "one_of:profile|fertilizer|myfields|input_resolve|help|restart|cancel|language",
             "hard_constraints": (
                 "menu_action_must_match_supported_intent",
             ),

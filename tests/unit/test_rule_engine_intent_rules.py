@@ -51,6 +51,20 @@ def test_classify_global_intent_supports_myfields_entry_phrase():
     assert decision.canonical_intent == registry.INTENT_MYFIELDS_ENTRY
 
 
+def test_classify_global_intent_supports_input_resolve_command():
+    decision = classify_global_intent_text("/resolve")
+
+    assert decision is not None
+    assert decision.canonical_intent == registry.INTENT_INPUT_RESOLVE_START
+
+
+def test_classify_global_intent_supports_input_resolve_phrase():
+    decision = classify_global_intent_text("값 해석 시작할게요")
+
+    assert decision is not None
+    assert decision.canonical_intent == registry.INTENT_INPUT_RESOLVE_START
+
+
 def test_classify_global_intent_supports_fertilizer_repair_phrase():
     decision = classify_global_intent_text("비료 양 잘못 입력했어요")
 
