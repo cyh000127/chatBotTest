@@ -4,7 +4,7 @@ from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONF
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT
 
 
-class AiMode(StrEnum):
+class LocalAiGate(StrEnum):
     DISABLED = "disabled"
     REPAIR_ASSIST_ONLY = "repair_assist_only"
     RECOVERY_ASSIST_ONLY = "recovery_assist_only"
@@ -32,27 +32,27 @@ PROFILE_UNKNOWN_LLM_STATES = frozenset({STATE_PROFILE_CONFIRM, STATE_PROFILE_EDI
 FERTILIZER_UNKNOWN_LLM_STATES = frozenset({STATE_FERTILIZER_CONFIRM})
 
 
-def parse_ai_mode(raw: str | None, *, default: AiMode = AiMode.DISABLED) -> AiMode:
+def parse_local_ai_gate(raw: str | None, *, default: LocalAiGate = LocalAiGate.DISABLED) -> LocalAiGate:
     if raw is None or not raw.strip():
         return default
     normalized = raw.strip().lower()
     try:
-        return AiMode(normalized)
+        return LocalAiGate(normalized)
     except ValueError as exc:
         raise ValueError(f"지원하지 않는 AI_MODE 입니다: {raw}") from exc
 
 
-def ai_mode_allows_edit_intent(ai_mode: AiMode) -> bool:
-    return ai_mode == AiMode.REPAIR_ASSIST_ONLY
+def local_ai_gate_allows_edit_intent(local_ai_gate: LocalAiGate) -> bool:
+    return local_ai_gate == LocalAiGate.REPAIR_ASSIST_ONLY
 
 
-def ai_mode_allows_recovery_assist(ai_mode: AiMode) -> bool:
-    return ai_mode == AiMode.RECOVERY_ASSIST_ONLY
+def local_ai_gate_allows_recovery_assist(local_ai_gate: LocalAiGate) -> bool:
+    return local_ai_gate == LocalAiGate.RECOVERY_ASSIST_ONLY
 
 
 def can_invoke_llm(
     *,
-    ai_mode: AiMode,
+    local_ai_gate: LocalAiGate,
     invocation_type: str,
     current_step: str | None,
     is_structured_step: bool,
@@ -61,13 +61,13 @@ def can_invoke_llm(
     llm_calls_in_step: int,
     same_input_seen: bool,
 ) -> bool:
-    if ai_mode in {AiMode.DISABLED, AiMode.MANUAL_REVIEW_FALLBACK}:
+    if local_ai_gate in {LocalAiGate.DISABLED, LocalAiGate.MANUAL_REVIEW_FALLBACK}:
         return False
     if not current_step or not is_free_text or same_input_seen:
         return False
 
     if invocation_type == "repair":
-        if not ai_mode_allows_edit_intent(ai_mode):
+        if not local_ai_gate_allows_edit_intent(local_ai_gate):
             return False
         if not (is_structured_step or is_confirm_step):
             return False
@@ -75,7 +75,7 @@ def can_invoke_llm(
         return llm_calls_in_step < max_calls
 
     if invocation_type == "recovery":
-        if not ai_mode_allows_recovery_assist(ai_mode):
+        if not local_ai_gate_allows_recovery_assist(local_ai_gate):
             return False
         if not (is_structured_step or is_confirm_step):
             return False
@@ -136,3 +136,19 @@ def classify_handoff_route(
         return HandoffRoute.MANUAL_REVIEW_REQUIRED
 
     return HandoffRoute.MANUAL_REVIEW_REQUIRED
+
+
+# Backward-compatible aliases while the repo migrates to the "local helper gate" wording.
+AiMode = LocalAiGate
+
+
+def parse_ai_mode(raw: str | None, *, default: LocalAiGate = LocalAiGate.DISABLED) -> LocalAiGate:
+    return parse_local_ai_gate(raw, default=default)
+
+
+def ai_mode_allows_edit_intent(local_ai_gate: LocalAiGate) -> bool:
+    return local_ai_gate_allows_edit_intent(local_ai_gate)
+
+
+def ai_mode_allows_recovery_assist(local_ai_gate: LocalAiGate) -> bool:
+    return local_ai_gate_allows_recovery_assist(local_ai_gate)

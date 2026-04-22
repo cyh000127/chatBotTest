@@ -647,7 +647,7 @@ async def maybe_send_llm_repair_confirmation(
     same_input_seen = has_seen_llm_input(context.user_data, cache_key)
     llm_call_count = llm_calls_in_step(context.user_data, state)
     if not can_invoke_llm(
-        ai_mode=context.bot_data["settings"].ai_mode,
+        local_ai_gate=context.bot_data["settings"].local_ai_gate,
         invocation_type="repair",
         current_step=state,
         is_structured_step=state in PROFILE_STATES or state in FERTILIZER_STATES,

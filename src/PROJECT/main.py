@@ -10,7 +10,7 @@ def main() -> None:
     application = create_application(settings)
     log_event(
         BOT_STARTED,
-        ai_mode=settings.ai_mode.value,
+        local_ai_gate=settings.local_ai_gate.value,
         llm_recovery_enabled=settings.gemini is not None and settings.enable_llm_recovery,
         llm_edit_intent_enabled=settings.gemini is not None and settings.enable_llm_edit_intent,
     )

@@ -1,5 +1,5 @@
 from PROJECT.channels.telegram.app import create_application
-from PROJECT.policy import AiMode
+from PROJECT.policy import LocalAiGate
 from PROJECT.settings import GeminiSettings, Settings
 
 
@@ -20,7 +20,7 @@ def test_create_application_keeps_edit_intent_resolver_disabled_without_policy_g
                 api_base="https://generativelanguage.googleapis.com/v1beta",
                 timeout_seconds=15.0,
             ),
-            ai_mode=AiMode.DISABLED,
+            local_ai_gate=LocalAiGate.DISABLED,
         )
     )
 
@@ -38,7 +38,7 @@ def test_create_application_registers_edit_intent_resolver_only_when_policy_gate
                 api_base="https://generativelanguage.googleapis.com/v1beta",
                 timeout_seconds=15.0,
             ),
-            ai_mode=AiMode.REPAIR_ASSIST_ONLY,
+            local_ai_gate=LocalAiGate.REPAIR_ASSIST_ONLY,
         )
     )
 
@@ -56,7 +56,7 @@ def test_create_application_registers_recovery_resolver_only_when_recovery_mode_
                 api_base="https://generativelanguage.googleapis.com/v1beta",
                 timeout_seconds=15.0,
             ),
-            ai_mode=AiMode.RECOVERY_ASSIST_ONLY,
+            local_ai_gate=LocalAiGate.RECOVERY_ASSIST_ONLY,
         )
     )
 

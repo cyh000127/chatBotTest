@@ -2,15 +2,15 @@ import pytest
 
 from PROJECT.policy import (
     MAX_LLM_CALLS_PER_CONFIRM_STEP,
-    AiMode,
     HandoffRoute,
+    LocalAiGate,
     UnknownInputDisposition,
-    ai_mode_allows_edit_intent,
-    ai_mode_allows_recovery_assist,
     can_invoke_llm,
     classify_handoff_route,
     classify_unknown_input_disposition,
-    parse_ai_mode,
+    local_ai_gate_allows_edit_intent,
+    local_ai_gate_allows_recovery_assist,
+    parse_local_ai_gate,
     same_input_cache_key,
     should_handoff,
 )
@@ -19,25 +19,25 @@ from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, S
 from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
 
 
-def test_parse_ai_mode_defaults_to_disabled():
-    assert parse_ai_mode("") == AiMode.DISABLED
+def test_parse_local_ai_gate_defaults_to_disabled():
+    assert parse_local_ai_gate("") == LocalAiGate.DISABLED
 
 
-def test_parse_ai_mode_rejects_unknown_value():
+def test_parse_local_ai_gate_rejects_unknown_value():
     with pytest.raises(ValueError):
-        parse_ai_mode("unknown-mode")
+        parse_local_ai_gate("unknown-mode")
 
 
-def test_ai_mode_allows_only_the_expected_invocation_type():
-    assert ai_mode_allows_edit_intent(AiMode.REPAIR_ASSIST_ONLY) is True
-    assert ai_mode_allows_edit_intent(AiMode.RECOVERY_ASSIST_ONLY) is False
-    assert ai_mode_allows_recovery_assist(AiMode.RECOVERY_ASSIST_ONLY) is True
-    assert ai_mode_allows_recovery_assist(AiMode.REPAIR_ASSIST_ONLY) is False
+def test_local_ai_gate_allows_only_the_expected_invocation_type():
+    assert local_ai_gate_allows_edit_intent(LocalAiGate.REPAIR_ASSIST_ONLY) is True
+    assert local_ai_gate_allows_edit_intent(LocalAiGate.RECOVERY_ASSIST_ONLY) is False
+    assert local_ai_gate_allows_recovery_assist(LocalAiGate.RECOVERY_ASSIST_ONLY) is True
+    assert local_ai_gate_allows_recovery_assist(LocalAiGate.REPAIR_ASSIST_ONLY) is False
 
 
 def test_can_invoke_llm_allows_repair_in_confirm_step():
     allowed = can_invoke_llm(
-        ai_mode=AiMode.REPAIR_ASSIST_ONLY,
+        local_ai_gate=LocalAiGate.REPAIR_ASSIST_ONLY,
         invocation_type="repair",
         current_step="fertilizer_confirm",
         is_structured_step=False,
@@ -52,7 +52,7 @@ def test_can_invoke_llm_allows_repair_in_confirm_step():
 
 def test_can_invoke_llm_blocks_repeat_input_and_limit_overflow():
     repeated = can_invoke_llm(
-        ai_mode=AiMode.REPAIR_ASSIST_ONLY,
+        local_ai_gate=LocalAiGate.REPAIR_ASSIST_ONLY,
         invocation_type="repair",
         current_step="fertilizer_confirm",
         is_structured_step=False,
@@ -62,7 +62,7 @@ def test_can_invoke_llm_blocks_repeat_input_and_limit_overflow():
         same_input_seen=True,
     )
     over_limit = can_invoke_llm(
-        ai_mode=AiMode.REPAIR_ASSIST_ONLY,
+        local_ai_gate=LocalAiGate.REPAIR_ASSIST_ONLY,
         invocation_type="repair",
         current_step="fertilizer_confirm",
         is_structured_step=False,
