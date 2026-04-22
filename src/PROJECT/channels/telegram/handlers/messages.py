@@ -722,8 +722,8 @@ async def maybe_send_llm_repair_confirmation(
                 HANDOFF_REQUESTED,
                 source="llm_repair",
                 state=state,
-                route=handoff_route.value,
-                reason=result.reason or "needs_human",
+                route_hint=handoff_route.value,
+                trigger_reason=result.reason or "needs_human",
             )
         log_event(
             LLM_REPAIR_GUIDANCE_SHOWN,
@@ -1088,8 +1088,8 @@ async def text_message(update, context) -> None:
             HANDOFF_REQUESTED,
             source="cheap_gate",
             state=state,
-            route=handoff_route.value,
-            reason=early_gate.human_handoff_reason or early_gate.reason,
+            route_hint=handoff_route.value,
+            trigger_reason=early_gate.human_handoff_reason or early_gate.reason,
         )
         catalog = current_catalog(context)
         recovery_context = assemble_recovery_context(
@@ -1517,8 +1517,8 @@ async def text_message(update, context) -> None:
             HANDOFF_REQUESTED,
             source="cheap_gate",
             state=current_state(context.user_data),
-            route=handoff_route.value,
-            reason=late_gate.human_handoff_reason or late_gate.reason,
+            route_hint=handoff_route.value,
+            trigger_reason=late_gate.human_handoff_reason or late_gate.reason,
         )
         recovery_context = assemble_recovery_context(
             current_step=current_state(context.user_data),

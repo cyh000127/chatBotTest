@@ -67,13 +67,14 @@ def assemble_recovery_context(
         recovery_attempt_count=recovery_attempt_count,
         hard_constraints=prompt_schema["hard_constraints"],
         metadata={
+            "runtime_policy_scope": "subordinate_guidance",
             "fallback_key": fallback_key,
             "pending_slot": pending_slot,
             "selected_city": selected_city,
             "validation_classification": validation_result.classification.value if validation_result is not None else None,
             "validation_reason": validation_result.reason if validation_result is not None else None,
-            "human_handoff_reason": validation_result.human_handoff_reason if validation_result is not None else None,
-            "handoff_route": (
+            "runtime_handoff_reason_hint": validation_result.human_handoff_reason if validation_result is not None else None,
+            "runtime_handoff_route_hint": (
                 classify_handoff_route(
                     reason=validation_result.reason,
                     human_handoff_reason=validation_result.human_handoff_reason,
