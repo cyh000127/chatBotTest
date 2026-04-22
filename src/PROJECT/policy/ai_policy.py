@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import StrEnum
 
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM
@@ -23,6 +24,12 @@ class HandoffRoute(StrEnum):
     ADMIN_FOLLOWUP_QUEUE = "admin_followup_queue"
     MANUAL_REVIEW_REQUIRED = "manual_resolution_required"
     ADMIN_FOLLOWUP_REQUIRED = "admin_followup_queue"
+
+
+@dataclass(frozen=True)
+class LlmInvocationPolicyDecision:
+    allowed: bool
+    reason: str
 
 
 MAX_LLM_CALLS_PER_STRUCTURED_STEP = 1
@@ -63,28 +70,59 @@ def can_invoke_llm(
     llm_calls_in_step: int,
     same_input_seen: bool,
 ) -> bool:
+    return evaluate_llm_invocation_policy(
+        local_ai_gate=local_ai_gate,
+        invocation_type=invocation_type,
+        current_step=current_step,
+        is_structured_step=is_structured_step,
+        is_confirm_step=is_confirm_step,
+        is_free_text=is_free_text,
+        llm_calls_in_step=llm_calls_in_step,
+        same_input_seen=same_input_seen,
+    ).allowed
+
+
+def evaluate_llm_invocation_policy(
+    *,
+    local_ai_gate: LocalAiGate,
+    invocation_type: str,
+    current_step: str | None,
+    is_structured_step: bool,
+    is_confirm_step: bool,
+    is_free_text: bool,
+    llm_calls_in_step: int,
+    same_input_seen: bool,
+) -> LlmInvocationPolicyDecision:
     if local_ai_gate in {LocalAiGate.DISABLED, LocalAiGate.MANUAL_REVIEW_FALLBACK}:
-        return False
-    if not current_step or not is_free_text or same_input_seen:
-        return False
+        return LlmInvocationPolicyDecision(False, "local_ai_gate_disabled")
+    if not current_step:
+        return LlmInvocationPolicyDecision(False, "missing_current_step")
+    if not is_free_text:
+        return LlmInvocationPolicyDecision(False, "not_free_text")
+    if same_input_seen:
+        return LlmInvocationPolicyDecision(False, "duplicate_input")
 
     if invocation_type == "repair":
         if not local_ai_gate_allows_edit_intent(local_ai_gate):
-            return False
+            return LlmInvocationPolicyDecision(False, "repair_not_allowed_by_gate")
         if not (is_structured_step or is_confirm_step):
-            return False
+            return LlmInvocationPolicyDecision(False, "repair_requires_structured_or_confirm_step")
         max_calls = MAX_LLM_CALLS_PER_CONFIRM_STEP if is_confirm_step else MAX_LLM_CALLS_PER_STRUCTURED_STEP
-        return llm_calls_in_step < max_calls
+        if llm_calls_in_step >= max_calls:
+            return LlmInvocationPolicyDecision(False, "step_call_limit")
+        return LlmInvocationPolicyDecision(True, "allowed")
 
     if invocation_type == "recovery":
         if not local_ai_gate_allows_recovery_assist(local_ai_gate):
-            return False
+            return LlmInvocationPolicyDecision(False, "recovery_not_allowed_by_gate")
         if not (is_structured_step or is_confirm_step):
-            return False
+            return LlmInvocationPolicyDecision(False, "recovery_requires_structured_or_confirm_step")
         max_calls = MAX_LLM_CALLS_PER_CONFIRM_STEP if is_confirm_step else MAX_LLM_CALLS_PER_STRUCTURED_STEP
-        return llm_calls_in_step < max_calls
+        if llm_calls_in_step >= max_calls:
+            return LlmInvocationPolicyDecision(False, "step_call_limit")
+        return LlmInvocationPolicyDecision(True, "allowed")
 
-    return False
+    return LlmInvocationPolicyDecision(False, "unsupported_invocation_type")
 
 
 def should_handoff(*, recovery_attempt_count: int, explicit_handoff: bool = False) -> bool:

@@ -8,6 +8,7 @@ from PROJECT.policy import (
     can_invoke_llm,
     classify_handoff_route,
     classify_unknown_input_disposition,
+    evaluate_llm_invocation_policy,
     local_ai_gate_allows_edit_intent,
     local_ai_gate_allows_recovery_assist,
     parse_local_ai_gate,
@@ -48,6 +49,38 @@ def test_can_invoke_llm_allows_repair_in_confirm_step():
     )
 
     assert allowed is True
+
+
+def test_evaluate_llm_invocation_policy_returns_explicit_duplicate_reason():
+    decision = evaluate_llm_invocation_policy(
+        local_ai_gate=LocalAiGate.REPAIR_ASSIST_ONLY,
+        invocation_type="repair",
+        current_step="fertilizer_confirm",
+        is_structured_step=False,
+        is_confirm_step=True,
+        is_free_text=True,
+        llm_calls_in_step=0,
+        same_input_seen=True,
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "duplicate_input"
+
+
+def test_evaluate_llm_invocation_policy_returns_explicit_gate_reason():
+    decision = evaluate_llm_invocation_policy(
+        local_ai_gate=LocalAiGate.DISABLED,
+        invocation_type="repair",
+        current_step="fertilizer_confirm",
+        is_structured_step=False,
+        is_confirm_step=True,
+        is_free_text=True,
+        llm_calls_in_step=0,
+        same_input_seen=False,
+    )
+
+    assert decision.allowed is False
+    assert decision.reason == "local_ai_gate_disabled"
 
 
 def test_can_invoke_llm_blocks_repeat_input_and_limit_overflow():

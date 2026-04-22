@@ -105,9 +105,9 @@ from PROJECT.llm import LlmEditAction, LlmEditIntentResult
 from PROJECT.policy import (
     HandoffRoute,
     UnknownInputDisposition,
-    can_invoke_llm,
     classify_handoff_route,
     classify_unknown_input_disposition,
+    evaluate_llm_invocation_policy,
 )
 from PROJECT.rule_engine import (
     ValidationClassification,
@@ -646,7 +646,7 @@ async def maybe_send_llm_repair_confirmation(
         return False
     same_input_seen = has_seen_llm_input(context.user_data, cache_key)
     llm_call_count = llm_calls_in_step(context.user_data, state)
-    if not can_invoke_llm(
+    policy_decision = evaluate_llm_invocation_policy(
         local_ai_gate=context.bot_data["settings"].local_ai_gate,
         invocation_type="repair",
         current_step=state,
@@ -655,13 +655,13 @@ async def maybe_send_llm_repair_confirmation(
         is_free_text=True,
         llm_calls_in_step=llm_call_count,
         same_input_seen=same_input_seen,
-    ):
-        reason = "duplicate_input" if same_input_seen else "step_call_limit"
+    )
+    if not policy_decision.allowed:
         log_event(
             LLM_SKIPPED_BY_POLICY,
             invocation_type="repair",
             state=state,
-            reason=reason,
+            reason=policy_decision.reason,
         )
         return False
 
