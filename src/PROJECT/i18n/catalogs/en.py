@@ -136,6 +136,10 @@ LLM_REPAIR_HUMAN_REVIEW_MESSAGE = (
     "This request is difficult to narrow down to one edit field automatically.\n"
     "It may require manual review, so please choose directly from the related items below."
 )
+LLM_REPAIR_RUNTIME_FAILURE_MESSAGE = (
+    "I tried automatic interpretation, but it is not stable enough right now.\n"
+    "Please continue by choosing directly from the related items below."
+)
 
 FERTILIZER_KIND_LABELS = {
     "compound": "Compound",

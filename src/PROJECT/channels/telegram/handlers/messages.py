@@ -101,7 +101,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_state,
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
-from PROJECT.llm import LlmEditAction, LlmEditIntentResult
+from PROJECT.llm import GeminiNotConfiguredError, GeminiRecoveryError, GeminiResponseFormatError, LlmEditAction, LlmEditIntentResult
 from PROJECT.policy import (
     HandoffRoute,
     UnknownInputDisposition,
@@ -122,6 +122,7 @@ from PROJECT.telemetry.event_logger import log_event
 from PROJECT.telemetry.events import (
     CHEAP_GATE_BLOCKED,
     FALLBACK_SHOWN,
+    LLM_FAILED,
     HANDOFF_REQUESTED,
     LLM_INVOKED,
     LLM_REPAIR_GUIDANCE_SHOWN,
@@ -602,6 +603,24 @@ def llm_repair_guidance_text(result: LlmEditIntentResult, catalog) -> str | None
     return None
 
 
+def classify_llm_runtime_failure(exc: Exception) -> str:
+    if isinstance(exc, GeminiNotConfiguredError):
+        return "not_configured"
+    if isinstance(exc, httpx.TimeoutException):
+        return "timeout"
+    if isinstance(exc, GeminiResponseFormatError):
+        return "response_format_error"
+    if isinstance(exc, httpx.HTTPStatusError):
+        return "http_status_error"
+    if isinstance(exc, httpx.RequestError):
+        return "network_error"
+    if isinstance(exc, ValueError):
+        return "schema_validation_error"
+    if isinstance(exc, GeminiRecoveryError):
+        return "runtime_error"
+    return "unexpected_error"
+
+
 def llm_edit_intent_policy_enabled(context) -> bool:
     settings = context.bot_data.get("settings")
     return bool(getattr(settings, "enable_llm_edit_intent", False))
@@ -684,8 +703,34 @@ async def maybe_send_llm_repair_confirmation(
             locale=current_locale(context.user_data),
             allowed_actions=allowed_actions,
         )
-    except Exception:
-        return False
+    except Exception as exc:
+        failure_reason = classify_llm_runtime_failure(exc)
+        fallback_key = fallback_key_for_state(state)
+        log_event(
+            LLM_FAILED,
+            invocation_type="repair",
+            state=state,
+            failure_reason=failure_reason,
+            policy_scope=policy_scope,
+            policy_reason=unknown_policy_reason,
+        )
+        await send_text(
+            update,
+            current_catalog(context).LLM_REPAIR_RUNTIME_FAILURE_MESSAGE,
+            keyboard_layout=fallback_keyboard_layout_for_state(
+                current_state(context.user_data),
+                current_catalog(context),
+                profile_draft(context.user_data),
+            ),
+        )
+        log_event(
+            FALLBACK_SHOWN,
+            source="llm_runtime_failure",
+            state=state,
+            fallback_key=fallback_key,
+            failure_reason=failure_reason,
+        )
+        return True
 
     guidance_text = llm_repair_guidance_text(result, current_catalog(context))
     if guidance_text is not None and (

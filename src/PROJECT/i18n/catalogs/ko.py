@@ -136,6 +136,10 @@ LLM_REPAIR_HUMAN_REVIEW_MESSAGE = (
     "이 요청은 자동으로 한 수정 항목으로 좁히기 어려워요.\n"
     "운영 검토가 필요할 수 있으니 아래 관련 항목에서 직접 선택해주세요."
 )
+LLM_REPAIR_RUNTIME_FAILURE_MESSAGE = (
+    "자동 해석을 시도했지만 지금은 안정적으로 처리할 수 없어요.\n"
+    "아래 관련 항목에서 직접 선택해 진행해주세요."
+)
 
 FERTILIZER_KIND_LABELS = {
     "compound": "복합비료",

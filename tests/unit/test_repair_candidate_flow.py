@@ -1,8 +1,10 @@
+import httpx
 from types import SimpleNamespace
 
 from PROJECT.channels.telegram.handlers.messages import (
     FERTILIZER_REPAIR_ALLOWED_ACTIONS,
     PROFILE_REPAIR_ALLOWED_ACTIONS,
+    classify_llm_runtime_failure,
     llm_edit_intent_policy_enabled,
     llm_repair_guidance_text,
     parse_candidate_changes,
@@ -14,6 +16,7 @@ from PROJECT.conversations.sample_menu.keyboards import repair_confirmation_keyb
 from PROJECT.dispatch.session_dispatcher import pending_candidate, pending_repair_confirmation, set_pending_candidate, set_pending_repair_confirmation
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.llm import LlmEditAction, LlmEditIntentResult
+from PROJECT.llm.gemini_recovery import GeminiNotConfiguredError, GeminiResponseFormatError
 from PROJECT.policy import UnknownInputDisposition, classify_unknown_input_disposition
 
 
@@ -90,6 +93,36 @@ def test_llm_repair_guidance_text_for_human_review_result():
     text = llm_repair_guidance_text(result, catalog)
 
     assert text == catalog.LLM_REPAIR_HUMAN_REVIEW_MESSAGE
+
+
+def test_classify_llm_runtime_failure_for_not_configured():
+    failure = classify_llm_runtime_failure(
+        GeminiNotConfiguredError("GEMINI_API_KEY missing")
+    )
+
+    assert failure == "not_configured"
+
+
+def test_classify_llm_runtime_failure_for_timeout():
+    failure = classify_llm_runtime_failure(
+        httpx.ReadTimeout("timeout")
+    )
+
+    assert failure == "timeout"
+
+
+def test_classify_llm_runtime_failure_for_response_format():
+    failure = classify_llm_runtime_failure(
+        GeminiResponseFormatError("bad json")
+    )
+
+    assert failure == "response_format_error"
+
+
+def test_runtime_failure_message_exists_in_catalog():
+    catalog = get_catalog("ko")
+
+    assert "직접 선택" in catalog.LLM_REPAIR_RUNTIME_FAILURE_MESSAGE
 
 
 def test_llm_edit_intent_policy_enabled_requires_explicit_flag():
