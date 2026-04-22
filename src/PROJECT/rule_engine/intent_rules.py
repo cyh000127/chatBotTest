@@ -11,6 +11,7 @@ COMMAND_TO_INTENT = {
     "myfields": registry.INTENT_MYFIELDS_ENTRY,
     "fertilizer": registry.INTENT_FERTILIZER_INPUT_START,
     "resolve": registry.INTENT_INPUT_RESOLVE_START,
+    "support": registry.INTENT_SUPPORT_ESCALATE,
     "cancel": registry.INTENT_CANCEL,
 }
 
@@ -25,6 +26,7 @@ VIEW_MARKERS = ("보여", "봐", "조회", "확인", "show", "view")
 FERTILIZER_MARKERS = ("비료", "fertilizer")
 MYFIELDS_MARKERS = ("myfields", "내농지", "농지조회", "필드조회", "내필드")
 INPUT_RESOLVE_MARKERS = ("inputresolve", "resolve", "입력해석", "값해석", "값확정", "원문확정")
+SUPPORT_MARKERS = ("support", "지원", "상담", "지원안내")
 START_MARKERS = ("입력", "등록", "기록", "시작", "할게", "할래", "start")
 FERTILIZER_PRODUCT_MARKERS = ("제품", "제품명", "상품", "브랜드", "product", "name")
 FERTILIZER_AMOUNT_MARKERS = ("양", "사용량", "수량", "kg", "포", "포대", "amount", "quantity")
@@ -75,6 +77,7 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
     has_fertilizer = any(marker in collapsed for marker in FERTILIZER_MARKERS)
     has_myfields = any(marker in collapsed for marker in MYFIELDS_MARKERS)
     has_input_resolve = any(marker in collapsed for marker in INPUT_RESOLVE_MARKERS)
+    has_support = any(marker in collapsed for marker in SUPPORT_MARKERS)
 
     if has_repair:
         if has_fertilizer:
@@ -195,6 +198,14 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
             matched_rule="input_resolve_exact",
         )
 
+    if collapsed in {"support", "지원", "지원안내"}:
+        return IntentDecision(
+            canonical_intent=registry.INTENT_SUPPORT_ESCALATE,
+            current_step=current_step,
+            source=RuleSource.INTENT_RULE,
+            matched_rule="support_exact",
+        )
+
     has_start = any(marker in collapsed for marker in START_MARKERS)
     if has_myfields and (has_view or "조회" in collapsed):
         return IntentDecision(
@@ -209,6 +220,13 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
             current_step=current_step,
             source=RuleSource.INTENT_RULE,
             matched_rule="input_resolve_start_phrase",
+        )
+    if has_support and ("안내" in collapsed or "연결" in collapsed or "도움" in collapsed):
+        return IntentDecision(
+            canonical_intent=registry.INTENT_SUPPORT_ESCALATE,
+            current_step=current_step,
+            source=RuleSource.INTENT_RULE,
+            matched_rule="support_phrase",
         )
     if has_fertilizer and has_start:
         return IntentDecision(

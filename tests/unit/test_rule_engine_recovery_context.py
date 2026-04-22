@@ -27,7 +27,7 @@ def test_assemble_recovery_context_for_main_menu():
 
     assert context.current_step == STATE_MAIN_MENU
     assert context.expected_input_type == "menu_selection"
-    assert context.allowed_value_shape == "one_of:profile|fertilizer|myfields|input_resolve|help|restart|cancel|language"
+    assert context.allowed_value_shape == "one_of:profile|fertilizer|myfields|input_resolve|support|help|restart|cancel|language"
     assert context.recovery_attempt_count == 3
     assert context.metadata["runtime_policy_scope"] == "subordinate_guidance"
     assert context.metadata["fallback_key"] == "default"

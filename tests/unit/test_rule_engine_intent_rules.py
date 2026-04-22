@@ -65,6 +65,20 @@ def test_classify_global_intent_supports_input_resolve_phrase():
     assert decision.canonical_intent == registry.INTENT_INPUT_RESOLVE_START
 
 
+def test_classify_global_intent_supports_support_command():
+    decision = classify_global_intent_text("/support")
+
+    assert decision is not None
+    assert decision.canonical_intent == registry.INTENT_SUPPORT_ESCALATE
+
+
+def test_classify_global_intent_supports_support_phrase():
+    decision = classify_global_intent_text("지원 안내 열어줘")
+
+    assert decision is not None
+    assert decision.canonical_intent == registry.INTENT_SUPPORT_ESCALATE
+
+
 def test_classify_global_intent_supports_fertilizer_repair_phrase():
     decision = classify_global_intent_text("비료 양 잘못 입력했어요")
 
