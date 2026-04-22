@@ -75,6 +75,19 @@ def test_create_application_keeps_rules_only_manual_review_mode_when_configured(
     assert application.bot_data["gemini_edit_intent_resolver"] is None
 
 
+def test_create_application_keeps_rules_only_mode_when_gate_is_set_but_model_is_missing():
+    application = create_application(
+        Settings(
+            bot_token="test-token",
+            local_ai_gate=LocalAiGate.RECOVERY_ASSIST_ONLY,
+        )
+    )
+
+    assert application.bot_data["llm_runtime_mode"] == "rules_only_disabled"
+    assert application.bot_data["gemini_recovery_classifier"] is None
+    assert application.bot_data["gemini_edit_intent_resolver"] is None
+
+
 def test_create_application_registers_edit_intent_resolver_only_when_policy_gate_is_enabled():
     application = create_application(
         Settings(

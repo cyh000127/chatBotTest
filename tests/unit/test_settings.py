@@ -9,6 +9,8 @@ def test_settings_defaults_include_gemini_configuration():
     assert settings.local_ai_gate == LocalAiGate.DISABLED
     assert settings.enable_llm_edit_intent is False
     assert settings.enable_llm_recovery is False
+    assert settings.llm_edit_intent_runtime_enabled is False
+    assert settings.llm_recovery_runtime_enabled is False
     assert settings.runtime_rules_only is True
     assert settings.llm_runtime_mode == "rules_only_disabled"
 
@@ -30,6 +32,8 @@ def test_settings_accept_explicit_gemini_configuration():
     assert settings.local_ai_gate == LocalAiGate.REPAIR_ASSIST_ONLY
     assert settings.enable_llm_edit_intent is True
     assert settings.enable_llm_recovery is False
+    assert settings.llm_edit_intent_runtime_enabled is True
+    assert settings.llm_recovery_runtime_enabled is False
     assert settings.runtime_rules_only is False
     assert settings.llm_runtime_mode == "llm_assisted"
 
@@ -42,6 +46,15 @@ def test_settings_exposes_manual_review_fallback_mode():
     assert settings.enable_llm_edit_intent is False
     assert settings.enable_llm_recovery is False
     assert settings.llm_runtime_mode == "rules_only_manual_review"
+
+
+def test_settings_treats_gate_without_model_credentials_as_rules_only_runtime():
+    settings = Settings(bot_token="test-token", local_ai_gate=LocalAiGate.RECOVERY_ASSIST_ONLY)
+
+    assert settings.enable_llm_recovery is True
+    assert settings.llm_recovery_runtime_enabled is False
+    assert settings.runtime_rules_only is True
+    assert settings.llm_runtime_mode == "rules_only_disabled"
 
 
 def test_parse_bool_env_returns_false_by_default(monkeypatch):

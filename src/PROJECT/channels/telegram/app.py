@@ -7,6 +7,16 @@ from PROJECT.settings import Settings
 
 
 def create_application(settings: Settings):
+    gemini_recovery_classifier = (
+        GeminiRecoveryClassifier(settings.gemini)
+        if settings.llm_recovery_runtime_enabled
+        else None
+    )
+    gemini_edit_intent_resolver = (
+        GeminiEditIntentResolver(settings.gemini)
+        if settings.llm_edit_intent_runtime_enabled
+        else None
+    )
     application = (
         __import__("telegram.ext", fromlist=["Application"])
         .Application.builder()
@@ -15,16 +25,8 @@ def create_application(settings: Settings):
     )
     application.bot_data["settings"] = settings
     application.bot_data["llm_runtime_mode"] = settings.llm_runtime_mode
-    application.bot_data["gemini_recovery_classifier"] = (
-        GeminiRecoveryClassifier(settings.gemini)
-        if settings.gemini is not None and settings.enable_llm_recovery
-        else None
-    )
-    application.bot_data["gemini_edit_intent_resolver"] = (
-        GeminiEditIntentResolver(settings.gemini)
-        if settings.gemini is not None and settings.enable_llm_edit_intent
-        else None
-    )
+    application.bot_data["gemini_recovery_classifier"] = gemini_recovery_classifier
+    application.bot_data["gemini_edit_intent_resolver"] = gemini_edit_intent_resolver
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("menu", menu_command))

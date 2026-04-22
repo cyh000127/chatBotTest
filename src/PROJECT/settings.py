@@ -44,12 +44,26 @@ class Settings:
         return local_ai_gate_allows_recovery_assist(self.local_ai_gate)
 
     @property
+    def llm_edit_intent_runtime_enabled(self) -> bool:
+        return self.gemini is not None and self.enable_llm_edit_intent
+
+    @property
+    def llm_recovery_runtime_enabled(self) -> bool:
+        return self.gemini is not None and self.enable_llm_recovery
+
+    @property
+    def llm_runtime_assisted(self) -> bool:
+        return self.llm_edit_intent_runtime_enabled or self.llm_recovery_runtime_enabled
+
+    @property
     def manual_review_fallback_active(self) -> bool:
         return self.local_ai_gate == LocalAiGate.MANUAL_REVIEW_FALLBACK
 
     @property
     def runtime_rules_only(self) -> bool:
-        return self.local_ai_gate in {LocalAiGate.DISABLED, LocalAiGate.MANUAL_REVIEW_FALLBACK}
+        if self.manual_review_fallback_active:
+            return True
+        return not self.llm_runtime_assisted
 
     @property
     def llm_runtime_mode(self) -> str:
