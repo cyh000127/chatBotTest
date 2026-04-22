@@ -14,6 +14,7 @@ from PROJECT.rule_engine.contextual_repairs import (
     detect_profile_direct_update,
 )
 from PROJECT.rule_engine.recovery_context import assemble_recovery_context, prompt_schema_for_state
+from PROJECT.rule_engine.recovery_classifier import RecoveryUxDecision, RecoveryUxReason, classify_recovery_ux
 from PROJECT.rule_engine.step_schema import SharedStepSchema, render_shared_step_question, shared_step_schema_for_step
 from PROJECT.rule_engine.aliases import (
     CITY_ALIASES,
@@ -57,9 +58,12 @@ __all__ = [
     "PROFILE_PENDING_DISTRICT_FOR_CITY",
     "PROFILE_PENDING_NAME",
     "PROFILE_PENDING_RESIDENCE",
+    "RecoveryUxDecision",
+    "RecoveryUxReason",
     "MAX_RECOVERY_ATTEMPTS",
     "SharedStepSchema",
     "assemble_recovery_context",
+    "classify_recovery_ux",
     "classify_cheap_gate",
     "detect_fertilizer_direct_update",
     "detect_profile_direct_update",

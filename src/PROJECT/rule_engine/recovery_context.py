@@ -22,6 +22,7 @@ from PROJECT.conversations.sample_menu.states import (
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.policy import classify_handoff_route
 from PROJECT.rule_engine.contracts import RecoveryContextDraft, ValidationResult
+from PROJECT.rule_engine.recovery_classifier import classify_recovery_ux
 from PROJECT.rule_engine.step_schema import render_shared_step_question, shared_step_schema_for_step
 
 
@@ -47,6 +48,7 @@ def assemble_recovery_context(
         fertilizer_draft_data=fertilizer_draft_data,
         selected_city=selected_city,
     )
+    ux_decision = classify_recovery_ux(validation_result)
 
     return RecoveryContextDraft(
         canonical_intent=canonical_intent or registry.INTENT_UNKNOWN_TEXT,
@@ -73,6 +75,8 @@ def assemble_recovery_context(
             "selected_city": selected_city,
             "validation_classification": validation_result.classification.value if validation_result is not None else None,
             "validation_reason": validation_result.reason if validation_result is not None else None,
+            "ux_recovery_reason": ux_decision.reason.value,
+            "ux_next_action_hint": ux_decision.next_action_hint,
             "runtime_handoff_reason_hint": validation_result.human_handoff_reason if validation_result is not None else None,
             "runtime_handoff_route_hint": (
                 classify_handoff_route(
