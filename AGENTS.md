@@ -6,6 +6,12 @@
 
 핵심 동작 원칙과 우선 구현 범위를 빠르게 이해하기 위한 기준으로 사용한다.
 
+문서 기준 우선순위는 아래와 같다.
+
+- `reference-docs`가 기본 명세 기준이다.
+- `reference-docs`에 없는 추가 명세와 상세 기능은 이 프로젝트에서 정의한다.
+- 이 프로젝트의 `docs`는 위 기준을 해석하고 구현 가능한 런타임 규칙으로 정리하는 역할을 가진다.
+
 ## 2. 제품 성격
 
 - 메신저 네이티브 구조화 입력 서비스
@@ -61,6 +67,11 @@
 - Rule-First LLM Handoff
 - Model Recovery Setup
 - Structured Interaction Policy
+
+추가 기준:
+
+- `reference-docs`는 상위 참고 문서 묶음으로 우선 해석한다.
+- 현재 문서 묶음은 `reference-docs`에 없는 상세 상호작용 규칙, 구현 범위, recovery 정책을 구체화한다.
 
 ## 8. 구현 방향
 
