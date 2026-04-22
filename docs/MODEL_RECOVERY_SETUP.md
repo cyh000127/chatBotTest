@@ -83,6 +83,8 @@
 - 모델 연결은 선택 기능이다.
 - 모델이 꺼져 있어도 structured input, fallback, handoff는 계속 동작해야 한다.
 - launch readiness 판단은 품질, 비용, 가용성 gate 기준으로 한다.
+- runtime-local helper gate가 열려 있어도 자격 증명이나 resolver 주입이 빠져 있으면 실제 런타임 모드는 rules-only로 남아야 한다.
+- 운영 로그에서는 요청된 gate 값과 실제 런타임 모드를 분리해 남긴다.
 
 ## 9. 최종 요약
 

@@ -35,6 +35,8 @@ python -m PROJECT.main
 - 최상위 운영 정책은 [`docs/CHATBOT_OPERATION_POLICY_V2.md`](./docs/CHATBOT_OPERATION_POLICY_V2.md)를 기준으로 한다.
 - 현재 repo의 `.env` `AI_MODE`는 상위 정책을 대체하는 source of truth가 아니라, 상위 정책이 아직 연결되지 않은 상태에서 쓰는 runtime-local helper gate다.
 - runtime-local helper 기준으로도 `disabled`와 `manual_review_fallback`은 서로 다른 운영 모드로 구분한다.
+- `local_ai_gate`는 요청된 보조 모드를 뜻하고, `llm_runtime_mode`는 실제 모델 자격 증명과 활성 resolver 주입 결과까지 반영한 런타임 상태를 뜻한다.
+- 따라서 gate가 열려 있어도 모델 자격 증명이 없으면 런타임은 `rules_only_disabled`로 남고, `bot_started` telemetry도 그 상태를 그대로 기록한다.
 - handoff vocabulary는 `support.escalate`, `manual_resolution_required`, 관리자 follow-up queue 기준으로 정렬한다.
 
 ## 검증
