@@ -43,6 +43,7 @@ def all_button_intents() -> dict[str, str]:
                 catalog.BUTTON_PROFILE: registry.INTENT_PROFILE,
                 catalog.BUTTON_FERTILIZER: registry.INTENT_FERTILIZER_INPUT_START,
                 catalog.BUTTON_MYFIELDS: registry.INTENT_MYFIELDS_ENTRY,
+                catalog.BUTTON_INPUT_RESOLVE: registry.INTENT_INPUT_RESOLVE_START,
                 catalog.BUTTON_HELP: registry.INTENT_HELP,
                 catalog.BUTTON_BACK: registry.INTENT_BACK,
                 catalog.BUTTON_CANCEL: registry.INTENT_CANCEL,

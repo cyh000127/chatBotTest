@@ -55,7 +55,7 @@ def myfields_entry_text(catalog) -> str:
 
 
 def input_resolve_entry_text(catalog) -> str:
-    return catalog.INPUT_RESOLVE_TARGET_PROMPT
+    return f"{catalog.INPUT_RESOLVE_ENTRY_MESSAGE}\n\n{catalog.INPUT_RESOLVE_TARGET_PROMPT}"
 
 
 def language_menu_text(catalog) -> str:
