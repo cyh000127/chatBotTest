@@ -4,16 +4,25 @@ from types import SimpleNamespace
 from PROJECT.channels.telegram.handlers.messages import (
     FERTILIZER_REPAIR_ALLOWED_ACTIONS,
     PROFILE_REPAIR_ALLOWED_ACTIONS,
+    candidate_changes_from_payload,
     classify_llm_runtime_failure,
     llm_edit_intent_policy_enabled,
     llm_repair_guidance_text,
     parse_candidate_changes,
+    repair_candidate_preview_text,
     repair_allowed_actions,
 )
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT, STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_PRODUCT
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_BIRTH_YEAR, STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.keyboards import repair_confirmation_keyboard
-from PROJECT.dispatch.session_dispatcher import pending_candidate, pending_repair_confirmation, set_pending_candidate, set_pending_repair_confirmation
+from PROJECT.dispatch.session_dispatcher import (
+    pending_candidate,
+    pending_repair_confirmation,
+    set_confirmed_fertilizer,
+    set_locale,
+    set_pending_candidate,
+    set_pending_repair_confirmation,
+)
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.llm import LlmEditAction, LlmEditIntentResult
 from PROJECT.llm.gemini_recovery import GeminiNotConfiguredError, GeminiResponseFormatError
@@ -186,3 +195,45 @@ def test_pending_candidate_is_stored_separately_from_repair_confirmation():
         "target_state": STATE_FERTILIZER_AMOUNT,
         "candidate_value": "20kg",
     }
+
+
+def test_candidate_changes_from_payload_prefers_structured_changes():
+    payload = {
+        "domain": "fertilizer",
+        "target_state": STATE_FERTILIZER_AMOUNT,
+        "candidate_value": "대충 스무 키로쯤",
+        "candidate_changes": {"amount_value": 20.0, "amount_unit": "kg"},
+    }
+
+    assert candidate_changes_from_payload(payload) == {
+        "amount_value": 20.0,
+        "amount_unit": "kg",
+    }
+
+
+def test_repair_candidate_preview_text_uses_confirmed_scope_snapshot():
+    context = SimpleNamespace(user_data={})
+    set_locale(context.user_data, "ko")
+    set_confirmed_fertilizer(
+        context.user_data,
+        {
+            "used": True,
+            "kind": "compound",
+            "product_name": "기존 비료",
+            "amount_value": 20.0,
+            "amount_unit": "kg",
+            "applied_date": "2026-04-21",
+        },
+    )
+
+    text = repair_candidate_preview_text(
+        context,
+        domain="fertilizer",
+        target_state=STATE_FERTILIZER_PRODUCT,
+        changes={"product_name": "새 비료"},
+        use_confirmed=True,
+    )
+
+    assert "제품명 변경 내용을 확인해주세요." in text
+    assert "- 이전: 기존 비료" in text
+    assert "- 변경: 새 비료" in text

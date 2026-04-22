@@ -417,6 +417,40 @@ def parse_candidate_changes(domain: str, target_state: str, candidate_value: str
     return None
 
 
+def candidate_changes_from_payload(payload: dict | None) -> dict | None:
+    if payload is None:
+        return None
+    structured_changes = payload.get("candidate_changes")
+    if isinstance(structured_changes, dict) and structured_changes:
+        return structured_changes
+    return parse_candidate_changes(
+        payload.get("domain", ""),
+        payload.get("target_state", ""),
+        payload.get("candidate_value"),
+    )
+
+
+def repair_candidate_preview_text(context, *, domain: str, target_state: str, changes: dict, use_confirmed: bool) -> str:
+    catalog = current_catalog(context)
+    if domain == "profile":
+        base_draft = confirmed_profile_draft(context) if use_confirmed else current_profile(context)
+        updated = profile_service.update_draft(base_draft, **changes)
+        return profile_service.change_preview_text(base_draft, updated, target_state, catalog)
+
+    base_draft = confirmed_fertilizer_draft(context) if use_confirmed else current_fertilizer(context)
+    updated = fertilizer_service.update_draft(base_draft, **changes)
+    if target_state == STATE_FERTILIZER_USED and changes.get("used") is False:
+        updated = fertilizer_service.update_draft(
+            updated,
+            kind="",
+            product_name="",
+            amount_value=None,
+            amount_unit="",
+            applied_date="",
+        )
+    return fertilizer_service.change_preview_text(base_draft, updated, target_state, catalog)
+
+
 async def continue_repair_flow(update, context, *, domain: str, target_state: str, use_confirmed: bool) -> None:
     discard_pending_candidate(context, reason="repair_flow_continued")
     if domain == "profile":
@@ -532,6 +566,7 @@ async def send_repair_confirmation(
     target_state: str,
     use_confirmed: bool,
     candidate_value: str | None = None,
+    candidate_changes: dict | None = None,
     candidate_source: str = "rule",
 ) -> None:
     catalog = current_catalog(context)
@@ -540,9 +575,16 @@ async def send_repair_confirmation(
         text = profile_service.repair_confirmation_text(target_state, catalog)
     else:
         text = fertilizer_service.repair_confirmation_text(target_state, catalog)
-    parsed_candidate = parse_candidate_changes(domain, target_state, candidate_value)
-    if parsed_candidate is not None and candidate_value:
-        text = f"{text}\n\n{catalog.LLM_REPAIR_CANDIDATE_HINT.format(candidate_value=candidate_value)}"
+    parsed_candidate = candidate_changes or parse_candidate_changes(domain, target_state, candidate_value)
+    if parsed_candidate is not None:
+        preview_text = repair_candidate_preview_text(
+            context,
+            domain=domain,
+            target_state=target_state,
+            changes=parsed_candidate,
+            use_confirmed=use_confirmed,
+        )
+        text = f"{text}\n\n{preview_text}"
         set_pending_candidate(
             context.user_data,
             {
@@ -550,6 +592,7 @@ async def send_repair_confirmation(
                 "scope": scope,
                 "target_state": target_state,
                 "candidate_value": candidate_value,
+                "candidate_changes": parsed_candidate,
                 "source": candidate_source,
             },
         )
@@ -1230,6 +1273,7 @@ async def text_message(update, context) -> None:
                 domain="profile",
                 target_state=profile_direct_update.target_state,
                 use_confirmed=False,
+                candidate_changes=profile_direct_update.changes if state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT} else None,
             )
             return
 
@@ -1285,6 +1329,7 @@ async def text_message(update, context) -> None:
                 domain="fertilizer",
                 target_state=fertilizer_direct_update.target_state,
                 use_confirmed=False,
+                candidate_changes=fertilizer_direct_update.changes if state == STATE_FERTILIZER_CONFIRM else None,
             )
             return
 
@@ -1337,6 +1382,7 @@ async def text_message(update, context) -> None:
                 domain="profile",
                 target_state=profile_direct_update.target_state,
                 use_confirmed=True,
+                candidate_changes=profile_direct_update.changes,
             )
             return
 
@@ -1393,6 +1439,7 @@ async def text_message(update, context) -> None:
                 domain="fertilizer",
                 target_state=fertilizer_direct_update.target_state,
                 use_confirmed=True,
+                candidate_changes=fertilizer_direct_update.changes,
             )
             return
 
@@ -1729,8 +1776,7 @@ async def button_callback(update, context) -> None:
         domain = pending_confirmation["domain"]
         target_state = pending_confirmation["target_state"]
         use_confirmed = pending_confirmation["scope"] == "confirmed"
-        candidate_value = candidate_payload.get("candidate_value")
-        changes = parse_candidate_changes(domain, target_state, candidate_value)
+        changes = candidate_changes_from_payload(candidate_payload)
         if changes is None:
             discard_pending_candidate(context, reason="candidate_parse_failed")
             await continue_repair_flow(
