@@ -1,5 +1,5 @@
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_PRODUCT, STATE_FERTILIZER_USED
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_NAME
+from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.keyboards import fallback_keyboard_layout_for_state
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU, STATE_WEATHER_MENU
 from PROJECT.dispatch.input_fallback import FALLBACK_CANCELLED, FALLBACK_DEFAULT, FALLBACK_WEATHER, fallback_key_for_state
@@ -31,17 +31,35 @@ def test_default_fallback_keyboard_uses_main_menu_buttons():
     assert layout[0][1]["text"] == catalog.BUTTON_TODAY_WEATHER
 
 
-def test_profile_fallback_keyboard_uses_edit_selector_buttons():
+def test_profile_fallback_keyboard_uses_current_step_navigation():
     catalog = get_catalog("ko")
     layout = fallback_keyboard_layout_for_state(STATE_PROFILE_NAME, catalog)
 
-    assert layout[0][0]["text"] == catalog.BUTTON_EDIT_NAME
-    assert layout[0][1]["text"] == catalog.BUTTON_EDIT_RESIDENCE
+    assert layout[0][0]["text"] == catalog.BUTTON_BACK
+    assert layout[0][1]["text"] == catalog.BUTTON_CANCEL
 
 
-def test_fertilizer_fallback_keyboard_uses_edit_selector_buttons():
+def test_profile_confirm_fallback_keyboard_exposes_direct_edit_targets():
+    catalog = get_catalog("ko")
+    layout = fallback_keyboard_layout_for_state(STATE_PROFILE_CONFIRM, catalog)
+
+    assert layout[0][0]["text"] == catalog.BUTTON_CONFIRM
+    assert layout[1][0]["text"] == catalog.BUTTON_EDIT_NAME
+    assert layout[1][1]["text"] == catalog.BUTTON_EDIT_RESIDENCE
+
+
+def test_fertilizer_fallback_keyboard_uses_current_step_navigation():
     catalog = get_catalog("ko")
     layout = fallback_keyboard_layout_for_state(STATE_FERTILIZER_PRODUCT, catalog)
 
-    assert layout[0][0]["text"] == catalog.BUTTON_FERTILIZER_EDIT_USED
-    assert layout[0][1]["text"] == catalog.BUTTON_FERTILIZER_EDIT_KIND
+    assert layout[0][0]["text"] == catalog.BUTTON_BACK
+    assert layout[0][1]["text"] == catalog.BUTTON_CANCEL
+
+
+def test_fertilizer_confirm_fallback_keyboard_exposes_direct_edit_targets():
+    catalog = get_catalog("ko")
+    layout = fallback_keyboard_layout_for_state(STATE_FERTILIZER_CONFIRM, catalog)
+
+    assert layout[0][0]["text"] == catalog.BUTTON_CONFIRM
+    assert layout[1][0]["text"] == catalog.BUTTON_FERTILIZER_EDIT_USED
+    assert layout[1][1]["text"] == catalog.BUTTON_FERTILIZER_EDIT_KIND

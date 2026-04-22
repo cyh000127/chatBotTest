@@ -86,7 +86,52 @@ def repair_confirmation_keyboard(
     ]
 
 
-def fallback_keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) -> list[list[dict[str, str]]]:
+def profile_recovery_confirm_keyboard(catalog) -> list[list[dict[str, str]]]:
+    return [
+        [_button(catalog.BUTTON_CONFIRM, "intent:confirm")],
+        [
+            _button(catalog.BUTTON_EDIT_NAME, "profile:edit:name"),
+            _button(catalog.BUTTON_EDIT_RESIDENCE, "profile:edit:residence"),
+        ],
+        [
+            _button(catalog.BUTTON_EDIT_CITY, "profile:edit:city"),
+            _button(catalog.BUTTON_EDIT_DISTRICT, "profile:edit:district"),
+        ],
+        [_button(catalog.BUTTON_EDIT_BIRTH_DATE, "profile:edit:birth_date")],
+        [
+            _button(catalog.BUTTON_BACK, "intent:back"),
+            _button(catalog.BUTTON_CANCEL, "intent:cancel"),
+        ],
+        [_button(catalog.BUTTON_RESTART, "intent:restart")],
+    ]
+
+
+def fertilizer_recovery_confirm_keyboard(catalog) -> list[list[dict[str, str]]]:
+    return [
+        [_button(catalog.BUTTON_CONFIRM, "intent:confirm")],
+        [
+            _button(catalog.BUTTON_FERTILIZER_EDIT_USED, "fertilizer:edit:used"),
+            _button(catalog.BUTTON_FERTILIZER_EDIT_KIND, "fertilizer:edit:kind"),
+        ],
+        [
+            _button(catalog.BUTTON_FERTILIZER_EDIT_PRODUCT, "fertilizer:edit:product"),
+            _button(catalog.BUTTON_FERTILIZER_EDIT_AMOUNT, "fertilizer:edit:amount"),
+        ],
+        [_button(catalog.BUTTON_FERTILIZER_EDIT_DATE, "fertilizer:edit:date")],
+        [
+            _button(catalog.BUTTON_BACK, "intent:back"),
+            _button(catalog.BUTTON_CANCEL, "intent:cancel"),
+        ],
+        [_button(catalog.BUTTON_RESTART, "intent:restart")],
+    ]
+
+
+def fallback_keyboard_layout_for_state(
+    state: str,
+    catalog,
+    draft: dict | None = None,
+    recovery_context: dict | None = None,
+) -> list[list[dict[str, str]]]:
     if state == STATE_WEATHER_MENU:
         return weather_menu_keyboard(catalog)
     if state in {
@@ -95,9 +140,10 @@ def fallback_keyboard_layout_for_state(state: str, catalog, draft: dict | None =
         STATE_FERTILIZER_PRODUCT,
         STATE_FERTILIZER_AMOUNT,
         STATE_FERTILIZER_DATE,
-        STATE_FERTILIZER_CONFIRM,
     }:
-        return fertilizer_keyboards.fertilizer_edit_select_keyboard(catalog)
+        return fertilizer_service.keyboard_for_state(state, catalog)
+    if state == STATE_FERTILIZER_CONFIRM:
+        return fertilizer_recovery_confirm_keyboard(catalog)
     if state in {
         STATE_PROFILE_NAME,
         STATE_PROFILE_RESIDENCE,
@@ -106,9 +152,11 @@ def fallback_keyboard_layout_for_state(state: str, catalog, draft: dict | None =
         STATE_PROFILE_BIRTH_YEAR,
         STATE_PROFILE_BIRTH_MONTH,
         STATE_PROFILE_BIRTH_DAY,
-        STATE_PROFILE_CONFIRM,
-        STATE_PROFILE_EDIT_SELECT,
     }:
+        return profile_service.keyboard_for_state(state, profile_service.draft_from_dict(draft), catalog)
+    if state == STATE_PROFILE_CONFIRM:
+        return profile_recovery_confirm_keyboard(catalog)
+    if state == STATE_PROFILE_EDIT_SELECT:
         return profile_keyboards.profile_edit_select_keyboard(catalog)
     if state == STATE_CANCELLED:
         return cancelled_keyboard(catalog)
