@@ -135,6 +135,8 @@ from PROJECT.telemetry.events import (
     PENDING_CANDIDATE_CONFIRMED,
     PENDING_CANDIDATE_CREATED,
     PENDING_CANDIDATE_DISCARDED,
+    RECOVERY_ACTION_SELECTED,
+    RECOVERY_CLASSIFIED,
     REPAIR_CANDIDATE_APPLIED,
     RULE_MATCHED,
     RULE_REPAIR_SIGNAL_DETECTED,
@@ -251,6 +253,40 @@ def log_rule_matched(*, rule_name: str, domain: str, target_state: str, scope: s
         domain=domain,
         target_state=target_state,
         scope=scope,
+    )
+
+
+def log_recovery_classification_event(recovery_context, *, source: str) -> None:
+    metadata = recovery_context.metadata if hasattr(recovery_context, "metadata") else recovery_context.get("metadata", {})
+    current_step = recovery_context.current_step if hasattr(recovery_context, "current_step") else recovery_context.get("current_step")
+    log_event(
+        RECOVERY_CLASSIFIED,
+        source=source,
+        state=current_step,
+        recovery_reason=metadata.get("ux_recovery_reason"),
+        policy_level=metadata.get("recovery_policy_level"),
+        task_hint=metadata.get("recovery_task_hint"),
+        resume_action=metadata.get("recovery_resume_action"),
+    )
+
+
+def log_recovery_action_event(
+    *,
+    action: str,
+    domain: str,
+    target_state: str,
+    scope: str,
+    has_candidate: bool,
+    slot_count: int = 0,
+) -> None:
+    log_event(
+        RECOVERY_ACTION_SELECTED,
+        action=action,
+        domain=domain,
+        target_state=target_state,
+        scope=scope,
+        has_candidate=has_candidate,
+        slot_count=slot_count,
     )
 
 
@@ -704,6 +740,14 @@ async def send_repair_confirmation(
         target_state=target_state,
         scope=scope,
         has_candidate=parsed_candidate is not None,
+    )
+    log_recovery_action_event(
+        action="repair_confirmation_shown",
+        domain=domain,
+        target_state=target_state,
+        scope=scope,
+        has_candidate=parsed_candidate is not None,
+        slot_count=logical_slot_count(parsed_candidate) if parsed_candidate is not None else 0,
     )
 
 
@@ -1293,6 +1337,7 @@ async def text_message(update, context) -> None:
             pending_slot=pending_slot(context.user_data),
         )
         set_last_recovery_context(context.user_data, recovery_context.to_dict())
+        log_recovery_classification_event(recovery_context, source="early_gate_handoff")
         reset_recovery_attempts(context.user_data)
         await send_text(
             update,
@@ -1784,6 +1829,7 @@ async def text_message(update, context) -> None:
             pending_slot=pending_slot(context.user_data),
         )
         set_last_recovery_context(context.user_data, recovery_context.to_dict())
+        log_recovery_classification_event(recovery_context, source="late_gate_handoff")
         reset_recovery_attempts(context.user_data)
         await send_text(
             update,
