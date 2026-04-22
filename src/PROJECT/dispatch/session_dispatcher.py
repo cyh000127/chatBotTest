@@ -21,6 +21,8 @@ def _default_session() -> dict:
         "last_recovery_context": None,
         "pending_repair_confirmation": None,
         "pending_candidate": None,
+        "llm_step_call_counts": {},
+        "llm_seen_inputs": {},
     }
 
 
@@ -213,3 +215,30 @@ def pending_candidate(user_data: dict) -> dict | None:
 
 def clear_pending_candidate(user_data: dict) -> None:
     set_pending_candidate(user_data, None)
+
+
+def llm_calls_in_step(user_data: dict, step: str | None) -> int:
+    if step is None:
+        return 0
+    counts = get_session(user_data).get("llm_step_call_counts", {})
+    return int(counts.get(step, 0))
+
+
+def increment_llm_calls_in_step(user_data: dict, step: str | None) -> int:
+    if step is None:
+        return 0
+    session = get_session(user_data)
+    counts = session.setdefault("llm_step_call_counts", {})
+    counts[step] = int(counts.get(step, 0)) + 1
+    return counts[step]
+
+
+def has_seen_llm_input(user_data: dict, cache_key: str) -> bool:
+    seen_inputs = get_session(user_data).get("llm_seen_inputs", {})
+    return bool(seen_inputs.get(cache_key))
+
+
+def mark_llm_input_seen(user_data: dict, cache_key: str) -> None:
+    session = get_session(user_data)
+    seen_inputs = session.setdefault("llm_seen_inputs", {})
+    seen_inputs[cache_key] = True

@@ -6,8 +6,12 @@ from PROJECT.dispatch.session_dispatcher import (
     current_state,
     go_back,
     has_confirmed_profile,
+    has_seen_llm_input,
+    increment_llm_calls_in_step,
     increment_auth_failures,
+    llm_calls_in_step,
     last_recovery_context,
+    mark_llm_input_seen,
     pending_candidate,
     pending_repair_confirmation,
     reset_session,
@@ -90,3 +94,24 @@ def test_reset_session_clears_pending_candidate():
     reset_session(user_data)
 
     assert pending_candidate(user_data) is None
+
+
+def test_llm_step_call_counter_tracks_per_step():
+    user_data = {}
+
+    increment_llm_calls_in_step(user_data, "fertilizer_confirm")
+    increment_llm_calls_in_step(user_data, "fertilizer_confirm")
+
+    assert llm_calls_in_step(user_data, "fertilizer_confirm") == 2
+    assert llm_calls_in_step(user_data, "profile_confirm") == 0
+
+
+def test_llm_seen_input_tracking_marks_cache_key():
+    user_data = {}
+    cache_key = "ko:fertilizer_confirm:제품명수정할래"
+
+    assert has_seen_llm_input(user_data, cache_key) is False
+
+    mark_llm_input_seen(user_data, cache_key)
+
+    assert has_seen_llm_input(user_data, cache_key) is True

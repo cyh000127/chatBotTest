@@ -75,8 +75,12 @@ from PROJECT.dispatch.session_dispatcher import (
     go_back,
     has_confirmed_fertilizer,
     has_confirmed_profile,
+    has_seen_llm_input,
+    increment_llm_calls_in_step,
     increment_recovery_attempts,
     is_authenticated,
+    llm_calls_in_step,
+    mark_llm_input_seen,
     pending_candidate,
     pending_repair_confirmation,
     pending_slot,
@@ -98,6 +102,7 @@ from PROJECT.dispatch.session_dispatcher import (
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
 from PROJECT.llm import LlmEditAction, LlmEditIntentResult
+from PROJECT.policy import can_invoke_llm
 from PROJECT.rule_engine import (
     ValidationClassification,
     assemble_recovery_context,
@@ -105,6 +110,8 @@ from PROJECT.rule_engine import (
     detect_fertilizer_direct_update,
     detect_profile_direct_update,
 )
+from PROJECT.rule_engine.normalizer import normalize_body_text
+from PROJECT.policy import same_input_cache_key
 from PROJECT.telemetry.event_logger import log_event
 from PROJECT.telemetry.events import (
     FALLBACK_SHOWN,
@@ -525,11 +532,32 @@ async def maybe_send_llm_repair_confirmation(
     use_confirmed: bool,
 ) -> bool:
     resolver = context.bot_data.get("gemini_edit_intent_resolver")
+    state = current_state(context.user_data)
+    normalized_text = normalize_body_text(text)
+    cache_key = same_input_cache_key(
+        normalized_text=normalized_text,
+        current_step=state,
+        locale=current_locale(context.user_data),
+    )
     lowered = text.strip().lower()
     if resolver is None or not lowered or not llm_edit_intent_policy_enabled(context):
         return False
     if not any(marker in lowered for marker in EDIT_INTENT_HINT_MARKERS):
         return False
+    if not can_invoke_llm(
+        ai_mode=context.bot_data["settings"].ai_mode,
+        invocation_type="repair",
+        current_step=state,
+        is_structured_step=state in PROFILE_STATES or state in FERTILIZER_STATES,
+        is_confirm_step=use_confirmed or state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT, STATE_FERTILIZER_CONFIRM},
+        is_free_text=True,
+        llm_calls_in_step=llm_calls_in_step(context.user_data, state),
+        same_input_seen=has_seen_llm_input(context.user_data, cache_key),
+    ):
+        return False
+
+    mark_llm_input_seen(context.user_data, cache_key)
+    increment_llm_calls_in_step(context.user_data, state)
 
     try:
         result = await resolver.classify(
