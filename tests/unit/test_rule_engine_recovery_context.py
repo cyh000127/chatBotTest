@@ -38,6 +38,10 @@ def test_assemble_recovery_context_for_weather_menu():
     assert context.metadata["recovery_policy_level"] == "escalation_ready"
     assert context.metadata["recovery_should_offer_safe_exit"] is True
     assert context.metadata["recovery_should_prioritize_buttons"] is True
+    assert context.metadata["recovery_domain"] == "weather"
+    assert context.metadata["recovery_task_hint"] == "weather_city_selection"
+    assert context.metadata["recovery_resume_action"] == "select_weather_city"
+    assert context.metadata["recovery_focus_target"] == "서울"
     assert context.metadata["runtime_handoff_reason_hint"] == "cheap_gate_retry_limit"
     assert context.metadata["runtime_handoff_route_hint"] == "manual_resolution_required"
     assert "selected_city=서울" in context.recent_messages_summary
@@ -80,6 +84,10 @@ def test_assemble_recovery_context_for_profile_confirm_includes_draft_summary():
     assert context.metadata["ux_recovery_reason"] == "support_escalation"
     assert context.metadata["ux_next_action_hint"] == "show_support_guidance"
     assert context.metadata["recovery_policy_level"] == "escalation_ready"
+    assert context.metadata["recovery_domain"] == "profile"
+    assert context.metadata["recovery_task_hint"] == "profile_confirmation"
+    assert context.metadata["recovery_resume_action"] == "confirm_or_edit_profile"
+    assert context.metadata["recovery_focus_target"] == "profile_confirmation"
     assert context.metadata["runtime_handoff_reason_hint"] == "user_requested_human_support"
     assert context.metadata["runtime_handoff_route_hint"] == "support.escalate"
     assert "- 이름: 최윤혁" in context.current_question
@@ -108,5 +116,8 @@ def test_assemble_recovery_context_for_yield_step_uses_shared_schema():
     assert context.metadata["ux_recovery_reason"] == "step_scope_mismatch"
     assert context.metadata["ux_next_action_hint"] == "guide_current_step"
     assert context.metadata["recovery_policy_level"] == "guided"
+    assert context.metadata["recovery_domain"] == "general"
+    assert context.metadata["recovery_task_hint"] == "generic_recovery"
+    assert context.metadata["recovery_resume_action"] == "offer_related_actions"
     assert "yield_amount_requires_supported_unit_or_default_kg" in context.hard_constraints
     assert "수확량을 입력해주세요" in context.current_question

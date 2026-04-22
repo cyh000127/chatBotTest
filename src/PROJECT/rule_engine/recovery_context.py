@@ -54,6 +54,11 @@ def assemble_recovery_context(
         recovery_attempt_count=recovery_attempt_count,
         ux_reason=ux_decision.reason,
     )
+    task_context = task_context_for_state(
+        current_step,
+        pending_slot=pending_slot,
+        selected_city=selected_city,
+    )
 
     return RecoveryContextDraft(
         canonical_intent=canonical_intent or registry.INTENT_UNKNOWN_TEXT,
@@ -85,6 +90,10 @@ def assemble_recovery_context(
             "recovery_policy_level": policy_decision.level.value,
             "recovery_should_offer_safe_exit": policy_decision.should_offer_safe_exit,
             "recovery_should_prioritize_buttons": policy_decision.should_prioritize_buttons,
+            "recovery_domain": task_context["domain"],
+            "recovery_task_hint": task_context["task_hint"],
+            "recovery_resume_action": task_context["resume_action"],
+            "recovery_focus_target": task_context["focus_target"],
             "runtime_handoff_reason_hint": validation_result.human_handoff_reason if validation_result is not None else None,
             "runtime_handoff_route_hint": (
                 classify_handoff_route(
@@ -272,6 +281,103 @@ def prompt_schema_for_state(
         "expected_input_type": "unknown",
         "allowed_value_shape": "unknown",
         "hard_constraints": (),
+    }
+
+
+def task_context_for_state(
+    current_step: str,
+    *,
+    pending_slot: str | None = None,
+    selected_city: str | None = None,
+) -> dict[str, str]:
+    if current_step == STATE_AUTH_ID_INPUT:
+        return {
+            "domain": "auth",
+            "task_hint": "login_id_entry",
+            "resume_action": "retry_authentication",
+            "focus_target": "login_id",
+        }
+
+    if current_step == STATE_MAIN_MENU:
+        return {
+            "domain": "menu",
+            "task_hint": "main_menu_selection",
+            "resume_action": "choose_menu_action",
+            "focus_target": "menu_action",
+        }
+
+    if current_step == STATE_WEATHER_MENU:
+        return {
+            "domain": "weather",
+            "task_hint": "weather_city_selection",
+            "resume_action": "select_weather_city",
+            "focus_target": selected_city or "city",
+        }
+
+    if current_step == STATE_LANGUAGE_SELECT:
+        return {
+            "domain": "settings",
+            "task_hint": "language_selection",
+            "resume_action": "choose_language",
+            "focus_target": "locale",
+        }
+
+    if current_step == STATE_CANCELLED:
+        return {
+            "domain": "session",
+            "task_hint": "cancelled_flow",
+            "resume_action": "restart_or_open_help",
+            "focus_target": "restart",
+        }
+
+    if current_step in {STATE_PROFILE_NAME, STATE_PROFILE_RESIDENCE, STATE_PROFILE_CITY, STATE_PROFILE_DISTRICT}:
+        target = {
+            STATE_PROFILE_NAME: "name",
+            STATE_PROFILE_RESIDENCE: "residence",
+            STATE_PROFILE_CITY: "city",
+            STATE_PROFILE_DISTRICT: "district",
+        }[current_step]
+        return {
+            "domain": "profile",
+            "task_hint": f"profile_{target}_input",
+            "resume_action": "retry_profile_input",
+            "focus_target": pending_slot or target,
+        }
+
+    if current_step in {STATE_PROFILE_BIRTH_YEAR, STATE_PROFILE_BIRTH_MONTH, STATE_PROFILE_BIRTH_DAY}:
+        target = {
+            STATE_PROFILE_BIRTH_YEAR: "birth_year",
+            STATE_PROFILE_BIRTH_MONTH: "birth_month",
+            STATE_PROFILE_BIRTH_DAY: "birth_day",
+        }[current_step]
+        return {
+            "domain": "profile",
+            "task_hint": "profile_birth_date_input",
+            "resume_action": "retry_birth_date_input",
+            "focus_target": pending_slot or target,
+        }
+
+    if current_step == STATE_PROFILE_CONFIRM:
+        return {
+            "domain": "profile",
+            "task_hint": "profile_confirmation",
+            "resume_action": "confirm_or_edit_profile",
+            "focus_target": pending_slot or "profile_confirmation",
+        }
+
+    if current_step == STATE_PROFILE_EDIT_SELECT:
+        return {
+            "domain": "profile",
+            "task_hint": "profile_edit_selection",
+            "resume_action": "choose_profile_edit_target",
+            "focus_target": pending_slot or "profile_field",
+        }
+
+    return {
+        "domain": "general",
+        "task_hint": "generic_recovery",
+        "resume_action": "offer_related_actions",
+        "focus_target": pending_slot or "current_step",
     }
 
 
