@@ -1,17 +1,13 @@
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_PRODUCT, STATE_FERTILIZER_USED
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.keyboards import fallback_keyboard_layout_for_state
-from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU, STATE_WEATHER_MENU
-from PROJECT.dispatch.input_fallback import FALLBACK_CANCELLED, FALLBACK_DEFAULT, FALLBACK_WEATHER, fallback_key_for_state
+from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
+from PROJECT.dispatch.input_fallback import FALLBACK_CANCELLED, FALLBACK_DEFAULT, fallback_key_for_state
 from PROJECT.i18n.translator import get_catalog
 
 
 def test_default_fallback():
     assert fallback_key_for_state(STATE_MAIN_MENU) == FALLBACK_DEFAULT
-
-
-def test_weather_fallback():
-    assert fallback_key_for_state(STATE_WEATHER_MENU) == FALLBACK_WEATHER
 
 
 def test_cancelled_fallback():
@@ -27,8 +23,8 @@ def test_default_fallback_keyboard_uses_main_menu_buttons():
     catalog = get_catalog("ko")
     layout = fallback_keyboard_layout_for_state(STATE_MAIN_MENU, catalog)
 
-    assert layout[0][0]["text"] == catalog.BUTTON_TODAY_DATE
-    assert layout[0][1]["text"] == catalog.BUTTON_TODAY_WEATHER
+    assert layout[0][0]["text"] == catalog.BUTTON_PROFILE
+    assert layout[0][1]["text"] == catalog.BUTTON_FERTILIZER
 
 
 def test_profile_fallback_keyboard_uses_current_step_navigation():

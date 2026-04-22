@@ -5,7 +5,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_CONFIRM,
     STATE_PROFILE_EDIT_SELECT,
 )
-from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_WEATHER_MENU
+from PROJECT.conversations.sample_menu.states import STATE_CANCELLED
 from PROJECT.rule_engine.contracts import RuleSource, ValidationClassification, ValidationResult
 from PROJECT.rule_engine.normalizer import normalize_body_text
 
@@ -36,7 +36,6 @@ MANUAL_HANDOFF_PATTERNS = (
 )
 
 STRUCTURED_REASK_STATES = {
-    STATE_WEATHER_MENU,
     STATE_CANCELLED,
     STATE_PROFILE_BIRTH_YEAR,
     STATE_PROFILE_BIRTH_MONTH,

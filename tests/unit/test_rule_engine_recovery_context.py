@@ -2,12 +2,12 @@ from PROJECT.canonical_intents import registry
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_AMOUNT
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM
-from PROJECT.conversations.sample_menu.states import STATE_WEATHER_MENU
+from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
 from PROJECT.rule_engine import ValidationClassification, assemble_recovery_context
 from PROJECT.rule_engine.contracts import RuleSource, ValidationResult
 
 
-def test_assemble_recovery_context_for_weather_menu():
+def test_assemble_recovery_context_for_main_menu():
     validation_result = ValidationResult(
         classification=ValidationClassification.NEEDS_HANDOFF,
         source=RuleSource.CHEAP_GATE,
@@ -16,35 +16,34 @@ def test_assemble_recovery_context_for_weather_menu():
     )
 
     context = assemble_recovery_context(
-        current_step=STATE_WEATHER_MENU,
-        latest_user_message="날씨 그냥 알아서 보여줘",
+        current_step=STATE_MAIN_MENU,
+        latest_user_message="그냥 알아서 해줘",
         locale="ko",
         recovery_attempt_count=3,
         canonical_intent=registry.INTENT_UNKNOWN_TEXT,
         validation_result=validation_result,
-        fallback_key="weather",
-        selected_city="서울",
+        fallback_key="default",
     )
 
-    assert context.current_step == STATE_WEATHER_MENU
-    assert context.expected_input_type == "city_selection"
-    assert context.allowed_value_shape == "one_of:supported_weather_city"
+    assert context.current_step == STATE_MAIN_MENU
+    assert context.expected_input_type == "menu_selection"
+    assert context.allowed_value_shape == "one_of:profile|fertilizer|help|restart|cancel|language"
     assert context.recovery_attempt_count == 3
     assert context.metadata["runtime_policy_scope"] == "subordinate_guidance"
-    assert context.metadata["fallback_key"] == "weather"
+    assert context.metadata["fallback_key"] == "default"
     assert context.metadata["validation_reason"] == "recovery_retry_limit_exceeded"
     assert context.metadata["ux_recovery_reason"] == "repeated_failure"
     assert context.metadata["ux_next_action_hint"] == "offer_safe_exit"
     assert context.metadata["recovery_policy_level"] == "escalation_ready"
     assert context.metadata["recovery_should_offer_safe_exit"] is True
     assert context.metadata["recovery_should_prioritize_buttons"] is True
-    assert context.metadata["recovery_domain"] == "weather"
-    assert context.metadata["recovery_task_hint"] == "weather_city_selection"
-    assert context.metadata["recovery_resume_action"] == "select_weather_city"
-    assert context.metadata["recovery_focus_target"] == "서울"
+    assert context.metadata["recovery_domain"] == "menu"
+    assert context.metadata["recovery_task_hint"] == "main_menu_selection"
+    assert context.metadata["recovery_resume_action"] == "choose_menu_action"
+    assert context.metadata["recovery_focus_target"] == "menu_action"
     assert context.metadata["runtime_handoff_reason_hint"] == "cheap_gate_retry_limit"
     assert context.metadata["runtime_handoff_route_hint"] == "manual_resolution_required"
-    assert "selected_city=서울" in context.recent_messages_summary
+    assert "state=main_menu" in context.recent_messages_summary
 
 
 def test_assemble_recovery_context_for_profile_confirm_includes_draft_summary():

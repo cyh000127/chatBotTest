@@ -17,16 +17,13 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
 )
-from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_WEATHER_MENU
+from PROJECT.conversations.sample_menu.states import STATE_CANCELLED
 
 FALLBACK_DEFAULT = "default"
-FALLBACK_WEATHER = "weather"
 FALLBACK_CANCELLED = "cancelled"
 
 
 def fallback_key_for_state(state: str) -> str:
-    if state == STATE_WEATHER_MENU:
-        return FALLBACK_WEATHER
     if state == STATE_CANCELLED:
         return FALLBACK_CANCELLED
     if state == STATE_PROFILE_NAME:

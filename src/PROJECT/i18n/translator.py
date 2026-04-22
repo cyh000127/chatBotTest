@@ -33,15 +33,6 @@ def resolve_language_choice(text: str) -> str | None:
         if normalized == label or normalized.lower() == locale:
             return locale
     return None
-
-
-def all_city_labels() -> dict[str, str]:
-    labels: dict[str, str] = {}
-    for catalog in CATALOGS.values():
-        labels.update(catalog.CITY_BUTTON_TO_KEY)
-    return labels
-
-
 def all_button_intents() -> dict[str, str]:
     from PROJECT.canonical_intents import registry
 
@@ -49,8 +40,6 @@ def all_button_intents() -> dict[str, str]:
     for catalog in CATALOGS.values():
         mapping.update(
             {
-                catalog.BUTTON_TODAY_DATE: registry.INTENT_SHOW_TODAY_DATE,
-                catalog.BUTTON_TODAY_WEATHER: registry.INTENT_OPEN_WEATHER_MENU,
                 catalog.BUTTON_PROFILE: registry.INTENT_PROFILE,
                 catalog.BUTTON_FERTILIZER: registry.INTENT_FERTILIZER_INPUT_START,
                 catalog.BUTTON_HELP: registry.INTENT_HELP,

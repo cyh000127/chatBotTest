@@ -11,8 +11,8 @@ from PROJECT.telemetry.event_logger import LOGGER_NAME
 
 def test_log_recovery_classification_event_writes_reason_and_policy(caplog):
     recovery_context = assemble_recovery_context(
-        current_step="weather_menu",
-        latest_user_message="날씨 알려줘",
+        current_step="main_menu",
+        latest_user_message="아무거나",
         locale="ko",
         recovery_attempt_count=3,
         validation_result=ValidationResult(
@@ -21,8 +21,7 @@ def test_log_recovery_classification_event_writes_reason_and_policy(caplog):
             reason="recovery_retry_limit_exceeded",
             human_handoff_reason="cheap_gate_retry_limit",
         ),
-        fallback_key="weather",
-        selected_city="서울",
+        fallback_key="default",
     )
 
     with caplog.at_level(logging.INFO, logger=LOGGER_NAME):

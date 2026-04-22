@@ -2,15 +2,11 @@ from PROJECT.canonical_intents import registry
 from PROJECT.rule_engine import classify_global_intent_text
 
 
-def test_classify_global_intent_matches_exact_button_and_city_labels():
+def test_classify_global_intent_matches_exact_button_labels():
     help_decision = classify_global_intent_text("도움말")
-    city_decision = classify_global_intent_text("서울")
 
     assert help_decision is not None
     assert help_decision.canonical_intent == registry.INTENT_HELP
-    assert city_decision is not None
-    assert city_decision.canonical_intent == registry.INTENT_SELECT_CITY
-    assert city_decision.payload["city"] == "서울"
 
 
 def test_classify_global_intent_supports_profile_view_phrases():

@@ -49,8 +49,8 @@ CITY_BUTTON_TO_KEY = {
     "Jeju": "제주",
 }
 
-START_MESSAGE = "Started.\nChoose today's date or today's weather."
-MAIN_MENU_MESSAGE = "Main menu.\nChoose today's date or today's weather."
+START_MESSAGE = "Started.\nChoose an action below."
+MAIN_MENU_MESSAGE = "Main menu.\nChoose an action below."
 WEATHER_MENU_MESSAGE = "Choose a city to check today's weather."
 PROFILE_ENTRY_MESSAGE = (
     "Starting profile input.\n"
@@ -58,7 +58,7 @@ PROFILE_ENTRY_MESSAGE = (
 )
 CANCEL_MESSAGE = "Current task has been cancelled.\nUse 'Start over' or /start to begin again."
 BACK_LIMIT_MESSAGE = "There is no previous step.\nPlease choose again from the main menu."
-BACK_TO_MAIN_MESSAGE = "Returned to the previous step.\nChoose today's date or today's weather again."
+BACK_TO_MAIN_MESSAGE = "Returned to the previous step.\nChoose an action below again."
 BACK_TO_WEATHER_MESSAGE = "Returned to the weather selection step.\nChoose a city again."
 BACK_GENERIC_MESSAGE = "Returned to the previous state."
 WEATHER_ERROR_MESSAGE = "Could not fetch the weather.\nPlease try again shortly."

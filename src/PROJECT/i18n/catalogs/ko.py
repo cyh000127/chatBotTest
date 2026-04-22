@@ -49,8 +49,8 @@ CITY_BUTTON_TO_KEY = {
     "제주": "제주",
 }
 
-START_MESSAGE = "시작합니다.\n오늘의 날짜와 날씨를 선택하세요."
-MAIN_MENU_MESSAGE = "메인 메뉴입니다.\n오늘의 날짜와 날씨를 선택하세요."
+START_MESSAGE = "시작합니다.\n아래에서 진행할 작업을 선택하세요."
+MAIN_MENU_MESSAGE = "메인 메뉴입니다.\n아래에서 진행할 작업을 선택하세요."
 WEATHER_MENU_MESSAGE = "오늘 날씨를 확인할 도시를 선택하세요."
 PROFILE_ENTRY_MESSAGE = (
     "프로필 입력을 시작합니다.\n"
@@ -58,7 +58,7 @@ PROFILE_ENTRY_MESSAGE = (
 )
 CANCEL_MESSAGE = "현재 작업을 취소했습니다.\n'처음부터' 또는 /start 로 다시 시작할 수 있습니다."
 BACK_LIMIT_MESSAGE = "더 이상 뒤로갈 단계가 없습니다.\n메인 메뉴에서 다시 선택하세요."
-BACK_TO_MAIN_MESSAGE = "이전 단계로 돌아왔습니다.\n오늘의 날짜와 날씨를 다시 선택하세요."
+BACK_TO_MAIN_MESSAGE = "이전 단계로 돌아왔습니다.\n아래에서 다시 진행할 작업을 선택하세요."
 BACK_TO_WEATHER_MESSAGE = "날씨 선택 단계로 돌아왔습니다.\n도시를 다시 선택하세요."
 BACK_GENERIC_MESSAGE = "이전 상태로 돌아왔습니다."
 WEATHER_ERROR_MESSAGE = "날씨 정보를 가져오지 못했습니다.\n잠시 후 다시 시도하세요."

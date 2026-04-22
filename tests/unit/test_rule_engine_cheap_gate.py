@@ -1,5 +1,5 @@
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM
-from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU, STATE_WEATHER_MENU
+from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
 from PROJECT.rule_engine import MAX_RECOVERY_ATTEMPTS, ValidationClassification, classify_cheap_gate
 
 
@@ -22,7 +22,7 @@ def test_cheap_gate_marks_retry_limit_for_handoff():
 
 
 def test_cheap_gate_reasks_for_structured_step_mismatch():
-    result = classify_cheap_gate("아무거나 입력", current_step=STATE_WEATHER_MENU)
+    result = classify_cheap_gate("아무거나 입력", current_step=STATE_CANCELLED)
 
     assert result.classification == ValidationClassification.REASK
     assert result.reason == "structured_step_mismatch"

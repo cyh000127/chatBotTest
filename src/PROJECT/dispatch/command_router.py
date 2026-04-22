@@ -13,7 +13,6 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
 )
-from PROJECT.conversations.sample_menu.states import STATE_WEATHER_MENU
 
 ROUTE_HELP = "help"
 ROUTE_MAIN_MENU = "main_menu"
@@ -24,9 +23,6 @@ ROUTE_PROFILE_EDIT = "profile_edit"
 ROUTE_PROFILE_FINALIZE = "profile_finalize"
 ROUTE_FERTILIZER_FINALIZE = "fertilizer_finalize"
 ROUTE_GO_BACK = "go_back"
-ROUTE_SHOW_DATE = "show_date"
-ROUTE_SHOW_WEATHER_MENU = "show_weather_menu"
-ROUTE_SHOW_WEATHER = "show_weather"
 ROUTE_UNKNOWN_INPUT = "unknown_input"
 
 
@@ -59,14 +55,4 @@ def route_message(state: str, intent: str, payload: dict | None = None) -> Route
         return RouteDecision(ROUTE_FERTILIZER_FINALIZE)
     if state == STATE_PROFILE_CONFIRM and intent == registry.INTENT_EDIT:
         return RouteDecision(ROUTE_PROFILE_EDIT, next_state=STATE_PROFILE_EDIT_SELECT, push_history=True)
-    if intent == registry.INTENT_SHOW_TODAY_DATE:
-        return RouteDecision(ROUTE_SHOW_DATE)
-    if intent == registry.INTENT_OPEN_WEATHER_MENU:
-        return RouteDecision(
-            ROUTE_SHOW_WEATHER_MENU,
-            next_state=STATE_WEATHER_MENU,
-            push_history=state != STATE_WEATHER_MENU,
-        )
-    if intent == registry.INTENT_SELECT_CITY and state == STATE_WEATHER_MENU:
-        return RouteDecision(ROUTE_SHOW_WEATHER, payload=payload)
     return RouteDecision(ROUTE_UNKNOWN_INPUT)

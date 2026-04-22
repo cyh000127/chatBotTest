@@ -6,7 +6,6 @@ from PROJECT.canonical_intents import registry
 from PROJECT.canonical_intents.registry import INTENT_UNKNOWN_COMMAND
 from PROJECT.channels.telegram.parser import parse_update
 from PROJECT.channels.telegram.handlers.commands import (
-    attempt_auth,
     cancel_command,
     help_command,
     open_fertilizer_edit_selector,
@@ -46,7 +45,7 @@ from PROJECT.conversations.sample_menu.keyboards import (
     keyboard_layout_for_state,
     repair_confirmation_keyboard,
 )
-from PROJECT.conversations.sample_menu.states import STATE_AUTH_ID_INPUT, STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
+from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.dispatch.command_router import (
     ROUTE_CANCEL,
     ROUTE_FERTILIZER_FINALIZE,
@@ -57,9 +56,6 @@ from PROJECT.dispatch.command_router import (
     ROUTE_OPEN_PROFILE,
     ROUTE_PROFILE_EDIT,
     ROUTE_PROFILE_FINALIZE,
-    ROUTE_SHOW_DATE,
-    ROUTE_SHOW_WEATHER,
-    ROUTE_SHOW_WEATHER_MENU,
     route_message,
 )
 from PROJECT.dispatch.input_fallback import fallback_key_for_state
@@ -78,7 +74,6 @@ from PROJECT.dispatch.session_dispatcher import (
     has_seen_llm_input,
     increment_llm_calls_in_step,
     increment_recovery_attempts,
-    is_authenticated,
     last_recovery_context,
     llm_calls_in_step,
     mark_llm_input_seen,
@@ -98,7 +93,6 @@ from PROJECT.dispatch.session_dispatcher import (
     set_pending_repair_confirmation,
     set_pending_slot,
     set_profile_draft,
-    set_selected_city,
     set_state,
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
@@ -1076,8 +1070,6 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "repair_confirm", {"domain": domain, "scope": scope, "target_state": target_state}
     if data == "repair:cancel":
         return "repair_cancel", {}
-    if data.startswith("city:"):
-        return registry.INTENT_SELECT_CITY, {"city": data.split(":", 1)[1]}
     if data.startswith("language:"):
         return "language_select", {"locale": data.split(":", 1)[1]}
     if data.startswith("profile:year_nav:"):
@@ -1287,13 +1279,6 @@ async def text_message(update, context) -> None:
     inbound = parse_update(update)
     state = current_state(context.user_data)
     session_locale = current_locale(context.user_data)
-    if not is_authenticated(context.user_data):
-        catalog = current_catalog(context)
-        if state == STATE_AUTH_ID_INPUT:
-            await attempt_auth(update, context, inbound.text)
-            return
-        await send_text(update, service.auth_required_text(catalog), keyboard_layout=None)
-        return
 
     early_gate = classify_cheap_gate(
         inbound.text,
@@ -1754,41 +1739,6 @@ async def text_message(update, context) -> None:
             reset_recovery_attempts(context.user_data)
             return
 
-    if decision.route == ROUTE_SHOW_DATE:
-        reset_recovery_attempts(context.user_data)
-        await send_text(
-            update,
-            service.today_date_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
-        )
-        return
-
-    if decision.route == ROUTE_SHOW_WEATHER_MENU:
-        set_state(context.user_data, decision.next_state, push_history=decision.push_history)
-        reset_recovery_attempts(context.user_data)
-        await send_text(
-            update,
-            service.weather_menu_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
-        )
-        return
-
-    if decision.route == ROUTE_SHOW_WEATHER:
-        city = decision.payload["city"]
-        set_selected_city(context.user_data, city)
-        try:
-            snapshot = await service.fetch_weather(city, context.bot_data["settings"])
-            message = service.weather_result_text(snapshot, catalog)
-        except httpx.HTTPError:
-            message = service.weather_error_text(catalog)
-        reset_recovery_attempts(context.user_data)
-        await send_text(
-            update,
-            message,
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
-        )
-        return
-
     fallback_key = fallback_key_for_state(current_state(context.user_data))
     late_gate = classify_cheap_gate(
         inbound.text,
@@ -1889,10 +1839,6 @@ async def button_callback(update, context) -> None:
 
     state = current_state(context.user_data)
     action, payload = parse_callback_data(query.data)
-    if not is_authenticated(context.user_data):
-        await clear_callback_markup(update)
-        await send_text(update, service.auth_required_text(current_catalog(context)), keyboard_layout=None)
-        return
 
     if action == "language_select":
         await clear_callback_markup(update)
@@ -2173,38 +2119,6 @@ async def button_callback(update, context) -> None:
         )
         return
 
-    if decision.route == ROUTE_SHOW_DATE:
-        await send_text(
-            update,
-            service.today_date_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
-        )
-        return
-
-    if decision.route == ROUTE_SHOW_WEATHER_MENU:
-        set_state(context.user_data, decision.next_state, push_history=decision.push_history)
-        await send_text(
-            update,
-            service.weather_menu_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
-        )
-        return
-
-    if decision.route == ROUTE_SHOW_WEATHER:
-        city = decision.payload["city"]
-        set_selected_city(context.user_data, city)
-        try:
-            snapshot = await service.fetch_weather(city, context.bot_data["settings"])
-            message = service.weather_result_text(snapshot, catalog)
-        except httpx.HTTPError:
-            message = service.weather_error_text(catalog)
-        await send_text(
-            update,
-            message,
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
-        )
-        return
-
     await send_text(
         update,
         service.fallback_text(
@@ -2228,9 +2142,6 @@ async def button_callback(update, context) -> None:
 
 async def unknown_command(update, context) -> None:
     catalog = current_catalog(context)
-    if not is_authenticated(context.user_data):
-        await send_text(update, service.auth_required_text(catalog), keyboard_layout=None)
-        return
     inbound = parse_update(update)
     profile_repair = detect_repair_intent(
         inbound.text,

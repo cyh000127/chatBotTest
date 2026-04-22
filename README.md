@@ -14,9 +14,7 @@ python -m PROJECT.main
 
 - `/start`, `/help`, `/menu`, `/cancel`
 - `/language` 언어 변경
-- 오늘 날짜 확인
-- 오늘 날씨 확인
-- 로그인 ID 기반 세션 인증
+- 명세 범위 기준 메인 메뉴 진입
 - 프로필 입력, 확인, 항목별 수정
 - `/fertilizer` 비료 입력 정상 경로
 - 뒤로가기, 취소, 처음부터
@@ -59,5 +57,5 @@ python -m pytest
 - [`docs/CHATBOT_OPERATION_POLICY_V2.md`](./docs/CHATBOT_OPERATION_POLICY_V2.md): 상위 정책 정렬 메모를 포함한 챗봇 운영 기준 문서
 - [`docs/STAGE2_RULE_ENGINE.md`](./docs/STAGE2_RULE_ENGINE.md): 2단계 규칙 엔진 구조
 - [`docs/RULE_FIRST_LLM_HANDOFF.md`](./docs/RULE_FIRST_LLM_HANDOFF.md): 3단계 LLM 호출 전제 조건
-- [`docs/GEMINI_RECOVERY_SETUP.md`](./docs/GEMINI_RECOVERY_SETUP.md): Gemini 설정과 repo-local helper gate 설명
+- [`docs/MODEL_RECOVERY_SETUP.md`](./docs/MODEL_RECOVERY_SETUP.md): 모델 recovery 설정과 runtime-local helper gate 설명
 - [`docs/STRUCTURED_INTERACTION_POLICY.md`](./docs/STRUCTURED_INTERACTION_POLICY.md): fallback, 수정 확인, 제한적 LLM 상호작용 정책

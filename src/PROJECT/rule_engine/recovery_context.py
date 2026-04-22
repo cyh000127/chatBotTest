@@ -13,11 +13,9 @@ from PROJECT.conversations.profile_intake.states import (
 )
 from PROJECT.conversations.sample_menu import service as sample_service
 from PROJECT.conversations.sample_menu.states import (
-    STATE_AUTH_ID_INPUT,
     STATE_CANCELLED,
     STATE_LANGUAGE_SELECT,
     STATE_MAIN_MENU,
-    STATE_WEATHER_MENU,
 )
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.policy import classify_handoff_route
@@ -40,14 +38,12 @@ def assemble_recovery_context(
     fertilizer_draft_data: dict | None = None,
     confirmed_profile_data: dict | None = None,
     pending_slot: str | None = None,
-    selected_city: str | None = None,
 ) -> RecoveryContextDraft:
     prompt_schema = prompt_schema_for_state(
         current_step,
         locale=locale,
         profile_draft_data=profile_draft_data,
         fertilizer_draft_data=fertilizer_draft_data,
-        selected_city=selected_city,
     )
     ux_decision = classify_recovery_ux(validation_result)
     policy_decision = evaluate_recovery_policy(
@@ -57,7 +53,6 @@ def assemble_recovery_context(
     task_context = task_context_for_state(
         current_step,
         pending_slot=pending_slot,
-        selected_city=selected_city,
     )
 
     return RecoveryContextDraft(
@@ -73,7 +68,6 @@ def assemble_recovery_context(
             fertilizer_draft_data=fertilizer_draft_data,
             confirmed_profile_data=confirmed_profile_data,
             pending_slot=pending_slot,
-            selected_city=selected_city,
         ),
         locale=locale,
         recovery_attempt_count=recovery_attempt_count,
@@ -82,7 +76,6 @@ def assemble_recovery_context(
             "runtime_policy_scope": "subordinate_guidance",
             "fallback_key": fallback_key,
             "pending_slot": pending_slot,
-            "selected_city": selected_city,
             "validation_classification": validation_result.classification.value if validation_result is not None else None,
             "validation_reason": validation_result.reason if validation_result is not None else None,
             "ux_recovery_reason": ux_decision.reason.value,
@@ -114,7 +107,6 @@ def prompt_schema_for_state(
     locale: str,
     profile_draft_data: dict | None = None,
     fertilizer_draft_data: dict | None = None,
-    selected_city: str | None = None,
 ) -> dict[str, str | tuple[str, ...]]:
     catalog = get_catalog(locale)
     draft = profile_service.draft_from_dict(profile_draft_data)
@@ -132,36 +124,13 @@ def prompt_schema_for_state(
             "hard_constraints": shared_schema.hard_constraints,
         }
 
-    if current_step == STATE_AUTH_ID_INPUT:
-        return {
-            "current_question": sample_service.auth_start_text(catalog),
-            "expected_input_type": "login_id",
-            "allowed_value_shape": "registered_login_id_text",
-            "hard_constraints": (
-                "authentication_required_before_service_access",
-                "two_auth_failures_reset_session",
-            ),
-        }
-
     if current_step == STATE_MAIN_MENU:
         return {
             "current_question": sample_service.main_menu_text(catalog),
             "expected_input_type": "menu_selection",
-            "allowed_value_shape": "one_of:show_today_date|open_weather_menu|profile|help|restart|cancel",
+            "allowed_value_shape": "one_of:profile|fertilizer|help|restart|cancel|language",
             "hard_constraints": (
-                "authenticated_session_required",
                 "menu_action_must_match_supported_intent",
-            ),
-        }
-
-    if current_step == STATE_WEATHER_MENU:
-        return {
-            "current_question": sample_service.weather_menu_text(catalog),
-            "expected_input_type": "city_selection",
-            "allowed_value_shape": "one_of:supported_weather_city",
-            "hard_constraints": (
-                "city_must_be_supported_weather_location",
-                f"selected_city_context={selected_city}" if selected_city else "selected_city_context=none",
             ),
         }
 
@@ -288,30 +257,13 @@ def task_context_for_state(
     current_step: str,
     *,
     pending_slot: str | None = None,
-    selected_city: str | None = None,
 ) -> dict[str, str]:
-    if current_step == STATE_AUTH_ID_INPUT:
-        return {
-            "domain": "auth",
-            "task_hint": "login_id_entry",
-            "resume_action": "retry_authentication",
-            "focus_target": "login_id",
-        }
-
     if current_step == STATE_MAIN_MENU:
         return {
             "domain": "menu",
             "task_hint": "main_menu_selection",
             "resume_action": "choose_menu_action",
             "focus_target": "menu_action",
-        }
-
-    if current_step == STATE_WEATHER_MENU:
-        return {
-            "domain": "weather",
-            "task_hint": "weather_city_selection",
-            "resume_action": "select_weather_city",
-            "focus_target": selected_city or "city",
         }
 
     if current_step == STATE_LANGUAGE_SELECT:
@@ -388,13 +340,10 @@ def _summarize_session(
     fertilizer_draft_data: dict | None,
     confirmed_profile_data: dict | None,
     pending_slot: str | None,
-    selected_city: str | None,
 ) -> str:
     summary_parts = [f"state={current_step}"]
     if pending_slot is not None:
         summary_parts.append(f"pending_slot={pending_slot}")
-    if selected_city is not None:
-        summary_parts.append(f"selected_city={selected_city}")
 
     draft = profile_service.draft_from_dict(profile_draft_data)
     filled_fields = []

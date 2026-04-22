@@ -1,5 +1,5 @@
 from PROJECT.canonical_intents import registry
-from PROJECT.i18n.translator import all_button_intents, all_city_labels
+from PROJECT.i18n.translator import all_button_intents
 from PROJECT.rule_engine.contracts import IntentDecision, NormalizedInput, RuleSource
 from PROJECT.rule_engine.normalizer import normalize_body_text, normalize_user_input
 
@@ -15,11 +15,6 @@ COMMAND_TO_INTENT = {
 BUTTON_TO_INTENT = {
     normalize_body_text(label): intent
     for label, intent in all_button_intents().items()
-}
-
-CITY_LABELS = {
-    normalize_body_text(label): city
-    for label, city in all_city_labels().items()
 }
 
 REPAIR_MARKERS = ("수정", "잘못", "틀렸", "다시", "변경", "고칠", "edit", "change", "fix")
@@ -68,16 +63,6 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
             current_step=current_step,
             source=RuleSource.INTENT_RULE,
             matched_rule="button_label",
-        )
-
-    city = CITY_LABELS.get(normalized_text)
-    if city is not None:
-        return IntentDecision(
-            canonical_intent=registry.INTENT_SELECT_CITY,
-            current_step=current_step,
-            source=RuleSource.INTENT_RULE,
-            matched_rule="city_label",
-            payload={"city": city},
         )
 
     has_repair = any(marker in collapsed for marker in REPAIR_MARKERS)

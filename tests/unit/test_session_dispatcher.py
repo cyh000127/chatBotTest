@@ -1,4 +1,4 @@
-from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU, STATE_WEATHER_MENU
+from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.dispatch.session_dispatcher import (
     auth_failures,
     cancel_session,
@@ -19,7 +19,6 @@ from PROJECT.dispatch.session_dispatcher import (
     set_pending_candidate,
     set_pending_repair_confirmation,
     set_confirmed_profile,
-    set_selected_city,
     set_state,
 )
 
@@ -33,7 +32,7 @@ def test_reset_session_sets_main_menu():
 def test_set_state_pushes_history_and_go_back_returns_previous_state():
     user_data = {}
     reset_session(user_data)
-    set_state(user_data, STATE_WEATHER_MENU, push_history=True)
+    set_state(user_data, STATE_LANGUAGE_SELECT, push_history=True)
     previous_state = go_back(user_data)
     assert previous_state == STATE_MAIN_MENU
     assert current_state(user_data) == STATE_MAIN_MENU
@@ -63,10 +62,10 @@ def test_confirmed_profile_helpers_work():
 
 def test_last_recovery_context_is_preserved_across_reset_session():
     user_data = {}
-    set_last_recovery_context(user_data, {"current_step": "weather_menu"})
+    set_last_recovery_context(user_data, {"current_step": "main_menu"})
     reset_session(user_data)
 
-    assert last_recovery_context(user_data) == {"current_step": "weather_menu"}
+    assert last_recovery_context(user_data) == {"current_step": "main_menu"}
 
 
 def test_pending_repair_confirmation_helper_works():

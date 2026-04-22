@@ -1,5 +1,5 @@
 from PROJECT.canonical_intents import registry
-from PROJECT.i18n.translator import all_button_intents, all_city_labels
+from PROJECT.i18n.translator import all_button_intents
 from PROJECT.rule_engine import classify_global_intent_text, classify_step_local_intent_text
 
 COMMAND_TO_INTENT = {
@@ -14,8 +14,6 @@ COMMAND_TO_INTENT = {
 BUTTON_TO_INTENT = {
     **all_button_intents(),
 }
-
-CITY_LABELS = all_city_labels()
 
 
 def command_to_intent(command: str) -> str:
@@ -35,6 +33,4 @@ def text_to_intent(text: str, *, current_step: str | None = None, locale: str = 
     normalized = text.strip()
     if normalized in BUTTON_TO_INTENT:
         return BUTTON_TO_INTENT[normalized], {}
-    if normalized in CITY_LABELS:
-        return registry.INTENT_SELECT_CITY, {"city": CITY_LABELS[normalized]}
     return registry.INTENT_UNKNOWN_TEXT, {}
