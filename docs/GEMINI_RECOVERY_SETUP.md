@@ -13,8 +13,9 @@ Gemini 호출 허용 여부, `AI_MODE`, pending candidate 처리, 호출 한도 
 현재 구현은 아래 범위까지 포함한다.
 
 - `.env`에 Gemini API 키를 넣을 수 있는 설정 슬롯 추가
-- `.env`에 `ENABLE_LLM_EDIT_INTENT` 정책 게이트 추가
+- `.env`에 `AI_MODE` 정책 게이트 추가
 - `Settings`에 Gemini 설정 모델 추가
+- `AiMode` enum과 정책 모듈 추가
 - `RecoveryContextDraft`를 Gemini `generateContent` 요청으로 바꾸는 request builder 추가
 - Gemini JSON 응답을 `LlmRecoveryResult`로 파싱하는 parser 추가
 - 텔레그램 앱 부트스트랩 시 정책 게이트를 통과한 Gemini classifier만 `bot_data`에 주입
@@ -25,8 +26,9 @@ Gemini 호출 허용 여부, `AI_MODE`, pending candidate 처리, 호출 한도 
 
 - `GEMINI_API_KEY`가 없으면 `Settings.gemini`는 `None`이다.
 - 즉 키가 없을 때는 Gemini 설정 객체 자체를 만들지 않는다.
-- `ENABLE_LLM_EDIT_INTENT=true`가 아니면 edit-intent 보조 분류기는 주입하지 않는다.
-- 이후 정책 코드에서 `AI_MODE`가 도입되면 이 문서의 boolean 게이트는 더 세분화된 정책 모드로 대체된다.
+- `AI_MODE=repair_assist_only`일 때만 edit-intent 보조 분류기를 주입한다.
+- `AI_MODE=recovery_assist_only`일 때만 recovery classifier를 주입한다.
+- 기존 `ENABLE_LLM_EDIT_INTENT=true`는 `AI_MODE`가 비어 있을 때만 임시 호환 경로로 `repair_assist_only`로 승격된다.
 - 민감값은 코드 기본값으로 보관하지 않는다.
 
 ## 환경 변수
@@ -39,7 +41,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 GEMINI_API_BASE=https://generativelanguage.googleapis.com/v1beta
 GEMINI_TIMEOUT_SECONDS=15
-ENABLE_LLM_EDIT_INTENT=false
+AI_MODE=disabled
 ```
 
 ## 구현 위치

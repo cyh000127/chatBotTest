@@ -2,6 +2,7 @@ import os
 from dataclasses import dataclass
 
 from dotenv import load_dotenv
+from PROJECT.policy import AiMode, ai_mode_allows_edit_intent, ai_mode_allows_recovery_assist, parse_ai_mode
 
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 DEFAULT_GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
@@ -23,7 +24,15 @@ class Settings:
     weather_api_base: str = "https://api.open-meteo.com/v1/forecast"
     timezone_name: str = "Asia/Seoul"
     gemini: GeminiSettings | None = None
-    enable_llm_edit_intent: bool = False
+    ai_mode: AiMode = AiMode.DISABLED
+
+    @property
+    def enable_llm_edit_intent(self) -> bool:
+        return ai_mode_allows_edit_intent(self.ai_mode)
+
+    @property
+    def enable_llm_recovery(self) -> bool:
+        return ai_mode_allows_recovery_assist(self.ai_mode)
 
 
 def parse_bool_env(name: str, default: bool = False) -> bool:
@@ -55,8 +64,14 @@ def load_settings() -> Settings:
             timeout_seconds=gemini_timeout_seconds,
         )
 
+    ai_mode_raw = os.getenv("AI_MODE", "").strip()
+    legacy_edit_intent_enabled = parse_bool_env("ENABLE_LLM_EDIT_INTENT", default=False)
+    ai_mode = parse_ai_mode(ai_mode_raw)
+    if not ai_mode_raw and legacy_edit_intent_enabled:
+        ai_mode = AiMode.REPAIR_ASSIST_ONLY
+
     return Settings(
         bot_token=bot_token,
         gemini=gemini_settings,
-        enable_llm_edit_intent=parse_bool_env("ENABLE_LLM_EDIT_INTENT", default=False),
+        ai_mode=ai_mode,
     )

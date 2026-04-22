@@ -10,8 +10,9 @@ def main() -> None:
     application = create_application(settings)
     log_event(
         BOT_STARTED,
-        llm_recovery_enabled=settings.gemini is not None,
-        llm_edit_intent_enabled=settings.enable_llm_edit_intent and settings.gemini is not None,
+        ai_mode=settings.ai_mode.value,
+        llm_recovery_enabled=settings.gemini is not None and settings.enable_llm_recovery,
+        llm_edit_intent_enabled=settings.gemini is not None and settings.enable_llm_edit_intent,
     )
     application.run_polling()
 
