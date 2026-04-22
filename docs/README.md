@@ -21,6 +21,7 @@
 - Gemini recovery classifier 인프라는 구현되어 있다.
 - 실제 메시지 핸들러의 edit-intent 보조 호출 범위는 v2 정책 기준으로 제한 연결되어 있다.
 - 현재 repo는 상위 policy record, fallback mode, release gate가 직접 연결되어 있지 않아 `.env` `AI_MODE`를 local helper gate로 사용한다.
+- local helper gate의 runtime 노출값으로 `llm_runtime_mode`, `manual_review_fallback_active`를 사용한다.
 - handoff vocabulary는 `support.escalate`, `manual_resolution_required`, 관리자 follow-up queue 기준으로 정렬하는 방향을 따른다.
 - 먼저 2단계 규칙 엔진을 공통 파이프라인으로 만든다.
 - `normalization -> intent routing -> slot/alias resolution -> validation/repair` 순서로 확장한다.
@@ -32,5 +33,6 @@
 - 정책 관련 핵심 검증 범위:
   - `tests/unit/test_ai_policy.py`
   - `tests/unit/test_repair_candidate_flow.py`
+  - `tests/unit/test_operational_boundary_scenarios.py`
   - `tests/unit/test_rule_engine_recovery_context.py`
   - `tests/contract/test_rule_engine_cross_domain_fixtures.py`

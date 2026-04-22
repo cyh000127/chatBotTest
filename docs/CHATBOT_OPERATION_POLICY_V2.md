@@ -48,6 +48,17 @@ AI 정책의 source of truth는 runtime-local enum이 아니라 상위 명세가
 
 현재 이 repo는 상위 정책 레코드가 아직 연결되지 않았기 때문에 `.env`의 `AI_MODE`를 runtime-local helper gate로 사용한다. 다만 이 값은 상위 정책을 대체하는 authoritative source가 아니라, 현재 repo의 임시 구현 경계로만 해석한다.
 
+현재 runtime helper는 아래처럼 노출한다.
+
+- `local_ai_gate`
+  - `.env` helper gate 원문
+- `llm_runtime_mode`
+  - `rules_only_disabled`
+  - `rules_only_manual_review`
+  - `llm_assisted`
+- `manual_review_fallback_active`
+  - `manual_review_fallback` helper gate가 실제로 rules-only + manual review 경계로 작동 중인지 나타내는 runtime flag
+
 ### 3.2 권장 Telemetry 이벤트
 
 아래 이벤트 이름은 채택 시 코드와 로그에서 그대로 사용하고, 변경 시 interaction policy / observability 문서와 함께 반영한다.
@@ -56,6 +67,7 @@ AI 정책의 source of truth는 runtime-local enum이 아니라 상위 명세가
 - `cheap_gate_blocked`
 - `fallback_shown`
 - `llm_invoked`
+- `llm_failed`
 - `llm_skipped_by_policy`
 - `llm_rejected_low_confidence`
 - `handoff_requested`
@@ -284,6 +296,8 @@ LLM 출력은 항상 JSON-only 구조로 제한한다.
   - fallback 문구와 버튼을 사용자에게 보여줬을 때
 - `llm_invoked`
   - 정책을 통과해 실제 LLM을 호출했을 때
+- `llm_failed`
+  - timeout, network, response format, schema validation 실패 후 rules-only fallback으로 내려갔을 때
 - `llm_skipped_by_policy`
   - 정책상 금지되어 LLM 호출을 생략했을 때
 - `llm_rejected_low_confidence`
@@ -358,3 +372,4 @@ LLM 출력은 항상 JSON-only 구조로 제한한다.
 - confirm 전에는 draft overwrite를 금지한다.
 - 모든 LLM 호출은 정책 함수 뒤에서만 허용한다.
 - telemetry를 통해 왜 룰이 처리했는지, 왜 LLM이 호출되었는지, 왜 handoff됐는지 추적 가능해야 한다.
+- runtime-local helper 기준으로도 `disabled`와 `manual_review_fallback`은 로그에서 구분 가능해야 한다.

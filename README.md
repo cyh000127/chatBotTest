@@ -24,6 +24,7 @@ python -m PROJECT.main
 - 다국어 카탈로그 기반 응답
 - pending candidate 분리, unknown LLM 경계, handoff route 정책 적용
 - Gemini edit-intent / recovery classifier 설정 및 정책 게이트 연결
+- `llm_runtime_mode`, `manual_review_fallback_active`, `llm_failed` 기준 운영 로그 정리
 
 ## 운영 기준
 
@@ -32,6 +33,7 @@ python -m PROJECT.main
 - LLM 결과는 항상 validator와 state machine을 다시 거친다.
 - 최상위 운영 정책은 [`docs/CHATBOT_OPERATION_POLICY_V2.md`](./docs/CHATBOT_OPERATION_POLICY_V2.md)를 기준으로 한다.
 - 현재 repo의 `.env` `AI_MODE`는 상위 정책을 대체하는 source of truth가 아니라, 상위 정책이 아직 연결되지 않은 상태에서 쓰는 runtime-local helper gate다.
+- runtime-local helper 기준으로도 `disabled`와 `manual_review_fallback`은 서로 다른 운영 모드로 구분한다.
 - handoff vocabulary는 `support.escalate`, `manual_resolution_required`, 관리자 follow-up queue 기준으로 정렬한다.
 
 ## 검증
@@ -41,7 +43,7 @@ python -m pytest
 ```
 
 - 전체 테스트는 `tests/unit`, `tests/contract` 기준으로 검증한다.
-- handoff route, pending candidate, unknown LLM 경계는 정책 테스트로 함께 검증한다.
+- handoff route, pending candidate, unknown LLM 경계, LLM 실패 fallback은 정책/시나리오 테스트로 함께 검증한다.
 
 ## 구조
 
