@@ -31,6 +31,8 @@ python -m PROJECT.main
 - 자연어 수정은 직접 반영하지 않고 수정 의도 신호로만 다룬다.
 - LLM 결과는 항상 validator와 state machine을 다시 거친다.
 - 최상위 운영 정책은 [`docs/CHATBOT_OPERATION_POLICY_V2.md`](./docs/CHATBOT_OPERATION_POLICY_V2.md)를 기준으로 한다.
+- 현재 repo의 `.env` `AI_MODE`는 상위 정책을 대체하는 source of truth가 아니라, 상위 정책이 아직 연결되지 않은 상태에서 쓰는 runtime-local helper gate다.
+- handoff vocabulary는 `support.escalate`, `manual_resolution_required`, 관리자 follow-up queue 기준으로 정렬한다.
 
 ## 검증
 
@@ -52,8 +54,8 @@ python -m pytest
 ## 문서
 
 - [`docs/README.md`](./docs/README.md): 프로젝트 내부 문서 인덱스
-- [`docs/CHATBOT_OPERATION_POLICY_V2.md`](./docs/CHATBOT_OPERATION_POLICY_V2.md): 챗봇 운영의 최상위 정책 문서
+- [`docs/CHATBOT_OPERATION_POLICY_V2.md`](./docs/CHATBOT_OPERATION_POLICY_V2.md): 상위 정책 정렬 메모를 포함한 챗봇 운영 기준 문서
 - [`docs/STAGE2_RULE_ENGINE.md`](./docs/STAGE2_RULE_ENGINE.md): 2단계 규칙 엔진 구조
 - [`docs/RULE_FIRST_LLM_HANDOFF.md`](./docs/RULE_FIRST_LLM_HANDOFF.md): 3단계 LLM 호출 전제 조건
-- [`docs/GEMINI_RECOVERY_SETUP.md`](./docs/GEMINI_RECOVERY_SETUP.md): Gemini 설정과 recovery parser 구조
+- [`docs/GEMINI_RECOVERY_SETUP.md`](./docs/GEMINI_RECOVERY_SETUP.md): Gemini 설정과 repo-local helper gate 설명
 - [`docs/STRUCTURED_INTERACTION_POLICY.md`](./docs/STRUCTURED_INTERACTION_POLICY.md): fallback, 수정 확인, 제한적 LLM 상호작용 정책

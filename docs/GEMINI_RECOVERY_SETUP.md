@@ -4,7 +4,7 @@
 
 이 문서는 Gemini 연동의 설정 경로와 JSON request/response 구조를 설명하는 구현 문서다.
 
-Gemini 호출 허용 여부, `AI_MODE`, pending candidate 처리, 호출 한도 같은 운영 정책의 최종 기준은 [`CHATBOT_OPERATION_POLICY_V2.md`](./CHATBOT_OPERATION_POLICY_V2.md)를 따른다.
+Gemini 호출 허용 여부, pending candidate 처리, 호출 한도 같은 운영 정책의 최종 기준은 [`CHATBOT_OPERATION_POLICY_V2.md`](./CHATBOT_OPERATION_POLICY_V2.md)를 따른다.
 
 ## 목적
 
@@ -13,9 +13,9 @@ Gemini 호출 허용 여부, `AI_MODE`, pending candidate 처리, 호출 한도 
 현재 구현은 아래 범위까지 포함한다.
 
 - `.env`에 Gemini API 키를 넣을 수 있는 설정 슬롯 추가
-- `.env`에 `AI_MODE` 정책 게이트 추가
+- `.env`에 runtime-local helper gate로서의 `AI_MODE` 추가
 - `Settings`에 Gemini 설정 모델 추가
-- `AiMode` enum과 정책 모듈 추가
+- local helper용 `AiMode` enum과 정책 모듈 추가
 - `RecoveryContextDraft`를 Gemini `generateContent` 요청으로 바꾸는 request builder 추가
 - Gemini JSON 응답을 `LlmRecoveryResult`로 파싱하는 parser 추가
 - 텔레그램 앱 부트스트랩 시 정책 게이트를 통과한 Gemini classifier만 `bot_data`에 주입
@@ -26,6 +26,7 @@ Gemini 호출 허용 여부, `AI_MODE`, pending candidate 처리, 호출 한도 
 
 - `GEMINI_API_KEY`가 없으면 `Settings.gemini`는 `None`이다.
 - 즉 키가 없을 때는 Gemini 설정 객체 자체를 만들지 않는다.
+- 이 repo의 `AI_MODE`는 상위 정책 레코드를 대체하는 authoritative source가 아니라, 상위 정책이 아직 연결되지 않았을 때 쓰는 runtime-local helper gate다.
 - `AI_MODE=repair_assist_only`일 때만 edit-intent 보조 분류기를 주입한다.
 - `AI_MODE=recovery_assist_only`일 때만 recovery classifier를 주입한다.
 - 기존 `ENABLE_LLM_EDIT_INTENT=true`는 `AI_MODE`가 비어 있을 때만 임시 호환 경로로 `repair_assist_only`로 승격된다.
@@ -47,7 +48,7 @@ AI_MODE=disabled
 ## 구현 위치
 
 - `src/PROJECT/settings.py`
-  Gemini 설정 로드
+  Gemini 설정과 local helper gate 로드
 - `src/PROJECT/llm/contracts.py`
   LLM recovery 결과 계약
 - `src/PROJECT/llm/gemini_recovery.py`
@@ -74,7 +75,7 @@ AI_MODE=disabled
 2. cheap gate 통과
 3. rule repair 실패
 4. recovery context 조립
-5. 정책 함수가 현재 `AI_MODE`, 호출 한도, 동일 입력 재호출 여부를 확인
+5. 정책 함수가 현재 local helper gate, 호출 한도, 동일 입력 재호출 여부를 확인
 6. `bot_data["gemini_recovery_classifier"]` 존재 여부 확인
 7. Gemini 호출
 8. JSON 결과를 validator와 state machine으로 다시 검증

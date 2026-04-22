@@ -1,5 +1,10 @@
 # CHATBOT_OPERATION_POLICY_V2
 
+> Alignment note
+> 이 문서는 상위 활성 명세에 종속되는 LLM 구현 가이드다.
+> 충돌 시 source of truth는 상위 제품 명세, 아키텍처 명세, 데이터/구현 명세 순서다.
+> 아래 내용 중 step-level policy, telemetry 이름, session helper 구조는 상위 명세를 보완하는 구현 가이드이며, 상위 명세에 없는 항목은 새로운 source of truth가 아니라 subordinate guidance로 해석한다.
+
 ## 1. 목적
 
 이 문서는 챗봇 운영 규칙을 `문서 -> 정책 코드 -> 런타임 강제` 순서로 고정하기 위한 v2 정책 문서다.
@@ -25,30 +30,27 @@
 
 ## 3. Vocabulary 고정
 
-### 3.1 AI_MODE
+### 3.1 상위 AI 정책 정렬
 
-런타임 AI 정책 상태는 아래 enum으로 고정한다.
+AI 정책의 source of truth는 runtime-local enum이 아니라 상위 명세가 정의한 정책 레코드와 release gate다.
 
-- `disabled`
-- `repair_assist_only`
-- `recovery_assist_only`
-- `manual_review_fallback`
+- feature enablement policy
+- fallback mode
+- release gate status
+- recorded cost ceiling / budget ceiling
 
-의미는 아래와 같다.
+이 문서 기준 강제 원칙은 아래와 같다.
 
-- `disabled`
-  - 모든 LLM 호출 금지
-- `repair_assist_only`
-  - 수정 의도/수정 대상 판정 보조만 허용
-- `recovery_assist_only`
-  - 현재 structured step recovery 보조만 허용
-- `manual_review_fallback`
-  - 자동 LLM 호출 금지
-  - rules-only + manual review 경로만 허용
+- 상위 정책이 feature를 비활성화하면 관련 LLM 호출은 금지한다.
+- 품질, 비용, 가용성 gate를 통과하지 못하면 기본 모드는 `rules-only validation + admin review`다.
+- bot local guard는 상위 정책보다 넓은 권한을 부여할 수 없다.
+- 필요하면 내부 구현에서 step-level helper enum을 둘 수 있지만, 이는 상위 정책을 파생 해석한 내부 표현일 뿐 source of truth가 아니다.
 
-### 3.2 Telemetry 이벤트
+현재 이 repo는 상위 정책 레코드가 아직 연결되지 않았기 때문에 `.env`의 `AI_MODE`를 runtime-local helper gate로 사용한다. 다만 이 값은 상위 정책을 대체하는 authoritative source가 아니라, 현재 repo의 임시 구현 경계로만 해석한다.
 
-아래 이벤트 이름은 코드와 로그에서 그대로 사용한다.
+### 3.2 권장 Telemetry 이벤트
+
+아래 이벤트 이름은 채택 시 코드와 로그에서 그대로 사용하고, 변경 시 interaction policy / observability 문서와 함께 반영한다.
 
 - `rule_matched`
 - `cheap_gate_blocked`
@@ -66,15 +68,15 @@
 아래 vocabulary를 handoff 조건과 운영 연결에 사용한다.
 
 - `support.escalate`
-- `manual_review_required`
-- `admin_followup_required`
+- `manual_resolution_required`
+- 관리자 follow-up queue
 
 기본 매핑은 아래처럼 고정한다.
 
 - `explicit_support_request` -> `support.escalate`
-- `manual_handoff_request` -> `admin_followup_required`
-- `recovery_retry_limit_exceeded` -> `manual_review_required`
-- `llm needs_human` -> `manual_review_required`
+- `manual_handoff_request` -> 관리자 follow-up queue
+- `recovery_retry_limit_exceeded` -> `manual_resolution_required`
+- `llm needs_human` -> `manual_resolution_required`
 
 ## 4. 입력 처리 규칙
 
@@ -151,6 +153,12 @@ Unknown 입력의 LLM 경계는 아래처럼 고정한다.
 - 사용자가 `[맞아요]` 또는 동등한 confirm action을 실행하기 전에는 pending candidate를 authoritative value처럼 다루지 않는다.
 - pending candidate가 폐기되면 반드시 clear하고 telemetry를 남긴다.
 
+정렬 메모:
+
+- `pending_candidate_*`는 이 문서가 제안하는 session/helper 레이어다.
+- canonical 확정의 source of truth는 상위 데이터 명세가 정의한 candidate/decision record와 follow-up queue다.
+- helper state는 authoritative persistence를 대체할 수 없다.
+
 ## 8. LLM 호출 허용 조건
 
 LLM은 아래 조건을 모두 만족할 때만 호출한다.
@@ -159,7 +167,7 @@ LLM은 아래 조건을 모두 만족할 때만 호출한다.
 2. 현재 step이 structured input 또는 confirm/edit 문맥이다.
 3. step parser, cheap gate, repair rule로 확정하지 못했다.
 4. 사용자의 입력이 자유문장이다.
-5. 현재 `AI_MODE`가 해당 호출 유형을 허용한다.
+5. 현재 상위 정책과 fallback mode가 해당 호출 유형을 허용한다.
 6. 현재 step에서 호출 횟수 한도를 넘지 않았다.
 7. 동일 `normalized_text + current_step` 조합으로 이미 호출한 적이 없다.
 
@@ -174,8 +182,8 @@ LLM은 아래 조건을 모두 만족할 때만 호출한다.
 - help/menu/support intent
 - safety gate 대상 입력
 - recovery 한도 초과 입력
-- `AI_MODE=disabled`
-- `AI_MODE=manual_review_fallback`
+- feature policy disabled
+- runtime fallback mode가 `rules-only validation + admin review`로 고정된 경우
 - 동일 `normalized_text + current_step` 재호출
 
 ## 10. Step별 LLM 호출 한도
@@ -258,21 +266,15 @@ LLM 출력은 항상 JSON-only 구조로 제한한다.
 - OCR/typed input 충돌 반복
 - correction/withdrawal 같은 운영성 요청
 
-이 경우 아래 vocabulary 중 하나로 연결한다.
+이 경우 아래 vocabulary 또는 aggregate 중 하나로 연결한다.
 
 - `support.escalate`
-- `manual_review_required`
-- `admin_followup_required`
-
-강제 매핑:
-
-- 상담원 요청/help support 성격 -> `support.escalate`
-- 민원/신고/운영 follow-up 성격 -> `admin_followup_required`
-- 반복 실패/애매성 누적/LLM human review -> `manual_review_required`
+- `manual_resolution_required`
+- 관리자 follow-up queue
 
 ## 15. Telemetry 규칙
 
-아래 이벤트는 최소 세트로 항상 기록한다.
+아래 이벤트는 interaction policy를 구체화할 때 우선 채택할 권장 최소 세트다.
 
 - `rule_matched`
   - 룰이 입력을 성공적으로 처리했을 때
@@ -301,11 +303,12 @@ LLM 출력은 항상 JSON-only 구조로 제한한다.
 
 권장 정책 파일:
 
-- `src/PROJECT/policy/ai_policy.py`
+- `src/<app>/policy/ai_policy.py`
 
 최소 포함 요소:
 
-- `AiMode` enum
+- `ai_policy` adapter
+  - 상위 policy, fallback mode, release gate 반영
 - step별 호출 한도 상수
 - `can_invoke_llm(...)`
 - `should_handoff(...)`
@@ -340,7 +343,7 @@ LLM 출력은 항상 JSON-only 구조로 제한한다.
 권장 커밋 단위:
 
 - `docs: add chatbot operation policy v2`
-- `feat: add AI_MODE enum and llm invoke gate`
+- `feat: add ai policy gate and llm invoke guard`
 - `feat: separate pending candidate from draft state`
 - `feat: add llm retry limit and same-input guard`
 - `feat: add chatbot telemetry policy events`
