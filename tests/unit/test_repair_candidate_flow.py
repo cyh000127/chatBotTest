@@ -6,7 +6,10 @@ from PROJECT.channels.telegram.handlers.messages import (
     PROFILE_REPAIR_ALLOWED_ACTIONS,
     candidate_changes_from_payload,
     classify_llm_runtime_failure,
+    extract_fertilizer_multi_slot_candidate_changes,
+    extract_profile_multi_slot_candidate_changes,
     llm_edit_intent_policy_enabled,
+    logical_slot_count,
     llm_repair_guidance_text,
     parse_candidate_changes,
     repair_candidate_preview_text,
@@ -237,3 +240,51 @@ def test_repair_candidate_preview_text_uses_confirmed_scope_snapshot():
     assert "제품명 변경 내용을 확인해주세요." in text
     assert "- 이전: 기존 비료" in text
     assert "- 변경: 새 비료" in text
+
+
+def test_extract_fertilizer_multi_slot_candidate_changes_from_free_text():
+    changes = extract_fertilizer_multi_slot_candidate_changes("복합비료 20kg 어제 사용했어요")
+
+    assert changes is not None
+    assert changes["kind"] == "compound"
+    assert changes["amount_value"] == 20.0
+    assert changes["amount_unit"] == "kg"
+    assert "applied_date" in changes
+    assert logical_slot_count(changes) >= 3
+
+
+def test_extract_profile_multi_slot_candidate_changes_from_free_text():
+    changes = extract_profile_multi_slot_candidate_changes("김민수 1998년 4월 20일")
+
+    assert changes is not None
+    assert changes["name"] == "김민수"
+    assert changes["birth_year"] == 1998
+    assert changes["birth_month"] == 4
+    assert changes["birth_day"] == 20
+
+
+def test_repair_candidate_preview_text_switches_to_multi_slot_summary():
+    context = SimpleNamespace(user_data={})
+    set_locale(context.user_data, "ko")
+    set_confirmed_fertilizer(
+        context.user_data,
+        {
+            "used": True,
+            "kind": "compound",
+            "product_name": "기존 비료",
+            "amount_value": 20.0,
+            "amount_unit": "kg",
+            "applied_date": "2026-04-21",
+        },
+    )
+
+    text = repair_candidate_preview_text(
+        context,
+        domain="fertilizer",
+        target_state=STATE_FERTILIZER_CONFIRM,
+        changes={"kind": "liquid", "amount_value": 15.0, "amount_unit": "kg"},
+        use_confirmed=True,
+    )
+
+    assert "여러 후보 값을 찾았어요" in text
+    assert "현재 저장된 비료 입력입니다." in text

@@ -90,6 +90,8 @@ FALLBACK_MESSAGES = {
 RECOVERY_GUIDANCE_SOFT = "지금 단계에서 필요한 입력 기준을 다시 안내할게요."
 RECOVERY_GUIDANCE_GUIDED = "현재 흐름을 이어가려면 아래 기준으로 진행해주세요."
 RECOVERY_GUIDANCE_ESCALATION_READY = "반복해서 어려우면 아래 관련 항목으로 안전하게 이동할 수 있어요."
+RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "한 문장에서 여러 후보 값을 찾았어요. 아래 초안으로 진행할지 확인해주세요."
+RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "여러 후보 값을 현재 초안에 반영했어요. 아래 내용을 확인해주세요."
 CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE = (
     "상담 또는 지원 연결 요청으로 이해했어요.\n"
     "현재는 support.escalate 경로가 실시간 채팅으로 연결되어 있지 않아요.\n"

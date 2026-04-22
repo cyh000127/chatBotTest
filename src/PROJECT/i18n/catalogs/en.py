@@ -90,6 +90,8 @@ FALLBACK_MESSAGES = {
 RECOVERY_GUIDANCE_SOFT = "Let me restate what this step needs."
 RECOVERY_GUIDANCE_GUIDED = "Please continue with the current flow using the guide below."
 RECOVERY_GUIDANCE_ESCALATION_READY = "If this keeps failing, you can safely move on using the related actions below."
+RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "I found several candidate values in one message. Please review this draft before continuing."
+RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "I applied several candidate values to the current draft. Please review the content below."
 CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE = (
     "This looks like a request for support or human assistance.\n"
     "The support.escalate path is not connected to real-time chat yet.\n"

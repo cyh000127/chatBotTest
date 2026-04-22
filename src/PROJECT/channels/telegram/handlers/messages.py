@@ -116,6 +116,8 @@ from PROJECT.rule_engine import (
     classify_cheap_gate,
     detect_fertilizer_direct_update,
     detect_profile_direct_update,
+    extract_birth_date_candidate,
+    extract_korean_name_candidate,
 )
 from PROJECT.rule_engine.normalizer import normalize_body_text
 from PROJECT.policy import same_input_cache_key
@@ -430,11 +432,73 @@ def candidate_changes_from_payload(payload: dict | None) -> dict | None:
     )
 
 
+def logical_slot_count(changes: dict) -> int:
+    grouped_slots: set[str] = set()
+    for key in changes:
+        if key in {"birth_year", "birth_month", "birth_day"}:
+            grouped_slots.add("birth_date")
+        elif key in {"amount_value", "amount_unit"}:
+            grouped_slots.add("amount")
+        else:
+            grouped_slots.add(key)
+    return len(grouped_slots)
+
+
+def extract_profile_multi_slot_candidate_changes(text: str) -> dict | None:
+    changes: dict[str, object] = {}
+    birth_candidate, remaining = extract_birth_date_candidate(text)
+    if birth_candidate is not None:
+        year, month, day = map(int, str(birth_candidate.normalized_value).split("-"))
+        changes.update({"birth_year": year, "birth_month": month, "birth_day": day})
+
+    name_candidate, _ = extract_korean_name_candidate(remaining)
+    if name_candidate is not None:
+        changes["name"] = str(name_candidate.normalized_value)
+
+    return changes if logical_slot_count(changes) >= 2 else None
+
+
+def extract_fertilizer_multi_slot_candidate_changes(text: str) -> dict | None:
+    changes: dict[str, object] = {}
+    normalized = normalize_body_text(text)
+    if any(alias in normalized for alias in fertilizer_service.YES_ALIASES):
+        changes["used"] = True
+    elif any(alias in normalized for alias in fertilizer_service.NO_ALIASES):
+        changes["used"] = False
+
+    for kind_key, aliases in fertilizer_service.KIND_ALIASES.items():
+        if any(alias in normalized for alias in aliases):
+            changes["kind"] = kind_key
+            break
+
+    amount = fertilizer_service.parse_amount(text)
+    if amount is not None:
+        changes["amount_value"] = amount[0]
+        changes["amount_unit"] = amount[1]
+
+    if "어제" in normalized or "yesterday" in normalized:
+        applied_date = fertilizer_service.parse_applied_date("어제")
+    elif "오늘" in normalized or "today" in normalized:
+        applied_date = fertilizer_service.parse_applied_date("오늘")
+    else:
+        applied_date = fertilizer_service.parse_applied_date(text)
+    if applied_date is not None:
+        changes["applied_date"] = applied_date
+
+    correction_pattern = detect_fertilizer_direct_update(text, allow_implicit=True)
+    if correction_pattern is not None and correction_pattern.target_state == STATE_FERTILIZER_PRODUCT:
+        changes.update(correction_pattern.changes)
+
+    return changes if logical_slot_count(changes) >= 2 else None
+
+
 def repair_candidate_preview_text(context, *, domain: str, target_state: str, changes: dict, use_confirmed: bool) -> str:
     catalog = current_catalog(context)
     if domain == "profile":
         base_draft = confirmed_profile_draft(context) if use_confirmed else current_profile(context)
         updated = profile_service.update_draft(base_draft, **changes)
+        if logical_slot_count(changes) >= 2:
+            return f"{catalog.RECOVERY_MULTI_SLOT_CANDIDATE_HINT}\n\n{profile_service.summary_text(updated, catalog)}"
         return profile_service.change_preview_text(base_draft, updated, target_state, catalog)
 
     base_draft = confirmed_fertilizer_draft(context) if use_confirmed else current_fertilizer(context)
@@ -448,6 +512,8 @@ def repair_candidate_preview_text(context, *, domain: str, target_state: str, ch
             amount_unit="",
             applied_date="",
         )
+    if logical_slot_count(changes) >= 2:
+        return f"{catalog.RECOVERY_MULTI_SLOT_CANDIDATE_HINT}\n\n{fertilizer_service.summary_text(updated, catalog)}"
     return fertilizer_service.change_preview_text(base_draft, updated, target_state, catalog)
 
 
@@ -489,12 +555,15 @@ async def apply_profile_changes(update, context, *, changes: dict, use_confirmed
         "district": STATE_PROFILE_DISTRICT,
         "birth_year": STATE_PROFILE_BIRTH_YEAR,
     }
-    preview_text = profile_service.change_preview_text(
-        base_draft,
-        updated,
-        state_by_change.get(target_state, STATE_PROFILE_EDIT_SELECT),
-        current_catalog(context),
-    )
+    if logical_slot_count(changes) >= 2:
+        preview_text = current_catalog(context).RECOVERY_MULTI_SLOT_APPLIED_MESSAGE
+    else:
+        preview_text = profile_service.change_preview_text(
+            base_draft,
+            updated,
+            state_by_change.get(target_state, STATE_PROFILE_EDIT_SELECT),
+            current_catalog(context),
+        )
 
     if use_confirmed:
         reset_session(context.user_data)
@@ -538,7 +607,10 @@ async def apply_fertilizer_changes(update, context, *, target_state: str, change
         reset_session(context.user_data)
     set_fertilizer_draft(context.user_data, updated.to_dict())
     set_state(context.user_data, STATE_FERTILIZER_CONFIRM)
-    preview_text = fertilizer_service.change_preview_text(base_draft, updated, target_state, current_catalog(context))
+    if logical_slot_count(changes) >= 2 or target_state == STATE_FERTILIZER_CONFIRM:
+        preview_text = current_catalog(context).RECOVERY_MULTI_SLOT_APPLIED_MESSAGE
+    else:
+        preview_text = fertilizer_service.change_preview_text(base_draft, updated, target_state, current_catalog(context))
     await send_text(
         update,
         f"{preview_text}\n\n{fertilizer_service.confirmation_text(updated, current_catalog(context))}",
@@ -1255,6 +1327,20 @@ async def text_message(update, context) -> None:
         return
 
     if state in PROFILE_STATES:
+        if state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}:
+            multi_slot_changes = extract_profile_multi_slot_candidate_changes(inbound.text)
+            if multi_slot_changes is not None:
+                reset_recovery_attempts(context.user_data)
+                await send_repair_confirmation(
+                    update,
+                    context,
+                    domain="profile",
+                    target_state=STATE_PROFILE_CONFIRM,
+                    use_confirmed=False,
+                    candidate_changes=multi_slot_changes,
+                )
+                return
+
         profile_direct_update = detect_profile_direct_update(
             inbound.text,
             allow_implicit=state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT},
@@ -1311,6 +1397,20 @@ async def text_message(update, context) -> None:
             return
 
     if state in FERTILIZER_STATES:
+        if state == STATE_FERTILIZER_CONFIRM:
+            multi_slot_changes = extract_fertilizer_multi_slot_candidate_changes(inbound.text)
+            if multi_slot_changes is not None:
+                reset_recovery_attempts(context.user_data)
+                await send_repair_confirmation(
+                    update,
+                    context,
+                    domain="fertilizer",
+                    target_state=STATE_FERTILIZER_CONFIRM,
+                    use_confirmed=False,
+                    candidate_changes=multi_slot_changes,
+                )
+                return
+
         fertilizer_direct_update = detect_fertilizer_direct_update(
             inbound.text,
             allow_implicit=state == STATE_FERTILIZER_CONFIRM,
@@ -1367,6 +1467,19 @@ async def text_message(update, context) -> None:
             return
 
     if state not in PROFILE_STATES and has_confirmed_profile(context.user_data):
+        multi_slot_changes = extract_profile_multi_slot_candidate_changes(inbound.text)
+        if multi_slot_changes is not None:
+            reset_recovery_attempts(context.user_data)
+            await send_repair_confirmation(
+                update,
+                context,
+                domain="profile",
+                target_state=STATE_PROFILE_CONFIRM,
+                use_confirmed=True,
+                candidate_changes=multi_slot_changes,
+            )
+            return
+
         profile_direct_update = detect_profile_direct_update(inbound.text, allow_implicit=True)
         if profile_direct_update is not None:
             reset_recovery_attempts(context.user_data)
@@ -1424,6 +1537,19 @@ async def text_message(update, context) -> None:
             return
 
     if state not in FERTILIZER_STATES and has_confirmed_fertilizer(context.user_data):
+        multi_slot_changes = extract_fertilizer_multi_slot_candidate_changes(inbound.text)
+        if multi_slot_changes is not None:
+            reset_recovery_attempts(context.user_data)
+            await send_repair_confirmation(
+                update,
+                context,
+                domain="fertilizer",
+                target_state=STATE_FERTILIZER_CONFIRM,
+                use_confirmed=True,
+                candidate_changes=multi_slot_changes,
+            )
+            return
+
         fertilizer_direct_update = detect_fertilizer_direct_update(inbound.text, allow_implicit=True)
         if fertilizer_direct_update is not None:
             reset_recovery_attempts(context.user_data)
