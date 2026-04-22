@@ -3,10 +3,12 @@ import pytest
 from PROJECT.policy import (
     MAX_LLM_CALLS_PER_CONFIRM_STEP,
     AiMode,
+    HandoffRoute,
     UnknownInputDisposition,
     ai_mode_allows_edit_intent,
     ai_mode_allows_recovery_assist,
     can_invoke_llm,
+    classify_handoff_route,
     classify_unknown_input_disposition,
     parse_ai_mode,
     same_input_cache_key,
@@ -133,3 +135,10 @@ def test_unknown_input_disposition_marks_support_requests_as_handoff():
     )
 
     assert disposition == UnknownInputDisposition.HANDOFF_REQUIRED
+
+
+def test_classify_handoff_route_maps_operational_vocabularies():
+    assert classify_handoff_route(reason="explicit_support_request", source="cheap_gate") == HandoffRoute.SUPPORT_ESCALATE
+    assert classify_handoff_route(reason="manual_handoff_request", source="cheap_gate") == HandoffRoute.ADMIN_FOLLOWUP_REQUIRED
+    assert classify_handoff_route(reason="recovery_retry_limit_exceeded", source="cheap_gate") == HandoffRoute.MANUAL_REVIEW_REQUIRED
+    assert classify_handoff_route(reason="needs_human", source="llm_repair") == HandoffRoute.MANUAL_REVIEW_REQUIRED

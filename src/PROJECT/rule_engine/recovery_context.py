@@ -20,6 +20,7 @@ from PROJECT.conversations.sample_menu.states import (
     STATE_WEATHER_MENU,
 )
 from PROJECT.i18n.translator import get_catalog
+from PROJECT.policy import classify_handoff_route
 from PROJECT.rule_engine.contracts import RecoveryContextDraft, ValidationResult
 from PROJECT.rule_engine.step_schema import render_shared_step_question, shared_step_schema_for_step
 
@@ -72,6 +73,15 @@ def assemble_recovery_context(
             "validation_classification": validation_result.classification.value if validation_result is not None else None,
             "validation_reason": validation_result.reason if validation_result is not None else None,
             "human_handoff_reason": validation_result.human_handoff_reason if validation_result is not None else None,
+            "handoff_route": (
+                classify_handoff_route(
+                    reason=validation_result.reason,
+                    human_handoff_reason=validation_result.human_handoff_reason,
+                    source=validation_result.source.value,
+                ).value
+                if validation_result is not None and validation_result.classification.value == "needs_handoff"
+                else None
+            ),
         },
     )
 

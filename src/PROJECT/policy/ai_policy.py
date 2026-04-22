@@ -17,6 +17,12 @@ class UnknownInputDisposition(StrEnum):
     HANDOFF_REQUIRED = "handoff_required"
 
 
+class HandoffRoute(StrEnum):
+    SUPPORT_ESCALATE = "support.escalate"
+    MANUAL_REVIEW_REQUIRED = "manual_review_required"
+    ADMIN_FOLLOWUP_REQUIRED = "admin_followup_required"
+
+
 MAX_LLM_CALLS_PER_STRUCTURED_STEP = 1
 MAX_LLM_CALLS_PER_CONFIRM_STEP = 1
 MAX_RECOVERY_ATTEMPTS_BEFORE_HANDOFF = 3
@@ -109,3 +115,24 @@ def classify_unknown_input_disposition(
         return UnknownInputDisposition.FALLBACK_ONLY
 
     return UnknownInputDisposition.FALLBACK_ONLY
+
+
+def classify_handoff_route(
+    *,
+    reason: str | None,
+    human_handoff_reason: str | None = None,
+    source: str | None = None,
+) -> HandoffRoute:
+    if reason == "explicit_support_request" or human_handoff_reason == "user_requested_human_support":
+        return HandoffRoute.SUPPORT_ESCALATE
+
+    if reason == "manual_handoff_request" or human_handoff_reason == "manual_handoff_keyword_detected":
+        return HandoffRoute.ADMIN_FOLLOWUP_REQUIRED
+
+    if source == "llm_repair":
+        return HandoffRoute.MANUAL_REVIEW_REQUIRED
+
+    if reason == "recovery_retry_limit_exceeded" or human_handoff_reason == "cheap_gate_retry_limit":
+        return HandoffRoute.MANUAL_REVIEW_REQUIRED
+
+    return HandoffRoute.MANUAL_REVIEW_REQUIRED

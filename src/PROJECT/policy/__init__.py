@@ -3,10 +3,12 @@ from PROJECT.policy.ai_policy import (
     MAX_LLM_CALLS_PER_STRUCTURED_STEP,
     MAX_RECOVERY_ATTEMPTS_BEFORE_HANDOFF,
     AiMode,
+    HandoffRoute,
     UnknownInputDisposition,
     ai_mode_allows_edit_intent,
     ai_mode_allows_recovery_assist,
     can_invoke_llm,
+    classify_handoff_route,
     classify_unknown_input_disposition,
     parse_ai_mode,
     same_input_cache_key,
@@ -15,6 +17,7 @@ from PROJECT.policy.ai_policy import (
 
 __all__ = [
     "AiMode",
+    "HandoffRoute",
     "UnknownInputDisposition",
     "MAX_LLM_CALLS_PER_CONFIRM_STEP",
     "MAX_LLM_CALLS_PER_STRUCTURED_STEP",
@@ -22,6 +25,7 @@ __all__ = [
     "ai_mode_allows_edit_intent",
     "ai_mode_allows_recovery_assist",
     "can_invoke_llm",
+    "classify_handoff_route",
     "classify_unknown_input_disposition",
     "parse_ai_mode",
     "same_input_cache_key",

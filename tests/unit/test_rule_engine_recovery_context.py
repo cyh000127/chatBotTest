@@ -32,6 +32,7 @@ def test_assemble_recovery_context_for_weather_menu():
     assert context.recovery_attempt_count == 3
     assert context.metadata["fallback_key"] == "weather"
     assert context.metadata["validation_reason"] == "recovery_retry_limit_exceeded"
+    assert context.metadata["handoff_route"] == "manual_review_required"
     assert "selected_city=서울" in context.recent_messages_summary
 
 
@@ -69,6 +70,7 @@ def test_assemble_recovery_context_for_profile_confirm_includes_draft_summary():
     assert context.allowed_value_shape == "one_of:confirm|edit"
     assert "all_profile_fields_must_be_present_before_finalize" in context.hard_constraints
     assert "profile_draft_fields=name,residence,city,district,birth_date" in context.recent_messages_summary
+    assert context.metadata["handoff_route"] == "support.escalate"
     assert "- 이름: 최윤혁" in context.current_question
 
 

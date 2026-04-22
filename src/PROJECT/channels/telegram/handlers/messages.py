@@ -102,7 +102,13 @@ from PROJECT.dispatch.session_dispatcher import (
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
 from PROJECT.llm import LlmEditAction, LlmEditIntentResult
-from PROJECT.policy import UnknownInputDisposition, can_invoke_llm, classify_unknown_input_disposition
+from PROJECT.policy import (
+    HandoffRoute,
+    UnknownInputDisposition,
+    can_invoke_llm,
+    classify_handoff_route,
+    classify_unknown_input_disposition,
+)
 from PROJECT.rule_engine import (
     ValidationClassification,
     assemble_recovery_context,
@@ -241,6 +247,14 @@ def log_rule_matched(*, rule_name: str, domain: str, target_state: str, scope: s
         domain=domain,
         target_state=target_state,
         scope=scope,
+    )
+
+
+def handoff_route_for_validation(*, reason: str | None, human_handoff_reason: str | None, source: str) -> HandoffRoute:
+    return classify_handoff_route(
+        reason=reason,
+        human_handoff_reason=human_handoff_reason,
+        source=source,
     )
 
 
@@ -700,10 +714,15 @@ async def maybe_send_llm_repair_confirmation(
                 confidence=result.confidence,
             )
         if result.needs_human:
+            handoff_route = classify_handoff_route(
+                reason=result.reason or "needs_human",
+                source="llm_repair",
+            )
             log_event(
                 HANDOFF_REQUESTED,
                 source="llm_repair",
                 state=state,
+                route=handoff_route.value,
                 reason=result.reason or "needs_human",
             )
         log_event(
@@ -1054,6 +1073,11 @@ async def text_message(update, context) -> None:
         "explicit_support_request",
         "manual_handoff_request",
     }:
+        handoff_route = handoff_route_for_validation(
+            reason=early_gate.reason,
+            human_handoff_reason=early_gate.human_handoff_reason,
+            source="cheap_gate",
+        )
         log_event(
             CHEAP_GATE_BLOCKED,
             state=state,
@@ -1064,6 +1088,7 @@ async def text_message(update, context) -> None:
             HANDOFF_REQUESTED,
             source="cheap_gate",
             state=state,
+            route=handoff_route.value,
             reason=early_gate.human_handoff_reason or early_gate.reason,
         )
         catalog = current_catalog(context)
@@ -1477,6 +1502,11 @@ async def text_message(update, context) -> None:
         recovery_attempt_count=recovery_attempts(context.user_data) + 1,
     )
     if late_gate.classification == ValidationClassification.NEEDS_HANDOFF:
+        handoff_route = handoff_route_for_validation(
+            reason=late_gate.reason,
+            human_handoff_reason=late_gate.human_handoff_reason,
+            source="cheap_gate",
+        )
         log_event(
             CHEAP_GATE_BLOCKED,
             state=current_state(context.user_data),
@@ -1487,6 +1517,7 @@ async def text_message(update, context) -> None:
             HANDOFF_REQUESTED,
             source="cheap_gate",
             state=current_state(context.user_data),
+            route=handoff_route.value,
             reason=late_gate.human_handoff_reason or late_gate.reason,
         )
         recovery_context = assemble_recovery_context(

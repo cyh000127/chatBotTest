@@ -69,6 +69,13 @@
 - `manual_review_required`
 - `admin_followup_required`
 
+기본 매핑은 아래처럼 고정한다.
+
+- `explicit_support_request` -> `support.escalate`
+- `manual_handoff_request` -> `admin_followup_required`
+- `recovery_retry_limit_exceeded` -> `manual_review_required`
+- `llm needs_human` -> `manual_review_required`
+
 ## 4. 입력 처리 규칙
 
 | 상황 | 1차 처리 | LLM 사용 | 결과 처리 |
@@ -256,6 +263,12 @@ LLM 출력은 항상 JSON-only 구조로 제한한다.
 - `support.escalate`
 - `manual_review_required`
 - `admin_followup_required`
+
+강제 매핑:
+
+- 상담원 요청/help support 성격 -> `support.escalate`
+- 민원/신고/운영 follow-up 성격 -> `admin_followup_required`
+- 반복 실패/애매성 누적/LLM human review -> `manual_review_required`
 
 ## 15. Telemetry 규칙
 
