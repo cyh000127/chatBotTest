@@ -32,7 +32,7 @@ def test_assemble_recovery_context_for_weather_menu():
     assert context.recovery_attempt_count == 3
     assert context.metadata["fallback_key"] == "weather"
     assert context.metadata["validation_reason"] == "recovery_retry_limit_exceeded"
-    assert context.metadata["handoff_route"] == "manual_review_required"
+    assert context.metadata["handoff_route"] == "manual_resolution_required"
     assert "selected_city=서울" in context.recent_messages_summary
 
 

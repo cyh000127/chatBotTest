@@ -19,8 +19,10 @@ class UnknownInputDisposition(StrEnum):
 
 class HandoffRoute(StrEnum):
     SUPPORT_ESCALATE = "support.escalate"
-    MANUAL_REVIEW_REQUIRED = "manual_review_required"
-    ADMIN_FOLLOWUP_REQUIRED = "admin_followup_required"
+    MANUAL_RESOLUTION_REQUIRED = "manual_resolution_required"
+    ADMIN_FOLLOWUP_QUEUE = "admin_followup_queue"
+    MANUAL_REVIEW_REQUIRED = "manual_resolution_required"
+    ADMIN_FOLLOWUP_REQUIRED = "admin_followup_queue"
 
 
 MAX_LLM_CALLS_PER_STRUCTURED_STEP = 1
@@ -127,15 +129,15 @@ def classify_handoff_route(
         return HandoffRoute.SUPPORT_ESCALATE
 
     if reason == "manual_handoff_request" or human_handoff_reason == "manual_handoff_keyword_detected":
-        return HandoffRoute.ADMIN_FOLLOWUP_REQUIRED
+        return HandoffRoute.ADMIN_FOLLOWUP_QUEUE
 
     if source == "llm_repair":
-        return HandoffRoute.MANUAL_REVIEW_REQUIRED
+        return HandoffRoute.MANUAL_RESOLUTION_REQUIRED
 
     if reason == "recovery_retry_limit_exceeded" or human_handoff_reason == "cheap_gate_retry_limit":
-        return HandoffRoute.MANUAL_REVIEW_REQUIRED
+        return HandoffRoute.MANUAL_RESOLUTION_REQUIRED
 
-    return HandoffRoute.MANUAL_REVIEW_REQUIRED
+    return HandoffRoute.MANUAL_RESOLUTION_REQUIRED
 
 
 # Backward-compatible aliases while the repo migrates to the "local helper gate" wording.

@@ -139,6 +139,6 @@ def test_unknown_input_disposition_marks_support_requests_as_handoff():
 
 def test_classify_handoff_route_maps_operational_vocabularies():
     assert classify_handoff_route(reason="explicit_support_request", source="cheap_gate") == HandoffRoute.SUPPORT_ESCALATE
-    assert classify_handoff_route(reason="manual_handoff_request", source="cheap_gate") == HandoffRoute.ADMIN_FOLLOWUP_REQUIRED
-    assert classify_handoff_route(reason="recovery_retry_limit_exceeded", source="cheap_gate") == HandoffRoute.MANUAL_REVIEW_REQUIRED
-    assert classify_handoff_route(reason="needs_human", source="llm_repair") == HandoffRoute.MANUAL_REVIEW_REQUIRED
+    assert classify_handoff_route(reason="manual_handoff_request", source="cheap_gate") == HandoffRoute.ADMIN_FOLLOWUP_QUEUE
+    assert classify_handoff_route(reason="recovery_retry_limit_exceeded", source="cheap_gate") == HandoffRoute.MANUAL_RESOLUTION_REQUIRED
+    assert classify_handoff_route(reason="needs_human", source="llm_repair") == HandoffRoute.MANUAL_RESOLUTION_REQUIRED
