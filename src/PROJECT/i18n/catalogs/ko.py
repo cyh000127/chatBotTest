@@ -87,6 +87,9 @@ FALLBACK_MESSAGES = {
     "fertilizer_input": "비료 입력을 바로 처리하지 못했어요.\n아래 관련 항목 중 수정하거나 이어서 입력할 항목을 선택해주시겠어요?",
     "fertilizer_confirm": "비료 확인 단계예요.\n아래 관련 항목 중 확인하거나 수정할 항목을 선택해주시겠어요.",
 }
+RECOVERY_GUIDANCE_SOFT = "지금 단계에서 필요한 입력 기준을 다시 안내할게요."
+RECOVERY_GUIDANCE_GUIDED = "현재 흐름을 이어가려면 아래 기준으로 진행해주세요."
+RECOVERY_GUIDANCE_ESCALATION_READY = "반복해서 어려우면 아래 관련 항목으로 안전하게 이동할 수 있어요."
 CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE = (
     "상담 또는 지원 연결 요청으로 이해했어요.\n"
     "현재는 support.escalate 경로가 실시간 채팅으로 연결되어 있지 않아요.\n"

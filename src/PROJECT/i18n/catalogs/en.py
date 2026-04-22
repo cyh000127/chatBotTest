@@ -87,6 +87,9 @@ FALLBACK_MESSAGES = {
     "fertilizer_input": "I could not process the fertilizer input right away.\nWould you choose which related fertilizer item to continue or change?",
     "fertilizer_confirm": "You are in the fertilizer confirmation step.\nWould you choose whether to confirm or edit below?",
 }
+RECOVERY_GUIDANCE_SOFT = "Let me restate what this step needs."
+RECOVERY_GUIDANCE_GUIDED = "Please continue with the current flow using the guide below."
+RECOVERY_GUIDANCE_ESCALATION_READY = "If this keeps failing, you can safely move on using the related actions below."
 CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE = (
     "This looks like a request for support or human assistance.\n"
     "The support.escalate path is not connected to real-time chat yet.\n"

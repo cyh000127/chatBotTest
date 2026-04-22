@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 
+from PROJECT.conversations.sample_menu.recovery_messages import render_cheap_gate_message, render_fallback_message
 from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU, STATE_WEATHER_MENU
 from PROJECT.rule_engine.contracts import ValidationResult
 from PROJECT.settings import Settings
@@ -78,18 +79,21 @@ def weather_error_text(catalog) -> str:
     return catalog.WEATHER_ERROR_MESSAGE
 
 
-def fallback_text(key: str, catalog) -> str:
-    return catalog.FALLBACK_MESSAGES[key]
+def fallback_text(key: str, catalog, recovery_context=None) -> str:
+    return render_fallback_message(
+        fallback_key=key,
+        catalog=catalog,
+        recovery_context=recovery_context,
+    )
 
 
-def cheap_gate_text(result: ValidationResult, fallback_key: str, catalog) -> str:
-    if result.reason == "explicit_support_request":
-        return catalog.CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE
-    if result.reason == "manual_handoff_request":
-        return catalog.CHEAP_GATE_ADMIN_FOLLOWUP_MESSAGE
-    if result.reason == "recovery_retry_limit_exceeded":
-        return catalog.CHEAP_GATE_MANUAL_RESOLUTION_MESSAGE
-    return fallback_text(fallback_key, catalog)
+def cheap_gate_text(result: ValidationResult, fallback_key: str, catalog, recovery_context=None) -> str:
+    return render_cheap_gate_message(
+        result=result,
+        fallback_key=fallback_key,
+        catalog=catalog,
+        recovery_context=recovery_context,
+    )
 
 
 def unknown_command_text(catalog) -> str:

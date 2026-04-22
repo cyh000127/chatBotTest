@@ -79,6 +79,7 @@ from PROJECT.dispatch.session_dispatcher import (
     increment_llm_calls_in_step,
     increment_recovery_attempts,
     is_authenticated,
+    last_recovery_context,
     llm_calls_in_step,
     mark_llm_input_seen,
     pending_candidate,
@@ -1180,7 +1181,12 @@ async def text_message(update, context) -> None:
         reset_recovery_attempts(context.user_data)
         await send_text(
             update,
-            service.cheap_gate_text(early_gate, fallback_key_for_state(state), catalog),
+            service.cheap_gate_text(
+                early_gate,
+                fallback_key_for_state(state),
+                catalog,
+                recovery_context.to_dict(),
+            ),
             keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
         )
         return
@@ -1608,7 +1614,12 @@ async def text_message(update, context) -> None:
         reset_recovery_attempts(context.user_data)
         await send_text(
             update,
-            service.cheap_gate_text(late_gate, fallback_key, catalog),
+            service.cheap_gate_text(
+                late_gate,
+                fallback_key,
+                catalog,
+                recovery_context.to_dict(),
+            ),
             keyboard_layout=fallback_keyboard_layout_for_state(
                 current_state(context.user_data),
                 catalog,
@@ -1632,7 +1643,12 @@ async def text_message(update, context) -> None:
     )
     await send_text(
         update,
-        service.cheap_gate_text(late_gate, fallback_key, catalog),
+        service.cheap_gate_text(
+            late_gate,
+            fallback_key,
+            catalog,
+            last_recovery_context(context.user_data),
+        ),
         keyboard_layout=fallback_keyboard_layout_for_state(
             current_state(context.user_data),
             catalog,
@@ -1697,7 +1713,11 @@ async def button_callback(update, context) -> None:
             discard_pending_candidate(context, reason="candidate_payload_missing")
             await send_text(
                 update,
-                service.fallback_text(fallback_key_for_state(current_state(context.user_data)), current_catalog(context)),
+                service.fallback_text(
+                    fallback_key_for_state(current_state(context.user_data)),
+                    current_catalog(context),
+                    last_recovery_context(context.user_data),
+                ),
                 keyboard_layout=fallback_keyboard_layout_for_state(
                     current_state(context.user_data),
                     current_catalog(context),
@@ -1741,7 +1761,11 @@ async def button_callback(update, context) -> None:
         discard_pending_candidate(context, reason="repair_cancelled")
         await send_text(
             update,
-            service.fallback_text(fallback_key_for_state(current_state(context.user_data)), current_catalog(context)),
+            service.fallback_text(
+                fallback_key_for_state(current_state(context.user_data)),
+                current_catalog(context),
+                last_recovery_context(context.user_data),
+            ),
             keyboard_layout=fallback_keyboard_layout_for_state(
                 current_state(context.user_data),
                 current_catalog(context),
@@ -1965,7 +1989,11 @@ async def button_callback(update, context) -> None:
 
     await send_text(
         update,
-        service.fallback_text(fallback_key_for_state(current_state(context.user_data)), catalog),
+        service.fallback_text(
+            fallback_key_for_state(current_state(context.user_data)),
+            catalog,
+            last_recovery_context(context.user_data),
+        ),
         keyboard_layout=fallback_keyboard_layout_for_state(
             current_state(context.user_data),
             catalog,
