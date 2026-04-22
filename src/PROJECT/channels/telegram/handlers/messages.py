@@ -114,10 +114,19 @@ from PROJECT.rule_engine.normalizer import normalize_body_text
 from PROJECT.policy import same_input_cache_key
 from PROJECT.telemetry.event_logger import log_event
 from PROJECT.telemetry.events import (
+    CHEAP_GATE_BLOCKED,
     FALLBACK_SHOWN,
+    HANDOFF_REQUESTED,
+    LLM_INVOKED,
     LLM_REPAIR_GUIDANCE_SHOWN,
+    LLM_REJECTED_LOW_CONFIDENCE,
     LLM_REPAIR_SIGNAL_DETECTED,
+    LLM_SKIPPED_BY_POLICY,
+    PENDING_CANDIDATE_CONFIRMED,
+    PENDING_CANDIDATE_CREATED,
+    PENDING_CANDIDATE_DISCARDED,
     REPAIR_CANDIDATE_APPLIED,
+    RULE_MATCHED,
     RULE_REPAIR_SIGNAL_DETECTED,
 )
 
@@ -223,6 +232,30 @@ def confirmed_profile_draft(context) -> profile_service.ProfileDraft:
 
 def confirmed_fertilizer_draft(context) -> fertilizer_service.FertilizerDraft:
     return fertilizer_service.draft_from_dict(confirmed_fertilizer(context.user_data))
+
+
+def log_rule_matched(*, rule_name: str, domain: str, target_state: str, scope: str) -> None:
+    log_event(
+        RULE_MATCHED,
+        rule_name=rule_name,
+        domain=domain,
+        target_state=target_state,
+        scope=scope,
+    )
+
+
+def discard_pending_candidate(context, *, reason: str) -> None:
+    candidate = pending_candidate(context.user_data)
+    if candidate is not None:
+        log_event(
+            PENDING_CANDIDATE_DISCARDED,
+            reason=reason,
+            domain=candidate.get("domain"),
+            target_state=candidate.get("target_state"),
+            scope=candidate.get("scope"),
+            source=candidate.get("source"),
+        )
+    clear_pending_candidate(context.user_data)
 
 
 async def send_profile_prompt(update, context, state: str, text: str | None = None) -> None:
@@ -369,7 +402,7 @@ def parse_candidate_changes(domain: str, target_state: str, candidate_value: str
 
 
 async def continue_repair_flow(update, context, *, domain: str, target_state: str, use_confirmed: bool) -> None:
-    clear_pending_candidate(context.user_data)
+    discard_pending_candidate(context, reason="repair_flow_continued")
     if domain == "profile":
         if use_confirmed:
             if target_state == STATE_PROFILE_EDIT_SELECT:
@@ -424,6 +457,12 @@ async def apply_profile_changes(update, context, *, changes: dict, use_confirmed
         keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, updated, current_catalog(context)),
     )
     log_event(
+        PENDING_CANDIDATE_CONFIRMED,
+        domain="profile",
+        target_state=state_by_change.get(target_state, STATE_PROFILE_EDIT_SELECT),
+        scope="confirmed" if use_confirmed else "draft",
+    )
+    log_event(
         REPAIR_CANDIDATE_APPLIED,
         domain="profile",
         target_state=state_by_change.get(target_state, STATE_PROFILE_EDIT_SELECT),
@@ -454,6 +493,12 @@ async def apply_fertilizer_changes(update, context, *, target_state: str, change
         update,
         f"{preview_text}\n\n{fertilizer_service.confirmation_text(updated, current_catalog(context))}",
         keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_CONFIRM, current_catalog(context)),
+    )
+    log_event(
+        PENDING_CANDIDATE_CONFIRMED,
+        domain="fertilizer",
+        target_state=target_state,
+        scope="confirmed" if use_confirmed else "draft",
     )
     log_event(
         REPAIR_CANDIDATE_APPLIED,
@@ -492,6 +537,13 @@ async def send_repair_confirmation(
                 "source": candidate_source,
             },
         )
+        log_event(
+            PENDING_CANDIDATE_CREATED,
+            domain=domain,
+            target_state=target_state,
+            scope=scope,
+            source=candidate_source,
+        )
         set_pending_repair_confirmation(
             context.user_data,
             {
@@ -503,7 +555,7 @@ async def send_repair_confirmation(
         )
     else:
         set_pending_repair_confirmation(context.user_data, None)
-        clear_pending_candidate(context.user_data)
+        discard_pending_candidate(context, reason="no_valid_candidate")
     await send_text(
         update,
         text,
@@ -576,10 +628,20 @@ async def maybe_send_llm_repair_confirmation(
         locale=current_locale(context.user_data),
     )
     lowered = text.strip().lower()
-    if resolver is None or not lowered or not llm_edit_intent_policy_enabled(context):
+    if resolver is None or not lowered:
+        return False
+    if not llm_edit_intent_policy_enabled(context):
+        log_event(
+            LLM_SKIPPED_BY_POLICY,
+            invocation_type="repair",
+            state=state,
+            reason="edit_intent_policy_disabled",
+        )
         return False
     if not any(marker in lowered for marker in EDIT_INTENT_HINT_MARKERS):
         return False
+    same_input_seen = has_seen_llm_input(context.user_data, cache_key)
+    llm_call_count = llm_calls_in_step(context.user_data, state)
     if not can_invoke_llm(
         ai_mode=context.bot_data["settings"].ai_mode,
         invocation_type="repair",
@@ -587,13 +649,26 @@ async def maybe_send_llm_repair_confirmation(
         is_structured_step=state in PROFILE_STATES or state in FERTILIZER_STATES,
         is_confirm_step=use_confirmed or state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT, STATE_FERTILIZER_CONFIRM},
         is_free_text=True,
-        llm_calls_in_step=llm_calls_in_step(context.user_data, state),
-        same_input_seen=has_seen_llm_input(context.user_data, cache_key),
+        llm_calls_in_step=llm_call_count,
+        same_input_seen=same_input_seen,
     ):
+        reason = "duplicate_input" if same_input_seen else "step_call_limit"
+        log_event(
+            LLM_SKIPPED_BY_POLICY,
+            invocation_type="repair",
+            state=state,
+            reason=reason,
+        )
         return False
 
     mark_llm_input_seen(context.user_data, cache_key)
     increment_llm_calls_in_step(context.user_data, state)
+    log_event(
+        LLM_INVOKED,
+        invocation_type="repair",
+        state=state,
+        scope="confirmed" if use_confirmed else "draft",
+    )
 
     try:
         result = await resolver.classify(
@@ -627,6 +702,20 @@ async def maybe_send_llm_repair_confirmation(
             "low_confidence" if result.confidence is None or result.confidence < LLM_MIN_CONFIDENCE else
             "clarification"
         )
+        if result.confidence is None or result.confidence < LLM_MIN_CONFIDENCE:
+            log_event(
+                LLM_REJECTED_LOW_CONFIDENCE,
+                invocation_type="repair",
+                state=state,
+                confidence=result.confidence,
+            )
+        if result.needs_human:
+            log_event(
+                HANDOFF_REQUESTED,
+                source="llm_repair",
+                state=state,
+                reason=result.reason or "needs_human",
+            )
         log_event(
             LLM_REPAIR_GUIDANCE_SHOWN,
             reason=reason,
@@ -676,6 +765,13 @@ async def attempt_llm_repair_after_rules(
     if not llm_edit_intent_policy_enabled(context):
         return False
     if not should_attempt_llm_repair_for_domain(domain, state=state, use_confirmed=use_confirmed):
+        log_event(
+            LLM_SKIPPED_BY_POLICY,
+            invocation_type="repair",
+            state=state,
+            domain=domain,
+            reason="state_not_allowed",
+        )
         return False
     return await maybe_send_llm_repair_confirmation(
         update,
@@ -962,6 +1058,18 @@ async def text_message(update, context) -> None:
         "explicit_support_request",
         "manual_handoff_request",
     }:
+        log_event(
+            CHEAP_GATE_BLOCKED,
+            state=state,
+            reason=early_gate.reason,
+            classification=early_gate.classification.value,
+        )
+        log_event(
+            HANDOFF_REQUESTED,
+            source="cheap_gate",
+            state=state,
+            reason=early_gate.human_handoff_reason or early_gate.reason,
+        )
         catalog = current_catalog(context)
         recovery_context = assemble_recovery_context(
             current_step=state,
@@ -1012,6 +1120,12 @@ async def text_message(update, context) -> None:
         )
         if profile_direct_update is not None:
             reset_recovery_attempts(context.user_data)
+            log_rule_matched(
+                rule_name=profile_direct_update.matched_rule,
+                domain="profile",
+                target_state=profile_direct_update.target_state,
+                scope="draft",
+            )
             await send_repair_confirmation(
                 update,
                 context,
@@ -1024,6 +1138,12 @@ async def text_message(update, context) -> None:
         repair = detect_repair_intent(inbound.text)
         if repair is not None and repair.target_state in PROFILE_STATES:
             reset_recovery_attempts(context.user_data)
+            log_rule_matched(
+                rule_name=repair.target,
+                domain="profile",
+                target_state=repair.target_state,
+                scope="draft",
+            )
             await send_repair_confirmation(
                 update,
                 context,
@@ -1051,6 +1171,12 @@ async def text_message(update, context) -> None:
         )
         if fertilizer_direct_update is not None:
             reset_recovery_attempts(context.user_data)
+            log_rule_matched(
+                rule_name=fertilizer_direct_update.matched_rule,
+                domain="fertilizer",
+                target_state=fertilizer_direct_update.target_state,
+                scope="draft",
+            )
             await send_repair_confirmation(
                 update,
                 context,
@@ -1063,6 +1189,12 @@ async def text_message(update, context) -> None:
         repair = detect_repair_intent(inbound.text)
         if repair is not None and repair.target_state in FERTILIZER_STATES:
             reset_recovery_attempts(context.user_data)
+            log_rule_matched(
+                rule_name=repair.target,
+                domain="fertilizer",
+                target_state=repair.target_state,
+                scope="draft",
+            )
             await send_repair_confirmation(
                 update,
                 context,
@@ -1087,6 +1219,12 @@ async def text_message(update, context) -> None:
         profile_direct_update = detect_profile_direct_update(inbound.text, allow_implicit=True)
         if profile_direct_update is not None:
             reset_recovery_attempts(context.user_data)
+            log_rule_matched(
+                rule_name=profile_direct_update.matched_rule,
+                domain="profile",
+                target_state=profile_direct_update.target_state,
+                scope="confirmed",
+            )
             await send_repair_confirmation(
                 update,
                 context,
@@ -1099,6 +1237,12 @@ async def text_message(update, context) -> None:
         repair = detect_repair_intent(inbound.text)
         if repair is not None and repair.target_state in PROFILE_STATES:
             reset_recovery_attempts(context.user_data)
+            log_rule_matched(
+                rule_name=repair.target,
+                domain="profile",
+                target_state=repair.target_state,
+                scope="confirmed",
+            )
             await send_repair_confirmation(
                 update,
                 context,
@@ -1127,6 +1271,12 @@ async def text_message(update, context) -> None:
         fertilizer_direct_update = detect_fertilizer_direct_update(inbound.text, allow_implicit=True)
         if fertilizer_direct_update is not None:
             reset_recovery_attempts(context.user_data)
+            log_rule_matched(
+                rule_name=fertilizer_direct_update.matched_rule,
+                domain="fertilizer",
+                target_state=fertilizer_direct_update.target_state,
+                scope="confirmed",
+            )
             await send_repair_confirmation(
                 update,
                 context,
@@ -1139,6 +1289,12 @@ async def text_message(update, context) -> None:
         repair = detect_repair_intent(inbound.text)
         if repair is not None and repair.target_state in FERTILIZER_STATES:
             reset_recovery_attempts(context.user_data)
+            log_rule_matched(
+                rule_name=repair.target,
+                domain="fertilizer",
+                target_state=repair.target_state,
+                scope="confirmed",
+            )
             await send_repair_confirmation(
                 update,
                 context,
@@ -1309,6 +1465,18 @@ async def text_message(update, context) -> None:
         recovery_attempt_count=recovery_attempts(context.user_data) + 1,
     )
     if late_gate.classification == ValidationClassification.NEEDS_HANDOFF:
+        log_event(
+            CHEAP_GATE_BLOCKED,
+            state=current_state(context.user_data),
+            reason=late_gate.reason,
+            classification=late_gate.classification.value,
+        )
+        log_event(
+            HANDOFF_REQUESTED,
+            source="cheap_gate",
+            state=current_state(context.user_data),
+            reason=late_gate.human_handoff_reason or late_gate.reason,
+        )
         recovery_context = assemble_recovery_context(
             current_step=current_state(context.user_data),
             latest_user_message=inbound.text,
@@ -1342,6 +1510,12 @@ async def text_message(update, context) -> None:
         return
 
     increment_recovery_attempts(context.user_data)
+    log_event(
+        CHEAP_GATE_BLOCKED,
+        state=current_state(context.user_data),
+        reason=late_gate.reason,
+        classification=late_gate.classification.value,
+    )
     await send_text(
         update,
         service.cheap_gate_text(late_gate, fallback_key, catalog),
@@ -1387,7 +1561,7 @@ async def button_callback(update, context) -> None:
         await clear_callback_markup(update)
         reset_recovery_attempts(context.user_data)
         set_pending_repair_confirmation(context.user_data, None)
-        clear_pending_candidate(context.user_data)
+        discard_pending_candidate(context, reason="repair_confirm_selected")
         target_state = payload["target_state"]
         use_confirmed = payload["scope"] == "confirmed"
         await continue_repair_flow(
@@ -1406,7 +1580,7 @@ async def button_callback(update, context) -> None:
         candidate_payload = pending_candidate(context.user_data)
         set_pending_repair_confirmation(context.user_data, None)
         if pending_confirmation is None or candidate_payload is None:
-            clear_pending_candidate(context.user_data)
+            discard_pending_candidate(context, reason="candidate_payload_missing")
             await send_text(
                 update,
                 service.fallback_text(fallback_key_for_state(current_state(context.user_data)), current_catalog(context)),
@@ -1424,7 +1598,7 @@ async def button_callback(update, context) -> None:
         candidate_value = candidate_payload.get("candidate_value")
         changes = parse_candidate_changes(domain, target_state, candidate_value)
         if changes is None:
-            clear_pending_candidate(context.user_data)
+            discard_pending_candidate(context, reason="candidate_parse_failed")
             await continue_repair_flow(
                 update,
                 context,
@@ -1434,7 +1608,7 @@ async def button_callback(update, context) -> None:
             )
             return
 
-        clear_pending_candidate(context.user_data)
+        discard_pending_candidate(context, reason="candidate_promoted_to_apply")
         if domain == "profile":
             await apply_profile_changes(update, context, changes=changes, use_confirmed=use_confirmed)
             return
@@ -1450,7 +1624,7 @@ async def button_callback(update, context) -> None:
     if action == "repair_cancel":
         await clear_callback_markup(update)
         set_pending_repair_confirmation(context.user_data, None)
-        clear_pending_candidate(context.user_data)
+        discard_pending_candidate(context, reason="repair_cancelled")
         await send_text(
             update,
             service.fallback_text(fallback_key_for_state(current_state(context.user_data)), current_catalog(context)),
