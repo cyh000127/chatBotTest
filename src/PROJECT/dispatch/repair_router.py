@@ -18,6 +18,10 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
 )
+from PROJECT.rule_engine.correction_extractor import (
+    extract_fertilizer_correction_pattern,
+    extract_profile_correction_pattern,
+)
 from PROJECT.rule_engine import classify_global_intent_text
 
 REPAIR_NAME = "repair_name"
@@ -65,6 +69,9 @@ def _has_any(text: str, markers: tuple[str, ...]) -> bool:
 
 
 def _detect_profile_contextual_repair(text: str) -> RepairDecision | None:
+    pattern_decision = extract_profile_correction_pattern(text)
+    if pattern_decision is not None:
+        return RepairDecision(REPAIR_PROFILE, pattern_decision.target_state)
     if _has_any(text, PROFILE_BIRTH_MARKERS):
         return RepairDecision(REPAIR_BIRTH_DATE, STATE_PROFILE_BIRTH_YEAR)
     if _has_any(text, PROFILE_RESIDENCE_MARKERS):
@@ -79,6 +86,9 @@ def _detect_profile_contextual_repair(text: str) -> RepairDecision | None:
 
 
 def _detect_fertilizer_contextual_repair(text: str) -> RepairDecision | None:
+    pattern_decision = extract_fertilizer_correction_pattern(text)
+    if pattern_decision is not None:
+        return RepairDecision(REPAIR_FERTILIZER, pattern_decision.target_state)
     if _has_any(text, FERTILIZER_AMOUNT_MARKERS):
         return RepairDecision(REPAIR_FERTILIZER_AMOUNT, STATE_FERTILIZER_AMOUNT)
     if _has_any(text, FERTILIZER_DATE_MARKERS):

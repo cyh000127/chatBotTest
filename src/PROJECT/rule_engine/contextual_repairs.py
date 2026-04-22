@@ -17,6 +17,10 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
 )
+from PROJECT.rule_engine.correction_extractor import (
+    extract_fertilizer_correction_pattern,
+    extract_profile_correction_pattern,
+)
 
 UPDATE_MARKERS = (
     "수정",
@@ -82,6 +86,50 @@ class DirectUpdateDecision:
 def detect_profile_direct_update(text: str, *, allow_implicit: bool = False) -> DirectUpdateDecision | None:
     if not allow_implicit and not _has_update_signal(text):
         return None
+
+    correction_pattern = extract_profile_correction_pattern(text)
+    if correction_pattern is not None and correction_pattern.candidate_value is not None:
+        if correction_pattern.target_state == STATE_PROFILE_BIRTH_YEAR:
+            birth_date = profile_service.parse_birth_date_text(correction_pattern.candidate_value)
+            if birth_date is not None:
+                year, month, day = birth_date
+                return DirectUpdateDecision(
+                    target_state=STATE_PROFILE_BIRTH_YEAR,
+                    changes={"birth_year": year, "birth_month": month, "birth_day": day},
+                    matched_rule=correction_pattern.matched_rule,
+                )
+        if correction_pattern.target_state == STATE_PROFILE_NAME:
+            name = profile_service.parse_name(correction_pattern.candidate_value)
+            if name is not None:
+                return DirectUpdateDecision(
+                    target_state=STATE_PROFILE_NAME,
+                    changes={"name": name},
+                    matched_rule=correction_pattern.matched_rule,
+                )
+        if correction_pattern.target_state == STATE_PROFILE_RESIDENCE:
+            residence = profile_service.parse_free_text(correction_pattern.candidate_value)
+            if residence is not None:
+                return DirectUpdateDecision(
+                    target_state=STATE_PROFILE_RESIDENCE,
+                    changes={"residence": residence},
+                    matched_rule=correction_pattern.matched_rule,
+                )
+        if correction_pattern.target_state == STATE_PROFILE_CITY:
+            city = profile_service.parse_free_text(correction_pattern.candidate_value)
+            if city is not None:
+                return DirectUpdateDecision(
+                    target_state=STATE_PROFILE_CITY,
+                    changes={"city": city},
+                    matched_rule=correction_pattern.matched_rule,
+                )
+        if correction_pattern.target_state == STATE_PROFILE_DISTRICT:
+            district = profile_service.parse_free_text(correction_pattern.candidate_value)
+            if district is not None:
+                return DirectUpdateDecision(
+                    target_state=STATE_PROFILE_DISTRICT,
+                    changes={"district": district},
+                    matched_rule=correction_pattern.matched_rule,
+                )
 
     birth_date = profile_service.parse_birth_date_text(text)
     if birth_date and (_contains_any(text, PROFILE_BIRTH_MARKERS) or allow_implicit):
@@ -156,6 +204,50 @@ def detect_profile_direct_update(text: str, *, allow_implicit: bool = False) -> 
 def detect_fertilizer_direct_update(text: str, *, allow_implicit: bool = False) -> DirectUpdateDecision | None:
     if not allow_implicit and not _has_update_signal(text):
         return None
+
+    correction_pattern = extract_fertilizer_correction_pattern(text)
+    if correction_pattern is not None and correction_pattern.candidate_value is not None:
+        candidate_value = correction_pattern.candidate_value
+        if correction_pattern.target_state == STATE_FERTILIZER_USED:
+            used = fertilizer_service.parse_used(candidate_value)
+            if used is not None:
+                return DirectUpdateDecision(
+                    target_state=STATE_FERTILIZER_USED,
+                    changes={"used": used},
+                    matched_rule=correction_pattern.matched_rule,
+                )
+        if correction_pattern.target_state == STATE_FERTILIZER_AMOUNT:
+            amount = fertilizer_service.parse_amount(candidate_value)
+            if amount is not None:
+                return DirectUpdateDecision(
+                    target_state=STATE_FERTILIZER_AMOUNT,
+                    changes={"amount_value": amount[0], "amount_unit": amount[1]},
+                    matched_rule=correction_pattern.matched_rule,
+                )
+        if correction_pattern.target_state == STATE_FERTILIZER_DATE:
+            applied_date = fertilizer_service.parse_applied_date(candidate_value)
+            if applied_date is not None:
+                return DirectUpdateDecision(
+                    target_state=STATE_FERTILIZER_DATE,
+                    changes={"applied_date": applied_date},
+                    matched_rule=correction_pattern.matched_rule,
+                )
+        if correction_pattern.target_state == STATE_FERTILIZER_KIND:
+            kind = fertilizer_service.parse_kind(candidate_value)
+            if kind is not None:
+                return DirectUpdateDecision(
+                    target_state=STATE_FERTILIZER_KIND,
+                    changes={"kind": kind},
+                    matched_rule=correction_pattern.matched_rule,
+                )
+        if correction_pattern.target_state == STATE_FERTILIZER_PRODUCT:
+            product_name = fertilizer_service.parse_product_name(candidate_value)
+            if product_name is not None:
+                return DirectUpdateDecision(
+                    target_state=STATE_FERTILIZER_PRODUCT,
+                    changes={"product_name": product_name},
+                    matched_rule=correction_pattern.matched_rule,
+                )
 
     used = fertilizer_service.parse_used(text)
     if used is not None and (_contains_any(text, FERTILIZER_USED_MARKERS) or allow_implicit):
