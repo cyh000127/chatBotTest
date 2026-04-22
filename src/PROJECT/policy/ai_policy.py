@@ -32,6 +32,12 @@ class LlmInvocationPolicyDecision:
     reason: str
 
 
+@dataclass(frozen=True)
+class UnknownInputPolicyDecision:
+    disposition: UnknownInputDisposition
+    reason: str
+
+
 MAX_LLM_CALLS_PER_STRUCTURED_STEP = 1
 MAX_LLM_CALLS_PER_CONFIRM_STEP = 1
 MAX_RECOVERY_ATTEMPTS_BEFORE_HANDOFF = 3
@@ -141,20 +147,55 @@ def classify_unknown_input_disposition(
     use_confirmed: bool = False,
     validation_reason: str | None = None,
 ) -> UnknownInputDisposition:
+    return evaluate_unknown_input_policy(
+        current_step=current_step,
+        domain_hint=domain_hint,
+        use_confirmed=use_confirmed,
+        validation_reason=validation_reason,
+    ).disposition
+
+
+def evaluate_unknown_input_policy(
+    *,
+    current_step: str | None,
+    domain_hint: str | None = None,
+    use_confirmed: bool = False,
+    validation_reason: str | None = None,
+) -> UnknownInputPolicyDecision:
     if validation_reason in UNKNOWN_HANDOFF_REASONS:
-        return UnknownInputDisposition.HANDOFF_REQUIRED
+        return UnknownInputPolicyDecision(
+            disposition=UnknownInputDisposition.HANDOFF_REQUIRED,
+            reason="explicit_handoff_reason",
+        )
 
     if domain_hint == "profile":
         if use_confirmed or current_step in PROFILE_UNKNOWN_LLM_STATES:
-            return UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
-        return UnknownInputDisposition.FALLBACK_ONLY
+            reason = "confirmed_snapshot_repair_allowed" if use_confirmed else "profile_confirm_context_allowed"
+            return UnknownInputPolicyDecision(
+                disposition=UnknownInputDisposition.REPAIR_ASSIST_ALLOWED,
+                reason=reason,
+            )
+        return UnknownInputPolicyDecision(
+            disposition=UnknownInputDisposition.FALLBACK_ONLY,
+            reason="profile_outside_allowed_unknown_context",
+        )
 
     if domain_hint == "fertilizer":
         if use_confirmed or current_step in FERTILIZER_UNKNOWN_LLM_STATES:
-            return UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
-        return UnknownInputDisposition.FALLBACK_ONLY
+            reason = "confirmed_snapshot_repair_allowed" if use_confirmed else "fertilizer_confirm_context_allowed"
+            return UnknownInputPolicyDecision(
+                disposition=UnknownInputDisposition.REPAIR_ASSIST_ALLOWED,
+                reason=reason,
+            )
+        return UnknownInputPolicyDecision(
+            disposition=UnknownInputDisposition.FALLBACK_ONLY,
+            reason="fertilizer_outside_allowed_unknown_context",
+        )
 
-    return UnknownInputDisposition.FALLBACK_ONLY
+    return UnknownInputPolicyDecision(
+        disposition=UnknownInputDisposition.FALLBACK_ONLY,
+        reason="domain_not_allowed_for_unknown_repair",
+    )
 
 
 def classify_handoff_route(

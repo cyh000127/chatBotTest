@@ -106,8 +106,8 @@ from PROJECT.policy import (
     HandoffRoute,
     UnknownInputDisposition,
     classify_handoff_route,
-    classify_unknown_input_disposition,
     evaluate_llm_invocation_policy,
+    evaluate_unknown_input_policy,
 )
 from PROJECT.rule_engine import (
     ValidationClassification,
@@ -622,6 +622,8 @@ async def maybe_send_llm_repair_confirmation(
     text: str,
     allowed_actions: tuple[str, ...],
     use_confirmed: bool,
+    policy_scope: str | None = None,
+    unknown_policy_reason: str | None = None,
 ) -> bool:
     resolver = context.bot_data.get("gemini_edit_intent_resolver")
     state = current_state(context.user_data)
@@ -672,6 +674,8 @@ async def maybe_send_llm_repair_confirmation(
         invocation_type="repair",
         state=state,
         scope="confirmed" if use_confirmed else "draft",
+        policy_scope=policy_scope,
+        policy_reason=unknown_policy_reason,
     )
 
     try:
@@ -773,19 +777,20 @@ async def attempt_llm_repair_after_rules(
     state = current_state(context.user_data)
     if not llm_edit_intent_policy_enabled(context):
         return False
-    unknown_disposition = classify_unknown_input_disposition(
+    unknown_policy = evaluate_unknown_input_policy(
         current_step=state,
         domain_hint=domain,
         use_confirmed=use_confirmed,
     )
-    if unknown_disposition != UnknownInputDisposition.REPAIR_ASSIST_ALLOWED:
-        reason = "unknown_handoff_required" if unknown_disposition == UnknownInputDisposition.HANDOFF_REQUIRED else "unknown_fallback_only"
+    if unknown_policy.disposition != UnknownInputDisposition.REPAIR_ASSIST_ALLOWED:
         log_event(
             LLM_SKIPPED_BY_POLICY,
             invocation_type="repair",
             state=state,
             domain=domain,
-            reason=reason,
+            policy_scope="unknown_input",
+            unknown_disposition=unknown_policy.disposition.value,
+            reason=unknown_policy.reason,
         )
         return False
     return await maybe_send_llm_repair_confirmation(
@@ -794,6 +799,8 @@ async def attempt_llm_repair_after_rules(
         text=text,
         allowed_actions=repair_allowed_actions(domain),
         use_confirmed=use_confirmed,
+        policy_scope="unknown_input",
+        unknown_policy_reason=unknown_policy.reason,
     )
 
 

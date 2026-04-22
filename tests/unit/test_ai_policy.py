@@ -9,6 +9,7 @@ from PROJECT.policy import (
     classify_handoff_route,
     classify_unknown_input_disposition,
     evaluate_llm_invocation_policy,
+    evaluate_unknown_input_policy,
     local_ai_gate_allows_edit_intent,
     local_ai_gate_allows_recovery_assist,
     parse_local_ai_gate,
@@ -125,6 +126,17 @@ def test_unknown_input_disposition_allows_profile_and_fertilizer_confirm_context
         domain_hint="profile",
         use_confirmed=False,
     ) == UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
+
+
+def test_evaluate_unknown_input_policy_returns_contextual_reason():
+    decision = evaluate_unknown_input_policy(
+        current_step=STATE_PROFILE_CONFIRM,
+        domain_hint="profile",
+        use_confirmed=False,
+    )
+
+    assert decision.disposition == UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
+    assert decision.reason == "profile_confirm_context_allowed"
     assert classify_unknown_input_disposition(
         current_step=STATE_PROFILE_EDIT_SELECT,
         domain_hint="profile",
@@ -160,6 +172,17 @@ def test_unknown_input_disposition_allows_confirmed_snapshot_repair():
     assert disposition == UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
 
 
+def test_evaluate_unknown_input_policy_marks_confirmed_snapshot_reason():
+    decision = evaluate_unknown_input_policy(
+        current_step=STATE_MAIN_MENU,
+        domain_hint="fertilizer",
+        use_confirmed=True,
+    )
+
+    assert decision.disposition == UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
+    assert decision.reason == "confirmed_snapshot_repair_allowed"
+
+
 def test_unknown_input_disposition_marks_support_requests_as_handoff():
     disposition = classify_unknown_input_disposition(
         current_step=STATE_MAIN_MENU,
@@ -168,6 +191,17 @@ def test_unknown_input_disposition_marks_support_requests_as_handoff():
     )
 
     assert disposition == UnknownInputDisposition.HANDOFF_REQUIRED
+
+
+def test_evaluate_unknown_input_policy_marks_handoff_reason_explicitly():
+    decision = evaluate_unknown_input_policy(
+        current_step=STATE_MAIN_MENU,
+        domain_hint="profile",
+        validation_reason="explicit_support_request",
+    )
+
+    assert decision.disposition == UnknownInputDisposition.HANDOFF_REQUIRED
+    assert decision.reason == "explicit_handoff_reason"
 
 
 def test_classify_handoff_route_maps_operational_vocabularies():
