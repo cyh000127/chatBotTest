@@ -19,6 +19,16 @@
 
 - 운영 정책의 최상위 기준은 [`CHATBOT_OPERATION_POLICY_V2.md`](./CHATBOT_OPERATION_POLICY_V2.md)다.
 - Gemini recovery classifier 인프라는 구현되어 있다.
-- 실제 메시지 핸들러 자동 호출 범위는 v2 정책에 맞춰 점진적으로 연결한다.
+- 실제 메시지 핸들러의 edit-intent 보조 호출 범위는 v2 정책 기준으로 제한 연결되어 있다.
 - 먼저 2단계 규칙 엔진을 공통 파이프라인으로 만든다.
 - `normalization -> intent routing -> slot/alias resolution -> validation/repair` 순서로 확장한다.
+- unknown 입력 경계, pending candidate, handoff vocabulary는 정책 코드와 테스트에 반영되어 있다.
+
+## 검증 기준
+
+- 전체 검증 명령: `python -m pytest`
+- 정책 관련 핵심 검증 범위:
+  - `tests/unit/test_ai_policy.py`
+  - `tests/unit/test_repair_candidate_flow.py`
+  - `tests/unit/test_rule_engine_recovery_context.py`
+  - `tests/contract/test_rule_engine_cross_domain_fixtures.py`

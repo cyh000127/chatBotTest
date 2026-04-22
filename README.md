@@ -13,12 +13,17 @@ python -m PROJECT.main
 ## 현재 기능
 
 - `/start`, `/help`, `/menu`, `/cancel`
+- `/language` 언어 변경
 - 오늘 날짜 확인
 - 오늘 날씨 확인
+- 로그인 ID 기반 세션 인증
+- 프로필 입력, 확인, 항목별 수정
 - `/fertilizer` 비료 입력 정상 경로
 - 뒤로가기, 취소, 처음부터
 - 상태별 fallback, 알 수 없는 입력 처리
-- Gemini recovery classifier 설정/파서 준비
+- 다국어 카탈로그 기반 응답
+- pending candidate 분리, unknown LLM 경계, handoff route 정책 적용
+- Gemini edit-intent / recovery classifier 설정 및 정책 게이트 연결
 
 ## 운영 기준
 
@@ -26,6 +31,15 @@ python -m PROJECT.main
 - 자연어 수정은 직접 반영하지 않고 수정 의도 신호로만 다룬다.
 - LLM 결과는 항상 validator와 state machine을 다시 거친다.
 - 최상위 운영 정책은 [`docs/CHATBOT_OPERATION_POLICY_V2.md`](./docs/CHATBOT_OPERATION_POLICY_V2.md)를 기준으로 한다.
+
+## 검증
+
+```powershell
+python -m pytest
+```
+
+- 전체 테스트는 `tests/unit`, `tests/contract` 기준으로 검증한다.
+- handoff route, pending candidate, unknown LLM 경계는 정책 테스트로 함께 검증한다.
 
 ## 구조
 
