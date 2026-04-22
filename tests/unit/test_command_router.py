@@ -5,6 +5,7 @@ from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
 from PROJECT.dispatch.command_router import (
     ROUTE_FERTILIZER_FINALIZE,
     ROUTE_OPEN_FERTILIZER,
+    ROUTE_OPEN_INPUT_RESOLVE,
     ROUTE_OPEN_MYFIELDS,
     ROUTE_OPEN_PROFILE,
     ROUTE_PROFILE_EDIT,
@@ -27,6 +28,11 @@ def test_fertilizer_entry_routes_to_fertilizer_input():
 def test_myfields_entry_routes_to_self_lookup_entry():
     decision = route_message(STATE_MAIN_MENU, registry.INTENT_MYFIELDS_ENTRY)
     assert decision.route == ROUTE_OPEN_MYFIELDS
+
+
+def test_input_resolve_entry_routes_to_resolve_entry():
+    decision = route_message(STATE_MAIN_MENU, registry.INTENT_INPUT_RESOLVE_START)
+    assert decision.route == ROUTE_OPEN_INPUT_RESOLVE
 
 
 def test_profile_confirm_edit_routes_to_edit_selection():

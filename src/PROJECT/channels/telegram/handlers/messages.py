@@ -8,6 +8,7 @@ from PROJECT.channels.telegram.parser import parse_update
 from PROJECT.channels.telegram.handlers.commands import (
     cancel_command,
     help_command,
+    input_resolve_command,
     open_fertilizer_edit_selector,
     menu_command,
     myfields_command,
@@ -54,6 +55,7 @@ from PROJECT.dispatch.command_router import (
     ROUTE_HELP,
     ROUTE_MAIN_MENU,
     ROUTE_OPEN_FERTILIZER,
+    ROUTE_OPEN_INPUT_RESOLVE,
     ROUTE_OPEN_MYFIELDS,
     ROUTE_OPEN_PROFILE,
     ROUTE_PROFILE_EDIT,
@@ -1671,6 +1673,11 @@ async def text_message(update, context) -> None:
         await myfields_command(update, context)
         return
 
+    if decision.route == ROUTE_OPEN_INPUT_RESOLVE:
+        reset_recovery_attempts(context.user_data)
+        await input_resolve_command(update, context)
+        return
+
     if decision.route == ROUTE_OPEN_FERTILIZER:
         reset_recovery_attempts(context.user_data)
         await start_fertilizer_input(update, context)
@@ -2076,6 +2083,10 @@ async def button_callback(update, context) -> None:
 
     if decision.route == ROUTE_OPEN_MYFIELDS:
         await myfields_command(update, context)
+        return
+
+    if decision.route == ROUTE_OPEN_INPUT_RESOLVE:
+        await input_resolve_command(update, context)
         return
 
     if decision.route == ROUTE_OPEN_FERTILIZER:

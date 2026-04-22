@@ -2,6 +2,7 @@ from PROJECT.adapters.outbound.reply_sender import send_text
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_USED
+from PROJECT.conversations.input_resolve.states import STATE_INPUT_RESOLVE_TARGET
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_EDIT_SELECT, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu import service
@@ -62,6 +63,17 @@ async def show_myfields_entry(update, context) -> None:
     await send_text(
         update,
         service.myfields_entry_text(catalog),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+    )
+
+
+async def start_input_resolve_entry(update, context) -> None:
+    catalog = catalog_for(context)
+    reset_session(context.user_data)
+    set_state(context.user_data, STATE_INPUT_RESOLVE_TARGET)
+    await send_text(
+        update,
+        service.input_resolve_entry_text(catalog),
         keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
     )
 
@@ -238,6 +250,10 @@ async def fertilizer_command(update, context) -> None:
 
 async def myfields_command(update, context) -> None:
     await show_myfields_entry(update, context)
+
+
+async def input_resolve_command(update, context) -> None:
+    await start_input_resolve_entry(update, context)
 
 
 async def language_command(update, context) -> None:

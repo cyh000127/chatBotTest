@@ -54,6 +54,10 @@ def myfields_entry_text(catalog) -> str:
     return catalog.MYFIELDS_ENTRY_MESSAGE
 
 
+def input_resolve_entry_text(catalog) -> str:
+    return catalog.INPUT_RESOLVE_TARGET_PROMPT
+
+
 def language_menu_text(catalog) -> str:
     return catalog.LANGUAGE_MENU_MESSAGE
 
