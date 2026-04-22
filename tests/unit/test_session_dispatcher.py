@@ -8,9 +8,11 @@ from PROJECT.dispatch.session_dispatcher import (
     has_confirmed_profile,
     increment_auth_failures,
     last_recovery_context,
+    pending_candidate,
     pending_repair_confirmation,
     reset_session,
     set_last_recovery_context,
+    set_pending_candidate,
     set_pending_repair_confirmation,
     set_confirmed_profile,
     set_selected_city,
@@ -70,3 +72,21 @@ def test_pending_repair_confirmation_helper_works():
     set_pending_repair_confirmation(user_data, payload)
 
     assert pending_repair_confirmation(user_data) == payload
+
+
+def test_pending_candidate_helper_works():
+    user_data = {}
+    payload = {"domain": "fertilizer", "target_state": "fertilizer_product", "candidate_value": "한아름"}
+
+    set_pending_candidate(user_data, payload)
+
+    assert pending_candidate(user_data) == payload
+
+
+def test_reset_session_clears_pending_candidate():
+    user_data = {}
+    set_pending_candidate(user_data, {"candidate_value": "한아름"})
+
+    reset_session(user_data)
+
+    assert pending_candidate(user_data) is None

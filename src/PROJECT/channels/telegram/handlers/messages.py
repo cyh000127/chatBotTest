@@ -65,6 +65,7 @@ from PROJECT.dispatch.command_router import (
 from PROJECT.dispatch.input_fallback import fallback_key_for_state
 from PROJECT.dispatch.repair_router import detect_profile_view_intent, detect_repair_intent
 from PROJECT.dispatch.session_dispatcher import (
+    clear_pending_candidate,
     cancel_session,
     confirmed_fertilizer,
     confirmed_profile,
@@ -76,6 +77,7 @@ from PROJECT.dispatch.session_dispatcher import (
     has_confirmed_profile,
     increment_recovery_attempts,
     is_authenticated,
+    pending_candidate,
     pending_repair_confirmation,
     pending_slot,
     profile_draft,
@@ -87,6 +89,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_last_recovery_context,
     set_confirmed_profile,
     set_locale,
+    set_pending_candidate,
     set_pending_repair_confirmation,
     set_pending_slot,
     set_profile_draft,
@@ -341,6 +344,7 @@ def parse_candidate_changes(domain: str, target_state: str, candidate_value: str
 
 
 async def continue_repair_flow(update, context, *, domain: str, target_state: str, use_confirmed: bool) -> None:
+    clear_pending_candidate(context.user_data)
     if domain == "profile":
         if use_confirmed:
             if target_state == STATE_PROFILE_EDIT_SELECT:
@@ -442,6 +446,7 @@ async def send_repair_confirmation(
     target_state: str,
     use_confirmed: bool,
     candidate_value: str | None = None,
+    candidate_source: str = "rule",
 ) -> None:
     catalog = current_catalog(context)
     scope = "confirmed" if use_confirmed else "draft"
@@ -452,17 +457,28 @@ async def send_repair_confirmation(
     parsed_candidate = parse_candidate_changes(domain, target_state, candidate_value)
     if parsed_candidate is not None and candidate_value:
         text = f"{text}\n\n{catalog.LLM_REPAIR_CANDIDATE_HINT.format(candidate_value=candidate_value)}"
-        set_pending_repair_confirmation(
+        set_pending_candidate(
             context.user_data,
             {
                 "domain": domain,
                 "scope": scope,
                 "target_state": target_state,
                 "candidate_value": candidate_value,
+                "source": candidate_source,
+            },
+        )
+        set_pending_repair_confirmation(
+            context.user_data,
+            {
+                "domain": domain,
+                "scope": scope,
+                "target_state": target_state,
+                "has_candidate": True,
             },
         )
     else:
         set_pending_repair_confirmation(context.user_data, None)
+        clear_pending_candidate(context.user_data)
     await send_text(
         update,
         text,
@@ -570,6 +586,7 @@ async def maybe_send_llm_repair_confirmation(
         target_state=target_state,
         use_confirmed=use_confirmed,
         candidate_value=result.candidate_value,
+        candidate_source="llm",
     )
     log_event(
         LLM_REPAIR_SIGNAL_DETECTED,
@@ -1318,6 +1335,7 @@ async def button_callback(update, context) -> None:
         await clear_callback_markup(update)
         reset_recovery_attempts(context.user_data)
         set_pending_repair_confirmation(context.user_data, None)
+        clear_pending_candidate(context.user_data)
         target_state = payload["target_state"]
         use_confirmed = payload["scope"] == "confirmed"
         await continue_repair_flow(
@@ -1333,8 +1351,10 @@ async def button_callback(update, context) -> None:
         await clear_callback_markup(update)
         reset_recovery_attempts(context.user_data)
         pending_confirmation = pending_repair_confirmation(context.user_data)
+        candidate_payload = pending_candidate(context.user_data)
         set_pending_repair_confirmation(context.user_data, None)
-        if pending_confirmation is None:
+        if pending_confirmation is None or candidate_payload is None:
+            clear_pending_candidate(context.user_data)
             await send_text(
                 update,
                 service.fallback_text(fallback_key_for_state(current_state(context.user_data)), current_catalog(context)),
@@ -1349,9 +1369,10 @@ async def button_callback(update, context) -> None:
         domain = pending_confirmation["domain"]
         target_state = pending_confirmation["target_state"]
         use_confirmed = pending_confirmation["scope"] == "confirmed"
-        candidate_value = pending_confirmation.get("candidate_value")
+        candidate_value = candidate_payload.get("candidate_value")
         changes = parse_candidate_changes(domain, target_state, candidate_value)
         if changes is None:
+            clear_pending_candidate(context.user_data)
             await continue_repair_flow(
                 update,
                 context,
@@ -1361,6 +1382,7 @@ async def button_callback(update, context) -> None:
             )
             return
 
+        clear_pending_candidate(context.user_data)
         if domain == "profile":
             await apply_profile_changes(update, context, changes=changes, use_confirmed=use_confirmed)
             return
@@ -1376,6 +1398,7 @@ async def button_callback(update, context) -> None:
     if action == "repair_cancel":
         await clear_callback_markup(update)
         set_pending_repair_confirmation(context.user_data, None)
+        clear_pending_candidate(context.user_data)
         await send_text(
             update,
             service.fallback_text(fallback_key_for_state(current_state(context.user_data)), current_catalog(context)),

@@ -4,6 +4,7 @@ from PROJECT.channels.telegram.handlers.messages import llm_edit_intent_policy_e
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_BIRTH_YEAR
 from PROJECT.conversations.sample_menu.keyboards import repair_confirmation_keyboard
+from PROJECT.dispatch.session_dispatcher import pending_candidate, pending_repair_confirmation, set_pending_candidate, set_pending_repair_confirmation
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.llm import LlmEditAction, LlmEditIntentResult
 
@@ -89,3 +90,20 @@ def test_llm_edit_intent_policy_enabled_requires_explicit_flag():
 
     assert llm_edit_intent_policy_enabled(disabled_context) is False
     assert llm_edit_intent_policy_enabled(enabled_context) is True
+
+
+def test_pending_candidate_is_stored_separately_from_repair_confirmation():
+    user_data = {}
+    set_pending_repair_confirmation(user_data, {"domain": "fertilizer", "target_state": STATE_FERTILIZER_AMOUNT, "has_candidate": True})
+    set_pending_candidate(user_data, {"domain": "fertilizer", "target_state": STATE_FERTILIZER_AMOUNT, "candidate_value": "20kg"})
+
+    assert pending_repair_confirmation(user_data) == {
+        "domain": "fertilizer",
+        "target_state": STATE_FERTILIZER_AMOUNT,
+        "has_candidate": True,
+    }
+    assert pending_candidate(user_data) == {
+        "domain": "fertilizer",
+        "target_state": STATE_FERTILIZER_AMOUNT,
+        "candidate_value": "20kg",
+    }

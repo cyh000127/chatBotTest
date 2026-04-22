@@ -20,6 +20,7 @@ def _default_session() -> dict:
         "recovery_attempts": 0,
         "last_recovery_context": None,
         "pending_repair_confirmation": None,
+        "pending_candidate": None,
     }
 
 
@@ -200,3 +201,15 @@ def set_pending_repair_confirmation(user_data: dict, payload: dict | None) -> No
 
 def pending_repair_confirmation(user_data: dict) -> dict | None:
     return get_session(user_data).get("pending_repair_confirmation")
+
+
+def set_pending_candidate(user_data: dict, payload: dict | None) -> None:
+    get_session(user_data)["pending_candidate"] = payload
+
+
+def pending_candidate(user_data: dict) -> dict | None:
+    return get_session(user_data).get("pending_candidate")
+
+
+def clear_pending_candidate(user_data: dict) -> None:
+    set_pending_candidate(user_data, None)
