@@ -6,6 +6,7 @@ BUTTON_PROFILE = "Profile input"
 BUTTON_FERTILIZER = "Fertilizer input"
 BUTTON_MYFIELDS = "My fields"
 BUTTON_INPUT_RESOLVE = "Input resolve"
+BUTTON_SUPPORT = "Support"
 BUTTON_HELP = "Help"
 BUTTON_BACK = "Back"
 BUTTON_CANCEL = "Cancel"
@@ -67,6 +68,7 @@ WEATHER_ERROR_MESSAGE = "Could not fetch the weather.\nPlease try again shortly.
 UNKNOWN_COMMAND_MESSAGE = "This command is not supported.\nChoose one of the related items below or use /help."
 MYFIELDS_ENTRY_MESSAGE = "This is the myfields entry point.\nFor now, the runtime exposes the entry guidance and re-entry path.\nChoose another related action below or restart with /start."
 INPUT_RESOLVE_ENTRY_MESSAGE = "This is the input resolve entry point.\nThe current runtime opens the canonical value collection path first.\nCandidate generation and manual-review linkage remain in a separate implementation scope."
+SUPPORT_ESCALATION_MESSAGE = "This is the support guidance path.\nThe support.escalate route is not connected to real-time chat yet.\nYou can safely return with /help, /menu, or /start."
 
 HELP_MESSAGE = (
     "Available commands:\n"
@@ -77,6 +79,7 @@ HELP_MESSAGE = (
     "- /myfields : open the myfields entry point\n"
     "- /fertilizer : start fertilizer input\n"
     "- /resolve : open the input resolve entry point\n"
+    "- /support : open support guidance\n"
     "- /language : change language\n"
     "- Back : go to the previous step\n"
     "- Cancel : stop the current flow\n"
