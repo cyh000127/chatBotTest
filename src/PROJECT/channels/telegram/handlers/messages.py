@@ -205,6 +205,13 @@ FERTILIZER_EDIT_CALLBACK_TO_STATE = {
     "date": STATE_FERTILIZER_DATE,
 }
 
+YIELD_EDIT_CALLBACK_TO_STATE = {
+    "ready": STATE_YIELD_READY,
+    "field": STATE_YIELD_FIELD,
+    "amount": STATE_YIELD_AMOUNT,
+    "date": STATE_YIELD_DATE,
+}
+
 LLM_EDIT_ACTION_TO_TARGET = {
     LlmEditAction.PROFILE_EDIT_SELECT.value: ("profile", STATE_PROFILE_EDIT_SELECT),
     LlmEditAction.PROFILE_EDIT_NAME.value: ("profile", STATE_PROFILE_NAME),
@@ -1142,6 +1149,8 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "fertilizer_kind", {"kind": data.rsplit(":", 1)[1]}
     if data.startswith("yield:ready:"):
         return "yield_ready", {"ready": data.rsplit(":", 1)[1] == "yes"}
+    if data.startswith("yield:edit:") and data != "yield:edit:start":
+        return "yield_edit_select", {"target": data.rsplit(":", 1)[1]}
     if data == "yield:edit:start":
         return "yield_edit_start", {}
     return registry.INTENT_UNKNOWN_TEXT, {}
@@ -2228,6 +2237,22 @@ async def button_callback(update, context) -> None:
         set_yield_draft(context.user_data, yield_service.new_draft().to_dict())
         set_state(context.user_data, STATE_YIELD_READY, push_history=True)
         await send_yield_prompt(update, context, STATE_YIELD_READY)
+        return
+
+    if action == "yield_edit_select":
+        await clear_callback_markup(update)
+        if state != STATE_YIELD_EDIT_SELECT:
+            if current_state(context.user_data) in YIELD_STATES:
+                await send_yield_prompt(update, context, current_state(context.user_data))
+            return
+        target_state = YIELD_EDIT_CALLBACK_TO_STATE.get(payload["target"])
+        if target_state is None:
+            await send_yield_prompt(update, context, STATE_YIELD_EDIT_SELECT)
+            return
+        draft = yield_service.reset_draft_for_repair(current_yield(context), target_state)
+        set_yield_draft(context.user_data, draft.to_dict())
+        set_state(context.user_data, target_state, push_history=True)
+        await send_yield_prompt(update, context, target_state)
         return
 
     decision = route_message(state, action, payload)

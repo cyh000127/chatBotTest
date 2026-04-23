@@ -136,6 +136,32 @@ def confirmed_text(catalog) -> str:
     return catalog.YIELD_CONFIRMED_MESSAGE
 
 
+def reset_draft_for_repair(draft: YieldDraft, target_state: str) -> YieldDraft:
+    if target_state == STATE_YIELD_READY:
+        return new_draft()
+    if target_state == STATE_YIELD_FIELD:
+        return update_draft(
+            draft,
+            field_name="",
+            amount_value=None,
+            amount_unit="",
+            harvest_date="",
+        )
+    if target_state == STATE_YIELD_AMOUNT:
+        return update_draft(
+            draft,
+            amount_value=None,
+            amount_unit="",
+            harvest_date="",
+        )
+    if target_state == STATE_YIELD_DATE:
+        return update_draft(
+            draft,
+            harvest_date="",
+        )
+    return draft
+
+
 def fallback_text_for_state(state: str, catalog) -> str:
     mapping = {
         STATE_YIELD_READY: catalog.YIELD_READY_FALLBACK,

@@ -40,6 +40,14 @@ def yield_confirm_keyboard(catalog) -> list[list[dict[str, str]]]:
 
 def yield_edit_select_keyboard(catalog) -> list[list[dict[str, str]]]:
     return [
+        [
+            _button(catalog.BUTTON_YIELD_EDIT_READY, "yield:edit:ready"),
+            _button(catalog.BUTTON_YIELD_EDIT_FIELD, "yield:edit:field"),
+        ],
+        [
+            _button(catalog.BUTTON_YIELD_EDIT_AMOUNT, "yield:edit:amount"),
+            _button(catalog.BUTTON_YIELD_EDIT_DATE, "yield:edit:date"),
+        ],
         [_button(catalog.BUTTON_EDIT_START, "yield:edit:start")],
         [
             _button(catalog.BUTTON_BACK, "intent:back"),
