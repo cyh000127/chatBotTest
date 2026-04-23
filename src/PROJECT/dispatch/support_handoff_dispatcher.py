@@ -76,7 +76,7 @@ def record_support_handoff_user_message(
         return None
     follow_up_id = active_follow_up_id(user_data)
     if follow_up_id is not None:
-        runtime.append_user_message(follow_up_id, user_message)
+        runtime.append_user_message(follow_up_id, user_message, source=source)
     updated = append_user_message(current, user_message)
     set_support_handoff(user_data, updated)
     log_event(
@@ -119,7 +119,7 @@ def close_support_handoff(
         return current
     follow_up_id = active_follow_up_id(user_data)
     if follow_up_id is not None:
-        runtime.close_follow_up(follow_up_id)
+        runtime.close_follow_up(follow_up_id, source=source)
         clear_active_follow_up_id(user_data)
     updated = close_handoff(current)
     set_support_handoff(user_data, updated)

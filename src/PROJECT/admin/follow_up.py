@@ -6,6 +6,15 @@ from enum import StrEnum
 from threading import RLock
 from uuid import uuid4
 
+from PROJECT.telemetry.event_logger import log_event
+from PROJECT.telemetry.events import (
+    ADMIN_FOLLOW_UP_CLOSED,
+    ADMIN_FOLLOW_UP_CREATED,
+    ADMIN_FOLLOW_UP_USER_MESSAGE_ADDED,
+    ADMIN_REPLY_CREATED,
+    OUTBOX_MESSAGE_CREATED,
+)
+
 
 class FollowUpStatus(StrEnum):
     WAITING_ADMIN_REPLY = "waiting_admin_reply"
@@ -138,6 +147,16 @@ class InMemoryAdminRuntime:
         with self._lock:
             self._command_requests[request.request_id] = request
             self._follow_ups[follow_up.follow_up_id] = follow_up
+        log_event(
+            ADMIN_FOLLOW_UP_CREATED,
+            source=source,
+            follow_up_id=follow_up.follow_up_id,
+            command_request_id=request.request_id,
+            route_hint=follow_up.route_hint,
+            reason=follow_up.reason,
+            state=follow_up.current_step,
+            failure_count=follow_up.failure_count,
+        )
         return follow_up
 
     def list_command_requests(self) -> list[CommandRequest]:
@@ -155,7 +174,13 @@ class InMemoryAdminRuntime:
         with self._lock:
             return self._follow_ups.get(follow_up_id)
 
-    def append_user_message(self, follow_up_id: str, user_message: str) -> FollowUpItem | None:
+    def append_user_message(
+        self,
+        follow_up_id: str,
+        user_message: str,
+        *,
+        source: str = "runtime",
+    ) -> FollowUpItem | None:
         with self._lock:
             follow_up = self._follow_ups.get(follow_up_id)
             if follow_up is None or follow_up.closed:
@@ -168,9 +193,23 @@ class InMemoryAdminRuntime:
                 updated_at=_now(),
             )
             self._follow_ups[follow_up_id] = updated
+            log_event(
+                ADMIN_FOLLOW_UP_USER_MESSAGE_ADDED,
+                source=source,
+                follow_up_id=follow_up_id,
+                route_hint=updated.route_hint,
+                state=updated.current_step,
+                message_count=len(updated.user_messages),
+            )
             return updated
 
-    def create_admin_reply(self, follow_up_id: str, admin_message: str) -> tuple[FollowUpItem, OutboxMessage] | None:
+    def create_admin_reply(
+        self,
+        follow_up_id: str,
+        admin_message: str,
+        *,
+        source: str = "admin.follow_up.reply",
+    ) -> tuple[FollowUpItem, OutboxMessage] | None:
         with self._lock:
             follow_up = self._follow_ups.get(follow_up_id)
             if follow_up is None or follow_up.closed:
@@ -190,15 +229,31 @@ class InMemoryAdminRuntime:
                 chat_id=follow_up.chat_id,
                 text=admin_message,
                 status=OutboxStatus.PENDING,
-                source="admin.follow_up.reply",
+                source=source,
                 created_at=now,
                 updated_at=now,
             )
             self._follow_ups[follow_up_id] = updated
             self._outbox[outbox_message.outbox_id] = outbox_message
+            log_event(
+                ADMIN_REPLY_CREATED,
+                source=source,
+                follow_up_id=follow_up_id,
+                route_hint=updated.route_hint,
+                state=updated.current_step,
+                admin_reply_count=updated.admin_reply_count,
+            )
+            log_event(
+                OUTBOX_MESSAGE_CREATED,
+                source=source,
+                outbox_id=outbox_message.outbox_id,
+                follow_up_id=follow_up_id,
+                chat_id=outbox_message.chat_id,
+                status=outbox_message.status.value,
+            )
             return updated, outbox_message
 
-    def close_follow_up(self, follow_up_id: str) -> FollowUpItem | None:
+    def close_follow_up(self, follow_up_id: str, *, source: str = "runtime") -> FollowUpItem | None:
         with self._lock:
             follow_up = self._follow_ups.get(follow_up_id)
             if follow_up is None:
@@ -211,6 +266,15 @@ class InMemoryAdminRuntime:
                 updated_at=_now(),
             )
             self._follow_ups[follow_up_id] = updated
+            log_event(
+                ADMIN_FOLLOW_UP_CLOSED,
+                source=source,
+                follow_up_id=follow_up_id,
+                route_hint=updated.route_hint,
+                state=updated.current_step,
+                user_message_count=len(updated.user_messages),
+                admin_reply_count=updated.admin_reply_count,
+            )
             return updated
 
     def list_outbox(self, *, status: OutboxStatus | None = None) -> list[OutboxMessage]:
