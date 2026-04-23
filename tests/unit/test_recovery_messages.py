@@ -62,6 +62,7 @@ def test_render_cheap_gate_message_uses_escalation_guidance_when_context_exists(
         recovery_context=recovery_context,
     )
 
-    assert "support.escalate" in text
+    assert "지원 이관" in text
+    assert "이 대화창" in text
     assert catalog.RECOVERY_GUIDANCE_ESCALATION_READY in text
     assert "현재 작업을 취소했습니다." in text

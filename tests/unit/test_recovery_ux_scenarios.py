@@ -41,7 +41,8 @@ def test_cancelled_repeated_failure_recovery_scenario_shows_escalation_guidance(
         recovery_context=recovery_context,
     )
 
-    assert "manual_resolution_required" in text
+    assert "수동 해결" in text
+    assert "운영 검토" in text
     assert catalog.RECOVERY_GUIDANCE_ESCALATION_READY in text
     assert "현재 작업을 취소했습니다." in text
 

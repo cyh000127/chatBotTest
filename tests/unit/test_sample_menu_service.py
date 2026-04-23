@@ -13,7 +13,8 @@ def test_cheap_gate_text_distinguishes_support_escalation_message():
 
     text = service.cheap_gate_text(result, "default", catalog)
 
-    assert "support.escalate" in text
+    assert "지원 이관" in text
+    assert "이 대화창" in text
 
 
 def test_cheap_gate_text_distinguishes_admin_followup_message():
@@ -26,7 +27,8 @@ def test_cheap_gate_text_distinguishes_admin_followup_message():
 
     text = service.cheap_gate_text(result, "default", catalog)
 
-    assert "admin follow-up queue" in text
+    assert "운영 후속 확인" in text
+    assert "이 대화창" in text
 
 
 def test_cheap_gate_text_distinguishes_manual_resolution_message():
@@ -39,7 +41,8 @@ def test_cheap_gate_text_distinguishes_manual_resolution_message():
 
     text = service.cheap_gate_text(result, "default", catalog)
 
-    assert "manual_resolution_required" in text
+    assert "수동 해결" in text
+    assert "운영 검토" in text
 
 
 def test_unknown_command_text_guides_to_related_items():

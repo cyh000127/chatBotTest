@@ -73,7 +73,7 @@ WEATHER_ERROR_MESSAGE = "Could not fetch the weather.\nPlease try again shortly.
 UNKNOWN_COMMAND_MESSAGE = "This command is not supported.\nChoose one of the related items below or use /help."
 MYFIELDS_ENTRY_MESSAGE = "This is the myfields entry point.\nFor now, the runtime exposes the entry guidance and re-entry path.\nChoose another related action below or restart with /start."
 INPUT_RESOLVE_ENTRY_MESSAGE = "This is the input resolve entry point.\nThe current runtime opens the canonical value collection path first.\nCandidate generation and manual-review linkage remain in a separate implementation scope."
-SUPPORT_ESCALATION_MESSAGE = "This is the support guidance path.\nThe support.escalate route is not connected to real-time chat yet.\nYou can safely return with /help, /menu, or /start."
+SUPPORT_ESCALATION_MESSAGE = "Your support request was sent for operational review.\nNo new chat is opened; follow-up guidance can continue in this chat.\nYou can safely return with /help, /menu, or /start."
 SUPPORT_HANDOFF_MESSAGE_RECORDED = "I added this message to the support handoff thread.\nYou can receive follow-up guidance in this same chat without opening a new chat.\nUse /start if you want to restart."
 SUPPORT_HANDOFF_CLOSED_MESSAGE = "The support handoff is closed.\nYou can ask for help again in this chat if needed."
 
@@ -113,17 +113,17 @@ RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "I found several candidate values in one me
 RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "I applied several candidate values to the current draft. Please review the content below."
 CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE = (
     "This looks like a request for support or human assistance.\n"
-    "The support.escalate path is not connected to real-time chat yet.\n"
+    "I will keep it as a support handoff, and follow-up guidance can continue in this chat.\n"
     "Choose one of the related items below or use /help."
 )
 CHEAP_GATE_ADMIN_FOLLOWUP_MESSAGE = (
     "This request looks like a case that needs administrator follow-up.\n"
-    "The admin follow-up queue is not connected to real-time chat yet.\n"
+    "I will keep it for operational follow-up, and any needed guidance can continue in this chat.\n"
     "Choose one of the related items below to continue."
 )
 CHEAP_GATE_MANUAL_RESOLUTION_MESSAGE = (
     "I checked this input several times, but this step is difficult to resolve automatically.\n"
-    "This is close to a manual_resolution_required case.\n"
+    "I will keep it for manual operational review.\n"
     "Choose one of the related items below, or restart with /menu or /start."
 )
 
