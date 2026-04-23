@@ -26,6 +26,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_state,
     set_yield_draft,
 )
+from PROJECT.dispatch.support_handoff_dispatcher import create_support_handoff_request
 from PROJECT.i18n.translator import get_catalog, language_keyboard
 
 
@@ -94,8 +95,28 @@ async def start_input_resolve_entry(update, context) -> None:
     )
 
 
-async def show_support_guidance(update, context) -> None:
+async def show_support_guidance(
+    update,
+    context,
+    *,
+    reason: str = "explicit_support_request",
+    route_hint: str = "support.escalate",
+    user_message: str = "/support",
+    failure_count: int = 0,
+    recent_messages_summary: str = "",
+    source: str = "support_command",
+) -> None:
     catalog = catalog_for(context)
+    create_support_handoff_request(
+        context.user_data,
+        route_hint=route_hint,
+        reason=reason,
+        current_step=current_state(context.user_data),
+        user_message=user_message,
+        failure_count=failure_count,
+        recent_messages_summary=recent_messages_summary,
+        source=source,
+    )
     await send_text(
         update,
         service.support_escalation_text(catalog),

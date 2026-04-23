@@ -118,6 +118,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_yield_draft,
     yield_draft,
 )
+from PROJECT.dispatch.support_handoff_dispatcher import create_support_handoff_request
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
 from PROJECT.llm import GeminiNotConfiguredError, GeminiRecoveryError, GeminiResponseFormatError, LlmEditAction, LlmEditIntentResult
 from PROJECT.policy import (
@@ -331,6 +332,29 @@ def handoff_route_for_validation(*, reason: str | None, human_handoff_reason: st
     return classify_handoff_route(
         reason=reason,
         human_handoff_reason=human_handoff_reason,
+        source=source,
+    )
+
+
+def create_handoff_request_from_runtime(
+    context,
+    *,
+    route_hint: HandoffRoute,
+    reason: str,
+    current_step: str | None,
+    user_message: str,
+    failure_count: int = 0,
+    recent_messages_summary: str = "",
+    source: str,
+) -> None:
+    create_support_handoff_request(
+        context.user_data,
+        route_hint=route_hint.value,
+        reason=reason,
+        current_step=current_step,
+        user_message=user_message,
+        failure_count=failure_count,
+        recent_messages_summary=recent_messages_summary,
         source=source,
     )
 
@@ -991,6 +1015,14 @@ async def maybe_send_llm_repair_confirmation(
                 reason=result.reason or "needs_human",
                 source="llm_repair",
             )
+            create_handoff_request_from_runtime(
+                context,
+                route_hint=handoff_route,
+                reason=result.reason or "needs_human",
+                current_step=state,
+                user_message=text,
+                source="llm_repair",
+            )
             log_event(
                 HANDOFF_REQUESTED,
                 source="llm_repair",
@@ -1444,6 +1476,16 @@ async def text_message(update, context) -> None:
         )
         set_last_recovery_context(context.user_data, recovery_context.to_dict())
         log_recovery_classification_event(recovery_context, source="early_gate_handoff")
+        create_handoff_request_from_runtime(
+            context,
+            route_hint=handoff_route,
+            reason=early_gate.human_handoff_reason or early_gate.reason or "needs_handoff",
+            current_step=state,
+            user_message=inbound.text,
+            failure_count=recovery_attempts(context.user_data),
+            recent_messages_summary=recovery_context.recent_messages_summary,
+            source="early_gate_handoff",
+        )
         reset_recovery_attempts(context.user_data)
         await send_text(
             update,
@@ -1802,7 +1844,12 @@ async def text_message(update, context) -> None:
 
     if decision.route == ROUTE_SUPPORT_GUIDANCE:
         reset_recovery_attempts(context.user_data)
-        await show_support_guidance(update, context)
+        await show_support_guidance(
+            update,
+            context,
+            user_message=inbound.text,
+            source="support_text_intent",
+        )
         return
 
     if decision.route == ROUTE_OPEN_FERTILIZER:
@@ -1944,6 +1991,16 @@ async def text_message(update, context) -> None:
         )
         set_last_recovery_context(context.user_data, recovery_context.to_dict())
         log_recovery_classification_event(recovery_context, source="late_gate_handoff")
+        create_handoff_request_from_runtime(
+            context,
+            route_hint=handoff_route,
+            reason=late_gate.human_handoff_reason or late_gate.reason or "needs_handoff",
+            current_step=current_state(context.user_data),
+            user_message=inbound.text,
+            failure_count=recovery_attempts(context.user_data) + 1,
+            recent_messages_summary=recovery_context.recent_messages_summary,
+            source="late_gate_handoff",
+        )
         reset_recovery_attempts(context.user_data)
         await send_text(
             update,
