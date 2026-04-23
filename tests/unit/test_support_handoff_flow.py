@@ -86,3 +86,30 @@ def test_active_support_handoff_records_followup_message(monkeypatch):
     assert handoff is not None
     assert handoff.user_messages == ("상담원 연결해주세요", "추가로 사진 업로드도 안 됩니다")
     assert any("추가 내용" in text for text in sent_messages)
+
+
+def test_admin_reply_is_recorded_and_relayed_in_same_chat(monkeypatch):
+    sent_messages: list[str] = []
+
+    async def fake_send_text(update, text, keyboard_layout=None):
+        sent_messages.append(text)
+
+    monkeypatch.setattr(commands, "send_text", fake_send_text)
+    context = _context()
+
+    asyncio.run(commands.show_support_guidance(_update("/support"), context))
+    relayed = asyncio.run(
+        commands.relay_support_admin_reply(
+            _update("admin"),
+            context,
+            admin_message="확인했습니다. 사진을 다시 보내주세요.",
+        )
+    )
+
+    handoff = support_handoff(context.user_data)
+    assert relayed is True
+    assert handoff is not None
+    assert handoff.admin_reply_count == 1
+    assert handoff.awaiting_admin_reply is False
+    assert handoff.admin_messages == ("확인했습니다. 사진을 다시 보내주세요.",)
+    assert any("운영자 답변" in text for text in sent_messages)

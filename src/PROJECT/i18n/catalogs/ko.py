@@ -330,6 +330,15 @@ def format_yield_confirmation(
         "맞으면 [확인]을 눌러주세요."
     )
 
+
+def format_support_admin_reply(*, admin_message: str) -> str:
+    return (
+        "운영자 답변입니다.\n"
+        f"{admin_message}\n\n"
+        "추가로 전달할 내용이 있으면 이 대화창에 이어서 입력해주세요."
+    )
+
+
 WEATHER_CODE_LABELS = {
     0: "맑음",
     1: "대체로 맑음",

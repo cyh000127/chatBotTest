@@ -62,6 +62,10 @@ def support_escalation_text(catalog) -> str:
     return catalog.SUPPORT_ESCALATION_MESSAGE
 
 
+def support_admin_reply_text(catalog, admin_message: str) -> str:
+    return catalog.format_support_admin_reply(admin_message=admin_message)
+
+
 def language_menu_text(catalog) -> str:
     return catalog.LANGUAGE_MENU_MESSAGE
 

@@ -26,7 +26,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_state,
     set_yield_draft,
 )
-from PROJECT.dispatch.support_handoff_dispatcher import create_support_handoff_request
+from PROJECT.dispatch.support_handoff_dispatcher import create_support_handoff_request, record_support_handoff_admin_reply
 from PROJECT.i18n.translator import get_catalog, language_keyboard
 
 
@@ -122,6 +122,23 @@ async def show_support_guidance(
         service.support_escalation_text(catalog),
         keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
     )
+
+
+async def relay_support_admin_reply(update, context, *, admin_message: str) -> bool:
+    catalog = catalog_for(context)
+    handoff = record_support_handoff_admin_reply(
+        context.user_data,
+        admin_message=admin_message,
+        source="admin_reply_relay",
+    )
+    if handoff is None:
+        return False
+    await send_text(
+        update,
+        service.support_admin_reply_text(catalog, admin_message),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+    )
+    return True
 
 
 async def show_current_profile(update, context) -> bool:

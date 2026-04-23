@@ -331,6 +331,14 @@ def format_yield_confirmation(
     )
 
 
+def format_support_admin_reply(*, admin_message: str) -> str:
+    return (
+        "ចម្លើយពីក្រុមប្រតិបត្តិការ។\n"
+        f"{admin_message}\n\n"
+        "បើអ្នកត្រូវការបន្ថែមព័ត៌មាន សូមបន្តសរសេរក្នុងបង្អួចជជែកនេះ។"
+    )
+
+
 WEATHER_CODE_LABELS = {
     0: "មេឃស្រឡះ",
     1: "ភាគច្រើនស្រឡះ",

@@ -23,6 +23,7 @@ class SupportHandoffState:
     admin_reply_count: int = 0
     closed: bool = False
     user_messages: tuple[str, ...] = field(default_factory=tuple)
+    admin_messages: tuple[str, ...] = field(default_factory=tuple)
 
     def to_dict(self) -> dict:
         return {
@@ -38,6 +39,7 @@ class SupportHandoffState:
             "admin_reply_count": self.admin_reply_count,
             "closed": self.closed,
             "user_messages": list(self.user_messages),
+            "admin_messages": list(self.admin_messages),
         }
 
 
@@ -57,6 +59,7 @@ def support_handoff_from_dict(payload: dict | None) -> SupportHandoffState | Non
         admin_reply_count=int(payload.get("admin_reply_count", 0)),
         closed=bool(payload.get("closed", False)),
         user_messages=tuple(str(message) for message in payload.get("user_messages", ())),
+        admin_messages=tuple(str(message) for message in payload.get("admin_messages", ())),
     )
 
 
@@ -89,4 +92,14 @@ def append_user_message(handoff: SupportHandoffState, user_message: str) -> Supp
         status=SupportHandoffStatus.WAITING_ADMIN_REPLY,
         awaiting_admin_reply=True,
         user_messages=(*handoff.user_messages, user_message),
+    )
+
+
+def append_admin_reply(handoff: SupportHandoffState, admin_message: str) -> SupportHandoffState:
+    return replace(
+        handoff,
+        status=SupportHandoffStatus.OPEN,
+        awaiting_admin_reply=False,
+        admin_reply_count=handoff.admin_reply_count + 1,
+        admin_messages=(*handoff.admin_messages, admin_message),
     )

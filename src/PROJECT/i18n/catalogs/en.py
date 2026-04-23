@@ -331,6 +331,14 @@ def format_yield_confirmation(
     )
 
 
+def format_support_admin_reply(*, admin_message: str) -> str:
+    return (
+        "Operator reply.\n"
+        f"{admin_message}\n\n"
+        "If you need to add more information, continue in this chat."
+    )
+
+
 WEATHER_CODE_LABELS = {
     0: "Clear",
     1: "Mostly clear",
