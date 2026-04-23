@@ -1,9 +1,10 @@
 import asyncio
 from types import SimpleNamespace
 
+from PROJECT.admin.follow_up import admin_runtime
 from PROJECT.channels.telegram.handlers import commands, messages
 from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
-from PROJECT.dispatch.session_dispatcher import reset_session, support_handoff
+from PROJECT.dispatch.session_dispatcher import active_follow_up_id, reset_session, support_handoff
 
 
 class _Message:
@@ -25,6 +26,7 @@ def _update(text: str) -> SimpleNamespace:
 
 
 def _context() -> SimpleNamespace:
+    admin_runtime.clear()
     user_data: dict = {}
     reset_session(user_data)
     return SimpleNamespace(user_data=user_data, bot_data={})
@@ -47,6 +49,8 @@ def test_support_guidance_creates_support_handoff(monkeypatch):
     assert handoff.reason == "explicit_support_request"
     assert handoff.current_step == STATE_MAIN_MENU
     assert handoff.user_messages == ("/support",)
+    assert active_follow_up_id(context.user_data) == handoff.handoff_id
+    assert admin_runtime.get_follow_up(handoff.handoff_id).user_messages == ("/support",)
     assert sent_messages
 
 
@@ -67,6 +71,8 @@ def test_explicit_support_request_text_creates_support_handoff(monkeypatch):
     assert handoff.reason == "user_requested_human_support"
     assert handoff.current_step == STATE_MAIN_MENU
     assert handoff.user_messages == ("상담원 연결해주세요",)
+    assert active_follow_up_id(context.user_data) == handoff.handoff_id
+    assert admin_runtime.get_follow_up(handoff.handoff_id).user_messages == ("상담원 연결해주세요",)
     assert sent_messages
 
 
@@ -85,6 +91,7 @@ def test_active_support_handoff_records_followup_message(monkeypatch):
     handoff = support_handoff(context.user_data)
     assert handoff is not None
     assert handoff.user_messages == ("상담원 연결해주세요", "추가로 사진 업로드도 안 됩니다")
+    assert admin_runtime.get_follow_up(handoff.handoff_id).user_messages == ("상담원 연결해주세요", "추가로 사진 업로드도 안 됩니다")
     assert any("추가 내용" in text for text in sent_messages)
 
 
@@ -128,6 +135,7 @@ def test_active_support_handoff_safe_exit_restarts_session(monkeypatch):
     asyncio.run(messages.text_message(_update("처음부터"), context))
 
     assert support_handoff(context.user_data) is None
+    assert active_follow_up_id(context.user_data) is None
     assert any("메인 메뉴" in text for text in sent_messages)
 
 

@@ -344,6 +344,7 @@ def handoff_route_for_validation(*, reason: str | None, human_handoff_reason: st
 
 
 def create_handoff_request_from_runtime(
+    update,
     context,
     *,
     route_hint: HandoffRoute,
@@ -359,6 +360,9 @@ def create_handoff_request_from_runtime(
         route_hint=route_hint.value,
         reason=reason,
         current_step=current_step,
+        chat_id=update.effective_chat.id if update.effective_chat else None,
+        user_id=update.effective_user.id if update.effective_user else None,
+        locale=current_locale(context.user_data),
         user_message=user_message,
         failure_count=failure_count,
         recent_messages_summary=recent_messages_summary,
@@ -1023,6 +1027,7 @@ async def maybe_send_llm_repair_confirmation(
                 source="llm_repair",
             )
             create_handoff_request_from_runtime(
+                update,
                 context,
                 route_hint=handoff_route,
                 reason=result.reason or "needs_human",
@@ -1509,6 +1514,7 @@ async def text_message(update, context) -> None:
         set_last_recovery_context(context.user_data, recovery_context.to_dict())
         log_recovery_classification_event(recovery_context, source="early_gate_handoff")
         create_handoff_request_from_runtime(
+            update,
             context,
             route_hint=handoff_route,
             reason=early_gate.human_handoff_reason or early_gate.reason or "needs_handoff",
@@ -2019,6 +2025,7 @@ async def text_message(update, context) -> None:
         set_last_recovery_context(context.user_data, recovery_context.to_dict())
         log_recovery_classification_event(recovery_context, source="late_gate_handoff")
         create_handoff_request_from_runtime(
+            update,
             context,
             route_hint=handoff_route,
             reason=late_gate.human_handoff_reason or late_gate.reason or "needs_handoff",

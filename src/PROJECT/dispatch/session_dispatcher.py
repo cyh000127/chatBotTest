@@ -25,6 +25,7 @@ def _default_session() -> dict:
         "pending_repair_confirmation": None,
         "pending_candidate": None,
         "support_handoff": None,
+        "active_follow_up_id": None,
         "llm_step_call_counts": {},
         "llm_seen_inputs": {},
     }
@@ -261,6 +262,19 @@ def has_active_support_handoff(user_data: dict) -> bool:
 
 def clear_support_handoff(user_data: dict) -> None:
     set_support_handoff(user_data, None)
+    clear_active_follow_up_id(user_data)
+
+
+def set_active_follow_up_id(user_data: dict, follow_up_id: str | None) -> None:
+    get_session(user_data)["active_follow_up_id"] = follow_up_id
+
+
+def active_follow_up_id(user_data: dict) -> str | None:
+    return get_session(user_data).get("active_follow_up_id")
+
+
+def clear_active_follow_up_id(user_data: dict) -> None:
+    get_session(user_data)["active_follow_up_id"] = None
 
 
 def llm_calls_in_step(user_data: dict, step: str | None) -> int:
