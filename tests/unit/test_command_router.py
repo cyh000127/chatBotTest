@@ -2,12 +2,14 @@ from PROJECT.canonical_intents import registry
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_USED
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
+from PROJECT.conversations.yield_intake.states import STATE_YIELD_READY
 from PROJECT.dispatch.command_router import (
     ROUTE_FERTILIZER_FINALIZE,
     ROUTE_OPEN_FERTILIZER,
     ROUTE_OPEN_INPUT_RESOLVE,
     ROUTE_OPEN_MYFIELDS,
     ROUTE_OPEN_PROFILE,
+    ROUTE_OPEN_YIELD,
     ROUTE_PROFILE_EDIT,
     ROUTE_SUPPORT_GUIDANCE,
     ROUTE_UNKNOWN_INPUT,
@@ -29,6 +31,12 @@ def test_fertilizer_entry_routes_to_fertilizer_input():
 def test_myfields_entry_routes_to_self_lookup_entry():
     decision = route_message(STATE_MAIN_MENU, registry.INTENT_MYFIELDS_ENTRY)
     assert decision.route == ROUTE_OPEN_MYFIELDS
+
+
+def test_yield_entry_routes_to_yield_input():
+    decision = route_message(STATE_MAIN_MENU, registry.INTENT_YIELD_INPUT_START)
+    assert decision.route == ROUTE_OPEN_YIELD
+    assert decision.next_state == STATE_YIELD_READY
 
 
 def test_input_resolve_entry_routes_to_resolve_entry():

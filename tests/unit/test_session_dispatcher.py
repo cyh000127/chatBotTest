@@ -3,9 +3,11 @@ from PROJECT.dispatch.session_dispatcher import (
     auth_failures,
     cancel_session,
     confirmed_profile,
+    confirmed_yield,
     current_state,
     go_back,
     has_confirmed_profile,
+    has_confirmed_yield,
     has_seen_llm_input,
     increment_llm_calls_in_step,
     increment_auth_failures,
@@ -19,7 +21,10 @@ from PROJECT.dispatch.session_dispatcher import (
     set_pending_candidate,
     set_pending_repair_confirmation,
     set_confirmed_profile,
+    set_confirmed_yield,
     set_state,
+    set_yield_draft,
+    yield_draft,
 )
 
 
@@ -58,6 +63,16 @@ def test_confirmed_profile_helpers_work():
     set_confirmed_profile(user_data, {"name": "최윤혁"})
     assert has_confirmed_profile(user_data) is True
     assert confirmed_profile(user_data) == {"name": "최윤혁"}
+
+
+def test_yield_draft_and_confirmed_helpers_work():
+    user_data = {}
+    set_yield_draft(user_data, {"field_name": "A-1"})
+    set_confirmed_yield(user_data, {"field_name": "A-1"})
+
+    assert yield_draft(user_data) == {"field_name": "A-1"}
+    assert has_confirmed_yield(user_data) is True
+    assert confirmed_yield(user_data) == {"field_name": "A-1"}
 
 
 def test_last_recovery_context_is_preserved_across_reset_session():

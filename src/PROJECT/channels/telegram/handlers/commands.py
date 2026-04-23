@@ -5,6 +5,8 @@ from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONF
 from PROJECT.conversations.input_resolve.states import STATE_INPUT_RESOLVE_TARGET
 from PROJECT.conversations.profile_intake import service as profile_service
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_EDIT_SELECT, STATE_PROFILE_NAME
+from PROJECT.conversations.yield_intake import service as yield_service
+from PROJECT.conversations.yield_intake.states import STATE_YIELD_READY
 from PROJECT.conversations.sample_menu import service
 from PROJECT.conversations.sample_menu.keyboards import keyboard_layout_for_state
 from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
@@ -22,6 +24,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_pending_slot,
     set_profile_draft,
     set_state,
+    set_yield_draft,
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard
 
@@ -54,6 +57,19 @@ async def start_fertilizer_input(update, context) -> None:
         update,
         fertilizer_service.prompt_for_state(STATE_FERTILIZER_USED, catalog),
         keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_USED, catalog),
+    )
+
+
+async def start_yield_input(update, context) -> None:
+    catalog = catalog_for(context)
+    reset_session(context.user_data)
+    set_state(context.user_data, STATE_YIELD_READY)
+    draft = yield_service.new_draft()
+    set_yield_draft(context.user_data, draft.to_dict())
+    await send_text(
+        update,
+        yield_service.prompt_for_state(STATE_YIELD_READY, catalog),
+        keyboard_layout=yield_service.keyboard_for_state(STATE_YIELD_READY, catalog),
     )
 
 
@@ -255,6 +271,10 @@ async def profile_command(update, context) -> None:
 
 async def fertilizer_command(update, context) -> None:
     await start_fertilizer_input(update, context)
+
+
+async def yield_command(update, context) -> None:
+    await start_yield_input(update, context)
 
 
 async def myfields_command(update, context) -> None:

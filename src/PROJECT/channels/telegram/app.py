@@ -1,6 +1,6 @@
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
-from PROJECT.channels.telegram.handlers.commands import cancel_command, fertilizer_command, help_command, input_resolve_command, language_command, menu_command, myfields_command, profile_command, start_command, support_command
+from PROJECT.channels.telegram.handlers.commands import cancel_command, fertilizer_command, help_command, input_resolve_command, language_command, menu_command, myfields_command, profile_command, start_command, support_command, yield_command
 from PROJECT.channels.telegram.handlers.messages import button_callback, text_message, unknown_command
 from PROJECT.llm import GeminiEditIntentResolver, GeminiRecoveryClassifier
 from PROJECT.settings import Settings
@@ -33,6 +33,7 @@ def create_application(settings: Settings):
     application.add_handler(CommandHandler("profile", profile_command))
     application.add_handler(CommandHandler("myfields", myfields_command))
     application.add_handler(CommandHandler("fertilizer", fertilizer_command))
+    application.add_handler(CommandHandler("yield", yield_command))
     application.add_handler(CommandHandler("resolve", input_resolve_command))
     application.add_handler(CommandHandler("support", support_command))
     application.add_handler(CommandHandler("language", language_command))

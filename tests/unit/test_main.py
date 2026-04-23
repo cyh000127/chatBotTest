@@ -41,6 +41,15 @@ def test_create_application_registers_support_command():
     assert "support" in registered
 
 
+def test_create_application_registers_yield_command():
+    application = create_application(Settings(bot_token="test-token"))
+    handlers = application.handlers[0]
+    command_handlers = [handler for handler in handlers if hasattr(handler, "commands")]
+    registered = {command for handler in command_handlers for command in handler.commands}
+
+    assert "yield" in registered
+
+
 def test_create_application_keeps_edit_intent_resolver_disabled_without_policy_gate():
     application = create_application(
         Settings(

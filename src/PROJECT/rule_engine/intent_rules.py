@@ -10,6 +10,7 @@ COMMAND_TO_INTENT = {
     "profile": registry.INTENT_PROFILE,
     "myfields": registry.INTENT_MYFIELDS_ENTRY,
     "fertilizer": registry.INTENT_FERTILIZER_INPUT_START,
+    "yield": registry.INTENT_YIELD_INPUT_START,
     "resolve": registry.INTENT_INPUT_RESOLVE_START,
     "support": registry.INTENT_SUPPORT_ESCALATE,
     "cancel": registry.INTENT_CANCEL,
@@ -24,6 +25,7 @@ REPAIR_MARKERS = ("수정", "잘못", "틀렸", "다시", "변경", "고칠", "e
 PROFILE_MARKERS = ("프로필", "정보", "내정보", "profile")
 VIEW_MARKERS = ("보여", "봐", "조회", "확인", "show", "view")
 FERTILIZER_MARKERS = ("비료", "fertilizer")
+YIELD_MARKERS = ("yield", "수확", "수확량", "harvest")
 MYFIELDS_MARKERS = ("myfields", "내농지", "농지조회", "필드조회", "내필드")
 INPUT_RESOLVE_MARKERS = ("inputresolve", "resolve", "입력해석", "값해석", "값확정", "원문확정")
 SUPPORT_MARKERS = ("support", "지원", "상담", "지원안내")
@@ -75,6 +77,7 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
     has_profile = any(marker in collapsed for marker in PROFILE_MARKERS)
     has_view = any(marker in collapsed for marker in VIEW_MARKERS)
     has_fertilizer = any(marker in collapsed for marker in FERTILIZER_MARKERS)
+    has_yield = any(marker in collapsed for marker in YIELD_MARKERS)
     has_myfields = any(marker in collapsed for marker in MYFIELDS_MARKERS)
     has_input_resolve = any(marker in collapsed for marker in INPUT_RESOLVE_MARKERS)
     has_support = any(marker in collapsed for marker in SUPPORT_MARKERS)
@@ -227,6 +230,13 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
             current_step=current_step,
             source=RuleSource.INTENT_RULE,
             matched_rule="support_phrase",
+        )
+    if has_yield and has_start:
+        return IntentDecision(
+            canonical_intent=registry.INTENT_YIELD_INPUT_START,
+            current_step=current_step,
+            source=RuleSource.INTENT_RULE,
+            matched_rule="yield_start_phrase",
         )
     if has_fertilizer and has_start:
         return IntentDecision(

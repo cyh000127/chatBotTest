@@ -9,8 +9,10 @@ def _default_session() -> dict:
         "selected_city": None,
         "profile_draft": None,
         "fertilizer_draft": None,
+        "yield_draft": None,
         "confirmed_profile": None,
         "confirmed_fertilizer": None,
+        "confirmed_yield": None,
         "pending_slot": None,
         "locale": DEFAULT_LOCALE,
         "authenticated": False,
@@ -37,6 +39,7 @@ def reset_session(user_data: dict) -> dict:
     user_name = get_session(user_data).get("user_name") if "session" in user_data else None
     confirmed_profile = get_session(user_data).get("confirmed_profile") if "session" in user_data else None
     confirmed_fertilizer = get_session(user_data).get("confirmed_fertilizer") if "session" in user_data else None
+    confirmed_yield = get_session(user_data).get("confirmed_yield") if "session" in user_data else None
     last_context = get_session(user_data).get("last_recovery_context") if "session" in user_data else None
     user_data["session"] = _default_session()
     user_data["session"]["locale"] = locale
@@ -45,6 +48,7 @@ def reset_session(user_data: dict) -> dict:
     user_data["session"]["user_name"] = user_name
     user_data["session"]["confirmed_profile"] = confirmed_profile
     user_data["session"]["confirmed_fertilizer"] = confirmed_fertilizer
+    user_data["session"]["confirmed_yield"] = confirmed_yield
     user_data["session"]["last_recovery_context"] = last_context
     return user_data["session"]
 
@@ -101,6 +105,14 @@ def fertilizer_draft(user_data: dict) -> dict | None:
     return get_session(user_data)["fertilizer_draft"]
 
 
+def set_yield_draft(user_data: dict, draft: dict | None) -> None:
+    get_session(user_data)["yield_draft"] = draft
+
+
+def yield_draft(user_data: dict) -> dict | None:
+    return get_session(user_data)["yield_draft"]
+
+
 def set_confirmed_profile(user_data: dict, draft: dict | None) -> None:
     get_session(user_data)["confirmed_profile"] = draft
 
@@ -123,6 +135,18 @@ def confirmed_fertilizer(user_data: dict) -> dict | None:
 
 def has_confirmed_fertilizer(user_data: dict) -> bool:
     return confirmed_fertilizer(user_data) is not None
+
+
+def set_confirmed_yield(user_data: dict, draft: dict | None) -> None:
+    get_session(user_data)["confirmed_yield"] = draft
+
+
+def confirmed_yield(user_data: dict) -> dict | None:
+    return get_session(user_data)["confirmed_yield"]
+
+
+def has_confirmed_yield(user_data: dict) -> bool:
+    return confirmed_yield(user_data) is not None
 
 
 def set_pending_slot(user_data: dict, pending_slot: str | None) -> None:
