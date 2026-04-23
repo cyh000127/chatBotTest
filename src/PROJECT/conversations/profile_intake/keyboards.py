@@ -9,10 +9,7 @@ def _button(text: str, data: str) -> dict[str, str]:
 
 def profile_input_keyboard(catalog) -> list[list[dict[str, str]]]:
     return [
-        [
-            _button(catalog.BUTTON_BACK, "intent:back"),
-            _button(catalog.BUTTON_CANCEL, "intent:cancel"),
-        ],
+        [_button(catalog.BUTTON_BACK, "intent:back")],
         [_button(catalog.BUTTON_RESTART, "intent:restart")],
     ]
 
@@ -23,10 +20,7 @@ def profile_confirm_keyboard(catalog) -> list[list[dict[str, str]]]:
             _button(catalog.BUTTON_CONFIRM, "intent:confirm"),
             _button(catalog.BUTTON_EDIT, "intent:edit"),
         ],
-        [
-            _button(catalog.BUTTON_BACK, "intent:back"),
-            _button(catalog.BUTTON_CANCEL, "intent:cancel"),
-        ],
+        [_button(catalog.BUTTON_BACK, "intent:back")],
         [_button(catalog.BUTTON_RESTART, "intent:restart")],
     ]
 
@@ -42,10 +36,7 @@ def profile_edit_select_keyboard(catalog) -> list[list[dict[str, str]]]:
             _button(catalog.BUTTON_EDIT_DISTRICT, "profile:edit:district"),
         ],
         [_button(catalog.BUTTON_EDIT_BIRTH_DATE, "profile:edit:birth_date")],
-        [
-            _button(catalog.BUTTON_BACK, "intent:back"),
-            _button(catalog.BUTTON_CANCEL, "intent:cancel"),
-        ],
+        [_button(catalog.BUTTON_BACK, "intent:back")],
         [_button(catalog.BUTTON_RESTART, "intent:restart")],
     ]
 
@@ -60,10 +51,7 @@ def profile_birth_year_keyboard(page_start: int, catalog) -> list[list[dict[str,
         _button(catalog.BUTTON_PREV_YEARS, "profile:year_nav:prev"),
         _button(catalog.BUTTON_NEXT_YEARS, "profile:year_nav:next"),
     ])
-    rows.append([
-        _button(catalog.BUTTON_BACK, "intent:back"),
-        _button(catalog.BUTTON_CANCEL, "intent:cancel"),
-    ])
+    rows.append([_button(catalog.BUTTON_BACK, "intent:back")])
     return rows
 
 
@@ -73,10 +61,7 @@ def profile_birth_month_keyboard(catalog) -> list[list[dict[str, str]]]:
         [_button(month, f"profile:month:{month}") for month in months[index:index + 3]]
         for index in range(0, len(months), 3)
     ]
-    rows.append([
-        _button(catalog.BUTTON_BACK, "intent:back"),
-        _button(catalog.BUTTON_CANCEL, "intent:cancel"),
-    ])
+    rows.append([_button(catalog.BUTTON_BACK, "intent:back")])
     return rows
 
 
@@ -87,8 +72,5 @@ def profile_birth_day_keyboard(year: int, month: int, catalog) -> list[list[dict
         [_button(day, f"profile:day:{day}") for day in days[index:index + 7]]
         for index in range(0, len(days), 7)
     ]
-    rows.append([
-        _button(catalog.BUTTON_BACK, "intent:back"),
-        _button(catalog.BUTTON_CANCEL, "intent:cancel"),
-    ])
+    rows.append([_button(catalog.BUTTON_BACK, "intent:back")])
     return rows

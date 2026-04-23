@@ -1,4 +1,4 @@
-from PROJECT.i18n.catalogs import en, km, ko
+from PROJECT.i18n.catalogs import bn, en, km, ko
 
 DEFAULT_LOCALE = "ko"
 
@@ -6,12 +6,14 @@ CATALOGS = {
     "ko": ko,
     "en": en,
     "km": km,
+    "bn": bn,
 }
 
 LANGUAGE_LABELS = {
     "ko": "한국어",
     "en": "English",
     "km": "ខ្មែរ",
+    "bn": "বাংলা",
 }
 
 
@@ -20,11 +22,16 @@ def get_catalog(locale: str | None):
 
 
 def language_keyboard() -> list[list[dict[str, str]]]:
-    return [[
-        {"text": LANGUAGE_LABELS["ko"], "data": "language:ko"},
-        {"text": LANGUAGE_LABELS["en"], "data": "language:en"},
-        {"text": LANGUAGE_LABELS["km"], "data": "language:km"},
-    ]]
+    return [
+        [
+            {"text": LANGUAGE_LABELS["ko"], "data": "language:ko"},
+            {"text": LANGUAGE_LABELS["en"], "data": "language:en"},
+        ],
+        [
+            {"text": LANGUAGE_LABELS["km"], "data": "language:km"},
+            {"text": LANGUAGE_LABELS["bn"], "data": "language:bn"},
+        ],
+    ]
 
 
 def resolve_language_choice(text: str) -> str | None:

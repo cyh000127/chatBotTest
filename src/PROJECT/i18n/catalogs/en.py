@@ -1,12 +1,12 @@
 from datetime import datetime
 
-BUTTON_TODAY_DATE = "Today's date"
-BUTTON_TODAY_WEATHER = "Today's weather"
-BUTTON_PROFILE = "Profile input"
-BUTTON_FERTILIZER = "Fertilizer input"
-BUTTON_YIELD = "Yield input"
+BUTTON_TODAY_DATE = "Today"
+BUTTON_TODAY_WEATHER = "Weather"
+BUTTON_PROFILE = "Profile"
+BUTTON_FERTILIZER = "Fertilizer"
+BUTTON_YIELD = "Yield"
 BUTTON_MYFIELDS = "My fields"
-BUTTON_INPUT_RESOLVE = "Input resolve"
+BUTTON_INPUT_RESOLVE = "Resolve input"
 BUTTON_SUPPORT = "Support"
 BUTTON_HELP = "Help"
 BUTTON_BACK = "Back"
@@ -16,14 +16,14 @@ BUTTON_CONFIRM = "Confirm"
 BUTTON_EDIT = "Edit"
 BUTTON_EDIT_START = "Start edit"
 BUTTON_KEEP_CURRENT = "Keep current"
-BUTTON_APPLY_SUGGESTED_VALUE = "Use this value"
-BUTTON_ENTER_VALUE_DIRECTLY = "Enter it manually"
+BUTTON_APPLY_SUGGESTED_VALUE = "Use this"
+BUTTON_ENTER_VALUE_DIRECTLY = "Type it"
 BUTTON_YES = "Yes"
 BUTTON_NO = "No"
 BUTTON_EDIT_NAME = "Name"
 BUTTON_EDIT_RESIDENCE = "Residence"
-BUTTON_EDIT_CITY = "City/Province"
-BUTTON_EDIT_DISTRICT = "District/County/City"
+BUTTON_EDIT_CITY = "City / province"
+BUTTON_EDIT_DISTRICT = "District / county / city"
 BUTTON_EDIT_BIRTH_DATE = "Birth date"
 BUTTON_FERTILIZER_EDIT_USED = "Fertilizer use"
 BUTTON_FERTILIZER_EDIT_KIND = "Fertilizer type"
@@ -43,13 +43,13 @@ BUTTON_FERTILIZER_KIND_LIQUID = "Liquid"
 
 LANGUAGE_NAME = "English"
 LANGUAGE_MENU_MESSAGE = "Choose a language."
-LANGUAGE_CHANGED_MESSAGE = "Language has been changed to English."
-AUTH_START_PROMPT = "Please enter your login ID.\nExample: /start okccc5 or okccc5"
-AUTH_REQUIRED_MESSAGE = "Authentication is required.\nEnter /start and then type your login ID."
-AUTH_INVALID_MESSAGE = "The login ID is not valid. Please try again."
-AUTH_RETRY_LIMIT_MESSAGE = "Authentication failed twice.\nStarting over. Please enter /start again."
-AUTH_WELCOME_MESSAGE = "Welcome, {user_name}!"
-AUTH_ALREADY_LOGGED_IN_MESSAGE = "Welcome back, {user_name}!"
+LANGUAGE_CHANGED_MESSAGE = "Language set to English."
+AUTH_START_PROMPT = "Enter your login ID.\nExample: /start okccc5 or okccc5"
+AUTH_REQUIRED_MESSAGE = "You need to sign in.\nEnter /start, then type your login ID."
+AUTH_INVALID_MESSAGE = "That login ID is not valid.\nTry again."
+AUTH_RETRY_LIMIT_MESSAGE = "Sign-in failed twice.\nStart over. Enter /start again."
+AUTH_WELCOME_MESSAGE = "Hello, {user_name}."
+AUTH_ALREADY_LOGGED_IN_MESSAGE = "Welcome back, {user_name}."
 
 CITY_BUTTON_TO_KEY = {
     "Seoul": "서울",
@@ -57,112 +57,111 @@ CITY_BUTTON_TO_KEY = {
     "Jeju": "제주",
 }
 
-START_MESSAGE = "Started.\nChoose an action below."
-MAIN_MENU_MESSAGE = "Main menu.\nChoose an action below."
-WEATHER_MENU_MESSAGE = "Choose a city to check today's weather."
+START_MESSAGE = "Started.\nChoose one below."
+MAIN_MENU_MESSAGE = "Main menu.\nChoose one below."
+WEATHER_MENU_MESSAGE = "Choose a city for today's weather."
 PROFILE_ENTRY_MESSAGE = (
-    "Starting profile input.\n"
-    "Let's begin with your name."
+    "Profile input starts here.\n"
+    "First, enter your name."
 )
-CANCEL_MESSAGE = "Current task has been cancelled.\nUse 'Start over' or /start to begin again."
-BACK_LIMIT_MESSAGE = "There is no previous step.\nPlease choose again from the main menu."
-BACK_TO_MAIN_MESSAGE = "Returned to the previous step.\nChoose an action below again."
-BACK_TO_WEATHER_MESSAGE = "Returned to the weather selection step.\nChoose a city again."
-BACK_GENERIC_MESSAGE = "Returned to the previous state."
-WEATHER_ERROR_MESSAGE = "Could not fetch the weather.\nPlease try again shortly."
-UNKNOWN_COMMAND_MESSAGE = "This command is not supported.\nChoose one of the related items below or use /help."
-MYFIELDS_ENTRY_MESSAGE = "This is the myfields entry point.\nFor now, the runtime exposes the entry guidance and re-entry path.\nChoose another related action below or restart with /start."
-INPUT_RESOLVE_ENTRY_MESSAGE = "This is the input resolve entry point.\nThe current runtime opens the canonical value collection path first.\nCandidate generation and manual-review linkage remain in a separate implementation scope."
-SUPPORT_ESCALATION_MESSAGE = "Your support request was sent for operational review.\nNo new chat is opened; follow-up guidance can continue in this chat.\nYou can safely return with /help, /menu, or /start."
-SUPPORT_HANDOFF_MESSAGE_RECORDED = "I added this message to the support handoff thread.\nYou can receive follow-up guidance in this same chat without opening a new chat.\nUse /start if you want to restart."
-SUPPORT_HANDOFF_CLOSED_MESSAGE = "The support handoff is closed.\nYou can ask for help again in this chat if needed."
+CANCEL_MESSAGE = "Current task ended.\nUse 'Start over' or /start to begin again."
+BACK_LIMIT_MESSAGE = "There is no previous step.\nChoose again from the main menu."
+BACK_TO_MAIN_MESSAGE = "You are back.\nChoose again below."
+BACK_TO_WEATHER_MESSAGE = "You are back at city selection.\nChoose a city again."
+BACK_GENERIC_MESSAGE = "You are back at the previous step."
+WEATHER_ERROR_MESSAGE = "Could not get the weather.\nTry again soon."
+UNKNOWN_COMMAND_MESSAGE = "I do not understand that.\nChoose one below or use /help."
+MYFIELDS_ENTRY_MESSAGE = "This is the my fields entry.\nFor now, it shows the guide and the way back.\nChoose another item below or start over with /start."
+INPUT_RESOLVE_ENTRY_MESSAGE = "This is the input resolve entry.\nFor now, the runtime starts with the main value flow.\nCandidate matching and manual review are in a separate scope."
+SUPPORT_ESCALATION_MESSAGE = "Your support request was sent.\nNo new chat will open. We will keep replying here.\nUse /help, /menu, or /start to go back."
+SUPPORT_HANDOFF_MESSAGE_RECORDED = "I added the extra note to the support thread.\nWe will reply in this same chat.\nUse /start to start over."
+SUPPORT_HANDOFF_CLOSED_MESSAGE = "The support thread is closed.\nYou can ask for help again in this chat."
 
 HELP_MESSAGE = (
     "Available commands:\n"
-    "- /start : go to the starting point\n"
+    "- /start : go to the start\n"
     "- /help : show help\n"
     "- /menu : open the main menu\n"
     "- /profile : start profile input\n"
-    "- /myfields : open the myfields entry point\n"
+    "- /myfields : open my fields\n"
     "- /fertilizer : start fertilizer input\n"
     "- /yield : start yield input\n"
-    "- /resolve : open the input resolve entry point\n"
-    "- /support : open support guidance\n"
+    "- /resolve : open input resolve\n"
+    "- /support : open support help\n"
     "- /language : change language\n"
     "- Back : go to the previous step\n"
-    "- Cancel : stop the current flow\n"
     "- Start over : reset the session and start again"
 )
 
 FALLBACK_MESSAGES = {
-    "default": "I could not understand the request right away.\nWould you choose one of the related items below?",
-    "weather": "I could not understand the request right away.\nPlease choose a city below or press Back.",
-    "cancelled": "The current task is cancelled.\nWould you choose one of the related items below to continue?",
-    "profile_input": "I could not process the profile input right away.\nWould you choose which related profile item to continue or change?",
-    "profile_followup": "Additional confirmation is needed.\nWould you choose one of the related items below?",
-    "profile_confirm": "You are in the profile confirmation step.\nWould you choose whether to confirm or edit below?",
-    "fertilizer_input": "I could not process the fertilizer input right away.\nWould you choose which related fertilizer item to continue or change?",
-    "fertilizer_confirm": "You are in the fertilizer confirmation step.\nWould you choose whether to confirm or edit below?",
-    "yield_input": "I could not process the yield input right away.\nWould you choose the related step below to continue?",
-    "yield_confirm": "You are in the yield confirmation step.\nWould you choose confirm or go back below?",
+    "default": "I could not understand that right away.\nChoose one below.",
+    "weather": "I could not understand that right away.\nChoose a city below or press Back.",
+    "cancelled": "This task has ended.\nChoose one below to continue.",
+    "profile_input": "I could not process profile input right away.\nChoose which profile item to keep going with or change.",
+    "profile_followup": "We need one more check.\nChoose one below.",
+    "profile_confirm": "You are at the profile check step.\nChoose Confirm or Back below.",
+    "fertilizer_input": "I could not process fertilizer input right away.\nChoose which fertilizer item to keep going with or change.",
+    "fertilizer_confirm": "You are at the fertilizer check step.\nChoose Confirm or Back below.",
+    "yield_input": "I could not process yield input right away.\nChoose the step below to keep going.",
+    "yield_confirm": "You are at the yield check step.\nChoose Confirm or Back below.",
 }
-RECOVERY_GUIDANCE_SOFT = "Let me restate what this step needs."
-RECOVERY_GUIDANCE_GUIDED = "Please continue with the current flow using the guide below."
-RECOVERY_GUIDANCE_ESCALATION_READY = "If this keeps failing, you can safely move on using the related actions below."
-RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "I found several candidate values in one message. Please review this draft before continuing."
-RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "I applied several candidate values to the current draft. Please review the content below."
+RECOVERY_GUIDANCE_SOFT = "Here is what this step needs."
+RECOVERY_GUIDANCE_GUIDED = "Use the guide below to continue."
+RECOVERY_GUIDANCE_ESCALATION_READY = "If this keeps failing, use one of the related actions below."
+RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "I found several candidate values in one message. Review this draft before continuing."
+RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "I applied several candidate values to the current draft. Review the content below."
 CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE = (
-    "This looks like a request for support or human assistance.\n"
-    "I will keep it as a support handoff, and follow-up guidance can continue in this chat.\n"
-    "Choose one of the related items below or use /help."
+    "This looks like a support request.\n"
+    "I will keep it as a support handoff, and we will reply here.\n"
+    "Choose one below or use /help."
 )
 CHEAP_GATE_ADMIN_FOLLOWUP_MESSAGE = (
-    "This request looks like a case that needs administrator follow-up.\n"
-    "I will keep it for operational follow-up, and any needed guidance can continue in this chat.\n"
-    "Choose one of the related items below to continue."
+    "This looks like a case for operator review.\n"
+    "I will keep it for follow-up, and any needed guidance can continue here.\n"
+    "Choose one below to continue."
 )
 CHEAP_GATE_MANUAL_RESOLUTION_MESSAGE = (
-    "I checked this input several times, but this step is difficult to resolve automatically.\n"
-    "I will keep it for manual operational review.\n"
-    "Choose one of the related items below, or restart with /menu or /start."
+    "I checked this several times, but it is hard to solve automatically.\n"
+    "I will keep it for manual review.\n"
+    "Choose one below, or start over with /menu or /start."
 )
 
-PROFILE_CONFIRMED_MESSAGE = "Input confirmed.\nSaved in the current session."
-PROFILE_EDIT_MESSAGE = "Choose which field you want to edit."
-PROFILE_EDIT_SELECTION_CONFIRMATION_MESSAGE = "You want to choose which profile field to edit again, right?\nPress [{edit_button}] and I will open the edit selection screen."
-PROFILE_NOT_FOUND_MESSAGE = "There is no saved profile yet.\nPlease complete profile input first."
-PROFILE_NAME_PROMPT = "Please enter your name."
-PROFILE_RESIDENCE_PROMPT = "Please enter your residence."
-PROFILE_CITY_PROMPT = "Please enter your city/province.\nExample: Seoul, Gyeonggi-do"
-PROFILE_DISTRICT_PROMPT = "Please enter your district/county/city.\nExample: Gangnam-gu, Bundang-gu"
-PROFILE_BIRTH_YEAR_PROMPT = "Select your birth year using the buttons."
-PROFILE_BIRTH_MONTH_PROMPT = "Select your birth month using the buttons."
-PROFILE_BIRTH_DAY_PROMPT = "Select your birth day using the buttons."
-PROFILE_NAME_FALLBACK = "Please enter your name again."
-PROFILE_RESIDENCE_FALLBACK = "Please enter your residence again."
-PROFILE_CITY_FALLBACK = "Please enter a valid city/province again.\nExample: Seoul, Gyeonggi-do"
-PROFILE_DISTRICT_FALLBACK = "Please enter a valid district/county/city again.\nExample: Gangnam-gu, Bundang-gu"
-PROFILE_BIRTH_YEAR_FALLBACK = "Please select a birth year button."
-PROFILE_BIRTH_MONTH_FALLBACK = "Please select a birth month button."
-PROFILE_BIRTH_DAY_FALLBACK = "Please select a birth day button."
-PROFILE_CONFIRM_FALLBACK = "Choose [Confirm] or [Edit]."
-PROFILE_EDIT_SELECT_FALLBACK = "Please choose a field to edit using the buttons."
-PROFILE_REPAIR_NAME_MESSAGE = "Let's re-enter the name."
-PROFILE_REPAIR_RESIDENCE_MESSAGE = "Let's re-enter the residence."
-PROFILE_REPAIR_CITY_MESSAGE = "Let's re-enter the city/province."
-PROFILE_REPAIR_DISTRICT_MESSAGE = "Let's re-enter the district/county/city."
-PROFILE_REPAIR_BIRTH_MESSAGE = "Let's re-enter the birth date.\nPlease choose the birth year."
-PROFILE_DIRECT_UPDATE_MESSAGE = "I applied the natural-language correction. Review it and press [Confirm]."
-LLM_REPAIR_CANDIDATE_HINT = "I understood that you want to change it to \"{candidate_value}\".\nIf that's correct, press Start edit."
-LLM_REPAIR_UNSUPPORTED_MESSAGE = "I could not determine the exact field to edit right away.\nPlease choose it directly from the related items below."
-LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "I am not confident enough about which field you want to edit.\nPlease choose it directly from the related items below."
+PROFILE_CONFIRMED_MESSAGE = "Saved.\nIt is in the current session."
+PROFILE_EDIT_MESSAGE = "Choose the field to edit."
+PROFILE_EDIT_SELECTION_CONFIRMATION_MESSAGE = "You want to choose a profile field again.\nPress [{edit_button}] to open the edit screen."
+PROFILE_NOT_FOUND_MESSAGE = "No profile is saved yet.\nFinish profile input first."
+PROFILE_NAME_PROMPT = "Enter your name."
+PROFILE_RESIDENCE_PROMPT = "Enter your residence."
+PROFILE_CITY_PROMPT = "Enter your city or province.\nExample: Seoul, Gyeonggi-do"
+PROFILE_DISTRICT_PROMPT = "Enter your district, county, or city.\nExample: Gangnam-gu, Bundang-gu"
+PROFILE_BIRTH_YEAR_PROMPT = "Choose your birth year with the buttons."
+PROFILE_BIRTH_MONTH_PROMPT = "Choose your birth month with the buttons."
+PROFILE_BIRTH_DAY_PROMPT = "Choose your birth day with the buttons."
+PROFILE_NAME_FALLBACK = "Enter your name again."
+PROFILE_RESIDENCE_FALLBACK = "Enter your residence again."
+PROFILE_CITY_FALLBACK = "Enter a valid city or province again.\nExample: Seoul, Gyeonggi-do"
+PROFILE_DISTRICT_FALLBACK = "Enter a valid district, county, or city again.\nExample: Gangnam-gu, Bundang-gu"
+PROFILE_BIRTH_YEAR_FALLBACK = "Choose a birth year button."
+PROFILE_BIRTH_MONTH_FALLBACK = "Choose a birth month button."
+PROFILE_BIRTH_DAY_FALLBACK = "Choose a birth day button."
+PROFILE_CONFIRM_FALLBACK = "Choose Confirm or Back."
+PROFILE_EDIT_SELECT_FALLBACK = "Choose a field to edit with the buttons."
+PROFILE_REPAIR_NAME_MESSAGE = "Enter the name again."
+PROFILE_REPAIR_RESIDENCE_MESSAGE = "Enter the residence again."
+PROFILE_REPAIR_CITY_MESSAGE = "Enter the city or province again."
+PROFILE_REPAIR_DISTRICT_MESSAGE = "Enter the district, county, or city again."
+PROFILE_REPAIR_BIRTH_MESSAGE = "Enter the birth date again.\nChoose the birth year first."
+PROFILE_DIRECT_UPDATE_MESSAGE = "I applied the change.\nReview it and press [Confirm]."
+LLM_REPAIR_CANDIDATE_HINT = "I think you mean \"{candidate_value}\".\nIf that is right, press Start edit."
+LLM_REPAIR_UNSUPPORTED_MESSAGE = "I could not tell which field you want to edit.\nChoose it directly from the related items below."
+LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "I am not sure which field you want to edit.\nChoose it directly from the related items below."
 LLM_REPAIR_HUMAN_REVIEW_MESSAGE = (
-    "This request is difficult to narrow down to one edit field automatically.\n"
-    "It may require manual review, so please choose directly from the related items below."
+    "This request is hard to narrow down to one field automatically.\n"
+    "It may need manual review, so choose directly from the related items below."
 )
 LLM_REPAIR_RUNTIME_FAILURE_MESSAGE = (
-    "I tried automatic interpretation, but it is not stable enough right now.\n"
-    "Please continue by choosing directly from the related items below."
+    "I tried automatic reading, but it is not stable right now.\n"
+    "Continue by choosing directly from the related items below."
 )
 
 FERTILIZER_KIND_LABELS = {
@@ -171,47 +170,47 @@ FERTILIZER_KIND_LABELS = {
     "compost": "Compost",
     "liquid": "Liquid",
 }
-FERTILIZER_USED_LABEL_YES = "Used"
-FERTILIZER_USED_LABEL_NO = "Not used"
+FERTILIZER_USED_LABEL_YES = "Yes"
+FERTILIZER_USED_LABEL_NO = "No"
 FERTILIZER_USED_PROMPT = "Did you use fertilizer for this activity?"
 FERTILIZER_KIND_PROMPT = "Choose the fertilizer type."
 FERTILIZER_PRODUCT_PROMPT = "Enter the product name.\nExample: Compound fertilizer 21-17-17"
-FERTILIZER_AMOUNT_PROMPT = "Enter the amount used.\nExample: 20kg, one bag"
-FERTILIZER_DATE_PROMPT = "Enter the applied date.\nExample: 2026-04-21, today, yesterday"
-FERTILIZER_CONFIRM_PROMPT = "Please confirm the fertilizer entry."
-FERTILIZER_USED_FALLBACK = "Please choose Yes or No."
-FERTILIZER_KIND_FALLBACK = "Please choose a fertilizer type button."
-FERTILIZER_PRODUCT_FALLBACK = "Please enter the product name again."
-FERTILIZER_AMOUNT_FALLBACK = "Please enter the amount again.\nExample: 20kg, one bag"
-FERTILIZER_DATE_FALLBACK = "Please enter the date again.\nExample: 2026-04-21, today, yesterday"
+FERTILIZER_AMOUNT_PROMPT = "Enter the amount.\nExample: 20kg, one bag"
+FERTILIZER_DATE_PROMPT = "Enter the date used.\nExample: 2026-04-21, today, yesterday"
+FERTILIZER_CONFIRM_PROMPT = "Check the fertilizer entry."
+FERTILIZER_USED_FALLBACK = "Choose Yes or No."
+FERTILIZER_KIND_FALLBACK = "Choose a fertilizer type button."
+FERTILIZER_PRODUCT_FALLBACK = "Enter the product name again."
+FERTILIZER_AMOUNT_FALLBACK = "Enter the amount again.\nExample: 20kg, one bag"
+FERTILIZER_DATE_FALLBACK = "Enter the date again.\nExample: 2026-04-21, today, yesterday"
 FERTILIZER_CONFIRM_FALLBACK = "Press [Confirm] or go back to change it."
-FERTILIZER_CONFIRMED_MESSAGE = "The fertilizer entry has been saved as a session draft."
+FERTILIZER_CONFIRMED_MESSAGE = "The fertilizer entry is saved in this session."
 FERTILIZER_EDIT_MESSAGE = "Choose which fertilizer field to edit."
-FERTILIZER_EDIT_SELECTION_CONFIRMATION_MESSAGE = "You want to choose which fertilizer field to edit again, right?\nPress [{edit_button}] and I will open the edit selection screen."
-FERTILIZER_NOT_FOUND_MESSAGE = "There is no saved fertilizer entry yet.\nPlease complete fertilizer input first."
-FERTILIZER_REPAIR_USED_MESSAGE = "Let's re-enter whether fertilizer was used."
-FERTILIZER_REPAIR_KIND_MESSAGE = "Let's re-enter the fertilizer type."
-FERTILIZER_REPAIR_PRODUCT_MESSAGE = "Let's re-enter the fertilizer product name."
-FERTILIZER_REPAIR_AMOUNT_MESSAGE = "Let's re-enter the fertilizer amount."
-FERTILIZER_REPAIR_DATE_MESSAGE = "Let's re-enter the fertilizer applied date."
-FERTILIZER_DIRECT_UPDATE_MESSAGE = "I applied the natural-language correction. Review it and press [Confirm]."
+FERTILIZER_EDIT_SELECTION_CONFIRMATION_MESSAGE = "You want to choose the fertilizer field again.\nPress [{edit_button}] to open the edit screen."
+FERTILIZER_NOT_FOUND_MESSAGE = "No fertilizer entry is saved yet.\nFinish fertilizer input first."
+FERTILIZER_REPAIR_USED_MESSAGE = "Enter whether fertilizer was used again."
+FERTILIZER_REPAIR_KIND_MESSAGE = "Enter the fertilizer type again."
+FERTILIZER_REPAIR_PRODUCT_MESSAGE = "Enter the fertilizer product name again."
+FERTILIZER_REPAIR_AMOUNT_MESSAGE = "Enter the fertilizer amount again."
+FERTILIZER_REPAIR_DATE_MESSAGE = "Enter the fertilizer date again."
+FERTILIZER_DIRECT_UPDATE_MESSAGE = "I applied the change.\nReview it and press [Confirm]."
 YIELD_READY_PROMPT = "Is the harvest ready?"
-YIELD_FIELD_PROMPT = "Select or enter the harvested field."
+YIELD_FIELD_PROMPT = "Choose or enter the harvested field."
 YIELD_AMOUNT_PROMPT = "Enter the harvest amount.\nExample: 320kg"
 YIELD_DATE_PROMPT = "Enter the harvest date.\nExample: 2026-04-21, today, yesterday"
-YIELD_CONFIRM_PROMPT = "Please confirm the yield entry."
+YIELD_CONFIRM_PROMPT = "Check the yield entry."
 YIELD_READY_FALLBACK = "Choose Yes or No."
 YIELD_FIELD_FALLBACK = "Enter the harvested field again."
 YIELD_AMOUNT_FALLBACK = "Enter the harvest amount again.\nExample: 320kg"
 YIELD_DATE_FALLBACK = "Enter the harvest date again.\nExample: 2026-04-21, today, yesterday"
 YIELD_CONFIRM_FALLBACK = "Press [Confirm] or go back to revise."
 YIELD_EDIT_MESSAGE = "Choose which yield field to edit."
-YIELD_EDIT_SELECT_FALLBACK = "Choose a field to edit, or press [Start edit], Back, Cancel, or Start over."
-YIELD_CONFIRMED_MESSAGE = "The yield entry has been confirmed as a stored draft.\nIt is kept in the current session."
-INPUT_RESOLVE_TARGET_PROMPT = "Choose which value needs canonical resolution."
-INPUT_RESOLVE_METHOD_PROMPT = "Choose the input method.\nContinue with typed text, OCR image, or retry."
-INPUT_RESOLVE_RAW_INPUT_PROMPT = "Enter or submit the raw text to resolve."
-INPUT_RESOLVE_CANDIDATES_PROMPT = "Review the candidates and choose 1-3, or retry."
+YIELD_EDIT_SELECT_FALLBACK = "Choose a field to edit, or press [Start edit], Back, or Start over."
+YIELD_CONFIRMED_MESSAGE = "The yield entry is confirmed and saved in this session."
+INPUT_RESOLVE_TARGET_PROMPT = "Choose the value to resolve."
+INPUT_RESOLVE_METHOD_PROMPT = "Choose how to enter it.\nUse typed text, OCR image, or retry."
+INPUT_RESOLVE_RAW_INPUT_PROMPT = "Enter or upload the raw text to resolve."
+INPUT_RESOLVE_CANDIDATES_PROMPT = "Review the choices and pick 1-3, or retry."
 INPUT_RESOLVE_DECISION_PROMPT = "Choose resolved, retry, or manual review."
 
 
@@ -224,26 +223,26 @@ def format_profile_confirmation(
     residence: str,
 ) -> str:
     return (
-        "Please confirm.\n"
+        "Check this.\n"
         f"- Name: {name}\n"
         f"- Residence: {residence}\n"
         f"- City/Province: {city}\n"
         f"- District/County/City: {district}\n"
         f"- Birth date: {birth_date}\n"
-        "\nChoose [Confirm] if correct, or [Edit] to change it."
+        "\nIf it is right, press [Confirm]. If not, press [Edit]."
     )
 
 
 def format_repair_confirmation(*, field_label: str, edit_button: str) -> str:
     return (
-        f"You want to edit the {field_label} field, right?\n"
-        f"Press [{edit_button}] and I will ask for that value again."
+        f"Choose the {field_label} field again.\n"
+        f"Press [{edit_button}] to enter it again."
     )
 
 
 def format_change_preview(*, field_label: str, before_value: str, after_value: str) -> str:
     return (
-        f"Please review the change for {field_label}.\n"
+        f"Review the change for {field_label}.\n"
         f"- Before: {before_value}\n"
         f"- New: {after_value}"
     )
@@ -258,7 +257,7 @@ def format_profile_summary(
     residence: str,
 ) -> str:
     return (
-        "This is your saved profile.\n"
+        "Saved profile.\n"
         f"- Name: {name}\n"
         f"- Residence: {residence}\n"
         f"- City/Province: {city}\n"
@@ -277,18 +276,18 @@ def format_fertilizer_confirmation(
 ) -> str:
     if used is False:
         return (
-            "Please confirm the fertilizer entry.\n"
+            "Check the fertilizer entry.\n"
             "- Fertilizer used: No\n\n"
-            "Press [Confirm] if this is correct."
+            "Press [Confirm] if it is right."
         )
     return (
-        "Please confirm the fertilizer entry.\n"
+        "Check the fertilizer entry.\n"
         f"- Fertilizer used: {'Yes' if used else '-'}\n"
         f"- Type: {kind_label}\n"
         f"- Product: {product_name}\n"
         f"- Amount: {amount_text}\n"
         f"- Applied date: {applied_date}\n\n"
-        "Press [Confirm] if this is correct."
+        "Press [Confirm] if it is right."
     )
 
 
@@ -302,11 +301,11 @@ def format_fertilizer_summary(
 ) -> str:
     if used is False:
         return (
-            "Here is the saved fertilizer entry.\n"
+            "Saved fertilizer entry.\n"
             "- Fertilizer used: No"
         )
     return (
-        "Here is the saved fertilizer entry.\n"
+        "Saved fertilizer entry.\n"
         f"- Fertilizer used: {'Yes' if used else '-'}\n"
         f"- Type: {kind_label}\n"
         f"- Product: {product_name}\n"
@@ -323,20 +322,20 @@ def format_yield_confirmation(
     harvest_date: str,
 ) -> str:
     return (
-        "Please review the yield entry.\n"
+        "Check the yield entry.\n"
         f"- Harvest ready: {'Ready' if ready else 'Not ready' if ready is False else '-'}\n"
         f"- Field: {field_name}\n"
         f"- Amount: {amount_text}\n"
         f"- Harvest date: {harvest_date}\n\n"
-        "If this looks right, press [Confirm]."
+        "If it is right, press [Confirm]."
     )
 
 
 def format_support_admin_reply(*, admin_message: str) -> str:
     return (
-        "Operator reply.\n"
+        "Reply from support.\n"
         f"{admin_message}\n\n"
-        "If you need to add more information, continue in this chat."
+        "If you need to add more, continue here."
     )
 
 
@@ -396,8 +395,8 @@ def format_weather(
     wind_speed: float,
 ) -> str:
     return (
-        f"Current weather in {city}.\n"
-        f"- Observed at: {observed_at.strftime('%Y-%m-%d %H:%M')} KST\n"
+        f"Weather in {city}.\n"
+        f"- Time: {observed_at.strftime('%Y-%m-%d %H:%M')} KST\n"
         f"- Condition: {weather_label}\n"
         f"- Temperature: {temperature:.1f}°C\n"
         f"- Feels like: {apparent_temperature:.1f}°C\n"

@@ -42,7 +42,7 @@ def test_profile_fallback_keyboard_uses_current_step_navigation():
     layout = fallback_keyboard_layout_for_state(STATE_PROFILE_NAME, catalog)
 
     assert layout[0][0]["text"] == catalog.BUTTON_BACK
-    assert layout[0][1]["text"] == catalog.BUTTON_CANCEL
+    assert layout[1][0]["text"] == catalog.BUTTON_RESTART
 
 
 def test_profile_confirm_fallback_keyboard_exposes_direct_edit_targets():
@@ -59,7 +59,7 @@ def test_fertilizer_fallback_keyboard_uses_current_step_navigation():
     layout = fallback_keyboard_layout_for_state(STATE_FERTILIZER_PRODUCT, catalog)
 
     assert layout[0][0]["text"] == catalog.BUTTON_BACK
-    assert layout[0][1]["text"] == catalog.BUTTON_CANCEL
+    assert layout[1][0]["text"] == catalog.BUTTON_RESTART
 
 
 def test_fertilizer_confirm_fallback_keyboard_exposes_direct_edit_targets():

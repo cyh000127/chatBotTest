@@ -7,7 +7,7 @@ BUTTON_FERTILIZER = "បញ្ចូលជី"
 BUTTON_YIELD = "បញ្ចូលទិន្នផល"
 BUTTON_MYFIELDS = "ពិនិត្យផ្ទាល់ខ្លួន"
 BUTTON_INPUT_RESOLVE = "បកស្រាយតម្លៃ"
-BUTTON_SUPPORT = "ការណែនាំជំនួយ"
+BUTTON_SUPPORT = "ជំនួយ"
 BUTTON_HELP = "ជំនួយ"
 BUTTON_BACK = "ថយក្រោយ"
 BUTTON_CANCEL = "បោះបង់"
@@ -17,7 +17,7 @@ BUTTON_EDIT = "កែប្រែ"
 BUTTON_EDIT_START = "ចាប់ផ្តើមកែ"
 BUTTON_KEEP_CURRENT = "ទុកដដែល"
 BUTTON_APPLY_SUGGESTED_VALUE = "ប្រើតម្លៃនេះ"
-BUTTON_ENTER_VALUE_DIRECTLY = "បញ្ចូលម្តងទៀតដោយដៃ"
+BUTTON_ENTER_VALUE_DIRECTLY = "បញ្ចូលដោយដៃ"
 BUTTON_YES = "បាទ/ចាស"
 BUTTON_NO = "ទេ"
 BUTTON_EDIT_NAME = "ឈ្មោះ"
@@ -42,12 +42,12 @@ BUTTON_FERTILIZER_KIND_COMPOST = "ជីកំប៉ុស"
 BUTTON_FERTILIZER_KIND_LIQUID = "ជីរាវ"
 
 LANGUAGE_NAME = "ខ្មែរ"
-LANGUAGE_MENU_MESSAGE = "សូមជ្រើសរើសភាសា។"
-LANGUAGE_CHANGED_MESSAGE = "បានប្តូរភាសាទៅជាខ្មែរ។"
-AUTH_START_PROMPT = "សូមបញ្ចូលអត្តសញ្ញាណចូលប្រើ។\nឧទាហរណ៍៖ /start okccc5 ឬ okccc5"
-AUTH_REQUIRED_MESSAGE = "ត្រូវការការផ្ទៀងផ្ទាត់ជាមុនសិន។\nសូមវាយ /start ហើយបញ្ចូលអត្តសញ្ញាណរបស់អ្នក។"
-AUTH_INVALID_MESSAGE = "អត្តសញ្ញាណមិនត្រឹមត្រូវទេ។ សូមបញ្ចូលម្ដងទៀត។"
-AUTH_RETRY_LIMIT_MESSAGE = "ការផ្ទៀងផ្ទាត់បានបរាជ័យ 2 ដង។\nសូមចាប់ផ្តើមម្ដងទៀតដោយវាយ /start។"
+LANGUAGE_MENU_MESSAGE = "សូមជ្រើសភាសា។"
+LANGUAGE_CHANGED_MESSAGE = "បានប្តូរទៅភាសាខ្មែរ។"
+AUTH_START_PROMPT = "សូមបញ្ចូលលេខសម្គាល់ចូល។\nឧទាហរណ៍៖ /start okccc5 ឬ okccc5"
+AUTH_REQUIRED_MESSAGE = "ត្រូវចូលប្រើជាមុនសិន។\nសូមវាយ /start ហើយបញ្ចូលលេខសម្គាល់របស់អ្នក។"
+AUTH_INVALID_MESSAGE = "លេខសម្គាល់មិនត្រឹមត្រូវ។ សូមបញ្ចូលម្ដងទៀត។"
+AUTH_RETRY_LIMIT_MESSAGE = "បញ្ចូលខុស 2 ដងហើយ។\nសូមវាយ /start ម្តងទៀត។"
 AUTH_WELCOME_MESSAGE = "សូមស្វាគមន៍ {user_name}!"
 AUTH_ALREADY_LOGGED_IN_MESSAGE = "សូមស្វាគមន៍មកវិញ {user_name}!"
 
@@ -59,58 +59,57 @@ CITY_BUTTON_TO_KEY = {
 
 START_MESSAGE = "បានចាប់ផ្តើម។\nសូមជ្រើសរើសសកម្មភាពខាងក្រោម។"
 MAIN_MENU_MESSAGE = "ម៉ឺនុយមេ។\nសូមជ្រើសរើសសកម្មភាពខាងក្រោម។"
-WEATHER_MENU_MESSAGE = "សូមជ្រើសរើសទីក្រុងដើម្បីពិនិត្យអាកាសធាតុថ្ងៃនេះ។"
+WEATHER_MENU_MESSAGE = "សូមជ្រើសទីក្រុងដើម្បីមើលអាកាសធាតុថ្ងៃនេះ។"
 PROFILE_ENTRY_MESSAGE = (
     "ចាប់ផ្តើមបញ្ចូលប្រវត្តិ។\n"
     "ដំបូងសូមបញ្ចូលឈ្មោះ។"
 )
-CANCEL_MESSAGE = "បានបោះបង់ដំណើរការបច្ចុប្បន្ន។\nសូមប្រើ 'ចាប់ផ្តើមឡើងវិញ' ឬ /start ដើម្បីចាប់ផ្តើមម្ដងទៀត។"
-BACK_LIMIT_MESSAGE = "មិនមានជំហានមុនទេ។\nសូមជ្រើសរើសម្ដងទៀតពីម៉ឺនុយមេ។"
-BACK_TO_MAIN_MESSAGE = "បានត្រឡប់ទៅជំហានមុន។\nសូមជ្រើសរើសម្ដងទៀត។"
-BACK_TO_WEATHER_MESSAGE = "បានត្រឡប់ទៅជំហានជ្រើសរើសអាកាសធាតុ។\nសូមជ្រើសរើសទីក្រុងម្ដងទៀត។"
-BACK_GENERIC_MESSAGE = "បានត្រឡប់ទៅស្ថានភាពមុន។"
-WEATHER_ERROR_MESSAGE = "មិនអាចទាញយកព័ត៌មានអាកាសធាតុបានទេ។\nសូមព្យាយាមម្ដងទៀតបន្តិចក្រោយ។"
-UNKNOWN_COMMAND_MESSAGE = "ពាក្យបញ្ជានេះមិនត្រូវបានគាំទ្រទេ។\nសូមជ្រើសធាតុដែលពាក់ព័ន្ធខាងក្រោម ឬប្រើ /help។"
-MYFIELDS_ENTRY_MESSAGE = "នេះគឺជាច្រកចូល myfields។\nឥឡូវនេះ runtime ភ្ជាប់តែការណែនាំចូល និងការវិលត្រឡប់ប៉ុណ្ណោះ។\nសូមជ្រើសសកម្មភាពផ្សេងទៀតខាងក្រោម ឬចាប់ផ្តើមឡើងវិញដោយ /start។"
-INPUT_RESOLVE_ENTRY_MESSAGE = "នេះគឺជាច្រកចូល input resolve។\nruntime បច្ចុប្បន្នបើកការប្រមូលតម្លៃ canonical ជាជំហានដំបូង។\nការបង្កើតបេក្ខភាព និងការភ្ជាប់ពិនិត្យដោយមនុស្ស នៅតែស្ថិតក្នុងជួរការអនុវត្តបន្ទាប់។"
-SUPPORT_ESCALATION_MESSAGE = "សំណើជំនួយរបស់អ្នកត្រូវបានផ្ញើទៅការពិនិត្យប្រតិបត្តិការ។\nមិនបង្កើតបង្អួចជជែកថ្មីទេ ហើយការណែនាំបន្តអាចបន្តក្នុងបង្អួចនេះ។\nអ្នកអាចត្រឡប់វិញដោយសុវត្ថិភាពតាម /help, /menu ឬ /start។"
-SUPPORT_HANDOFF_MESSAGE_RECORDED = "ខ្ញុំបានរក្សាទុកសារបន្ថែមនេះក្នុងប្រវត្តិបញ្ជូនទៅក្រុមប្រតិបត្តិការ។\nអ្នកអាចទទួលការណែនាំបន្តក្នុងបង្អួចជជែកដដែលនេះ។\nប្រើ /start ប្រសិនបើអ្នកចង់ចាប់ផ្តើមឡើងវិញ។"
-SUPPORT_HANDOFF_CLOSED_MESSAGE = "ការបញ្ជូនទៅក្រុមប្រតិបត្តិការបានបិទហើយ។\nបើត្រូវការជំនួយ អ្នកអាចស្នើសុំម្ដងទៀតក្នុងបង្អួចជជែកនេះ។"
+CANCEL_MESSAGE = "បានចេញពីលំហូរបច្ចុប្បន្ន។\nសូមចាប់ផ្តើមឡើងវិញ ឬវាយ /start ម្តងទៀត។"
+BACK_LIMIT_MESSAGE = "មិនមានជំហានមុនទេ។\nសូមជ្រើសម្តងទៀតពីម៉ឺនុយមេ។"
+BACK_TO_MAIN_MESSAGE = "បានត្រឡប់ទៅជំហានមុន។\nសូមជ្រើសម្តងទៀត។"
+BACK_TO_WEATHER_MESSAGE = "បានត្រឡប់ទៅជំហានជ្រើសអាកាសធាតុ។\nសូមជ្រើសទីក្រុងម្តងទៀត។"
+BACK_GENERIC_MESSAGE = "បានត្រឡប់ទៅជំហានមុន។"
+WEATHER_ERROR_MESSAGE = "មិនអាចយកព័ត៌មានអាកាសធាតុបាន។\nសូមព្យាយាមម្តងទៀតបន្តិចក្រោយ។"
+UNKNOWN_COMMAND_MESSAGE = "ពាក្យបញ្ជានេះមិនទាន់គាំទ្រ។\nសូមជ្រើសធាតុខាងក្រោម ឬប្រើ /help។"
+MYFIELDS_ENTRY_MESSAGE = "នេះគឺជាទំព័រពិនិត្យព័ត៌មានរបស់អ្នក។\nពេលនេះមានតែការមើលព័ត៌មាន និងត្រឡប់ក្រោយប៉ុណ្ណោះ។\nសូមជ្រើសសកម្មភាពខាងក្រោម ឬចាប់ផ្តើមម្ដងទៀតដោយ /start។"
+INPUT_RESOLVE_ENTRY_MESSAGE = "នេះគឺជាទំព័រជួយបញ្ជាក់តម្លៃ។\nប្រព័ន្ធនឹងទាញយកតម្លៃសំខាន់ៗជាដំបូង។\nការជ្រើសចុងក្រោយ និងការពិនិត្យដោយមនុស្ស ធ្វើនៅជំហានក្រោយ។"
+SUPPORT_ESCALATION_MESSAGE = "បានផ្ញើសំណើជំនួយទៅក្រុមប្រតិបត្តិការ។\nមិនបើកបង្អួចជជែកថ្មីទេ។\nអ្នកអាចបន្តក្នុងបង្អួចនេះ ឬប្រើ /help, /menu, /start។"
+SUPPORT_HANDOFF_MESSAGE_RECORDED = "បានរក្សាទុកសារបន្ថែមក្នុងប្រវត្តិជំនួយ។\nអ្នកអាចបន្តទទួលការណែនាំក្នុងបង្អួចជជែកនេះ។\nប្រើ /start ប្រសិនបើចង់ចាប់ផ្តើមឡើងវិញ។"
+SUPPORT_HANDOFF_CLOSED_MESSAGE = "ការជំនួយនេះបានបិទហើយ។\nបើត្រូវការ អ្នកអាចស្នើសុំម្ដងទៀតក្នុងបង្អួចជជែកនេះ។"
 
 HELP_MESSAGE = (
     "ពាក្យបញ្ជាដែលអាចប្រើបាន៖\n"
-    "- /start : ត្រឡប់ទៅចំណុចចាប់ផ្តើម\n"
+    "- /start : ចាប់ផ្តើមពីដើម\n"
     "- /help : បង្ហាញជំនួយ\n"
     "- /menu : បើកម៉ឺនុយមេ\n"
     "- /profile : ចាប់ផ្តើមបញ្ចូលប្រវត្តិ\n"
-    "- /myfields : បើកច្រកចូល myfields\n"
+    "- /myfields : មើលព័ត៌មានរបស់អ្នក\n"
     "- /fertilizer : ចាប់ផ្តើមបញ្ចូលជី\n"
     "- /yield : ចាប់ផ្តើមបញ្ចូលទិន្នផល\n"
-    "- /resolve : បើកច្រកចូល input resolve\n"
-    "- /support : បើកការណែនាំជំនួយ\n"
+    "- /resolve : ជួយបញ្ជាក់តម្លៃ\n"
+    "- /support : បើកជំនួយ\n"
     "- /language : ប្តូរភាសា\n"
-    "- ថយក្រោយ : ត្រឡប់ទៅជំហានមុន\n"
-    "- បោះបង់ : បញ្ឈប់លំហូរបច្ចុប្បន្ន\n"
-    "- ចាប់ផ្តើមឡើងវិញ : កំណត់សម័យឡើងវិញ"
+    "- ថយក្រោយ : ទៅជំហានមុន\n"
+    "- ចាប់ផ្តើមឡើងវិញ : ចាប់ផ្តើមពីដើម"
 )
 
 FALLBACK_MESSAGES = {
-    "default": "ខ្ញុំមិនទាន់យល់សំណើនេះភ្លាមៗទេ។\nសូមជ្រើសមុខងារដែលពាក់ព័ន្ធខាងក្រោមបានទេ?",
-    "weather": "ខ្ញុំមិនទាន់យល់សំណើនេះភ្លាមៗទេ។\nសូមជ្រើសទីក្រុងខាងក្រោម ឬចុចថយក្រោយ។",
-    "cancelled": "ការងារបច្ចុប្បន្នត្រូវបានបោះបង់។\nសូមជ្រើសមុខងារដែលពាក់ព័ន្ធខាងក្រោមដើម្បីបន្ត។",
-    "profile_input": "ខ្ញុំមិនទាន់អាចដំណើរការការបញ្ចូលប្រវត្តិរូបនេះភ្លាមៗទេ។\nសូមជ្រើសធាតុប្រវត្តិរូបដែលពាក់ព័ន្ធខាងក្រោមដើម្បីបន្ត ឬកែប្រែ។",
-    "profile_followup": "ត្រូវការការបញ្ជាក់បន្ថែម។\nសូមជ្រើសមុខងារដែលពាក់ព័ន្ធខាងក្រោមបានទេ?",
-    "profile_confirm": "អ្នកកំពុងស្ថិតនៅជំហានបញ្ជាក់ប្រវត្តិរូប។\nសូមជ្រើសថាតើត្រូវបញ្ជាក់ ឬកែប្រែខាងក្រោម។",
-    "fertilizer_input": "ខ្ញុំមិនទាន់អាចដំណើរការការបញ្ចូលជីនេះភ្លាមៗទេ។\nសូមជ្រើសធាតុជីដែលពាក់ព័ន្ធខាងក្រោមដើម្បីបន្ត ឬកែប្រែ។",
-    "fertilizer_confirm": "អ្នកកំពុងស្ថិតនៅជំហានបញ្ជាក់ជី។\nសូមជ្រើសថាតើត្រូវបញ្ជាក់ ឬកែប្រែខាងក្រោម។",
-    "yield_input": "ខ្ញុំមិនទាន់អាចដំណើរការការបញ្ចូលទិន្នផលនេះភ្លាមៗទេ។\nសូមជ្រើសជំហានដែលពាក់ព័ន្ធខាងក្រោមដើម្បីបន្ត។",
-    "yield_confirm": "អ្នកកំពុងស្ថិតនៅជំហានបញ្ជាក់ទិន្នផល។\nសូមជ្រើសបញ្ជាក់ ឬ ថយក្រោយខាងក្រោម។",
+    "default": "ខ្ញុំមិនទាន់យល់សំណើនេះទេ។\nសូមជ្រើសមុខងារខាងក្រោម។",
+    "weather": "ខ្ញុំមិនទាន់យល់សំណើនេះទេ។\nសូមជ្រើសទីក្រុងខាងក្រោម ឬចុចថយក្រោយ។",
+    "cancelled": "លំហូរនេះបានបិទហើយ។\nសូមជ្រើសមុខងារខាងក្រោមដើម្បីបន្ត។",
+    "profile_input": "ខ្ញុំមិនទាន់អាចដំណើរការការបញ្ចូលប្រវត្តិនេះទេ។\nសូមជ្រើសធាតុប្រវត្តិខាងក្រោម ដើម្បីបន្ត ឬកែប្រែ។",
+    "profile_followup": "ត្រូវការពិនិត្យបន្ថែម។\nសូមជ្រើសមុខងារខាងក្រោម។",
+    "profile_confirm": "អ្នកនៅជំហានបញ្ជាក់ប្រវត្តិ។\nសូមជ្រើសបញ្ជាក់ ឬកែប្រែខាងក្រោម។",
+    "fertilizer_input": "ខ្ញុំមិនទាន់អាចដំណើរការការបញ្ចូលជីនេះទេ។\nសូមជ្រើសធាតុជីខាងក្រោម ដើម្បីបន្ត ឬកែប្រែ។",
+    "fertilizer_confirm": "អ្នកនៅជំហានបញ្ជាក់ជី។\nសូមជ្រើសបញ្ជាក់ ឬកែប្រែខាងក្រោម។",
+    "yield_input": "ខ្ញុំមិនទាន់អាចដំណើរការការបញ្ចូលទិន្នផលនេះទេ។\nសូមជ្រើសជំហានខាងក្រោម ដើម្បីបន្ត។",
+    "yield_confirm": "អ្នកនៅជំហានបញ្ជាក់ទិន្នផល។\nសូមជ្រើសបញ្ជាក់ ឬថយក្រោយខាងក្រោម។",
 }
-RECOVERY_GUIDANCE_SOFT = "ខ្ញុំនឹងពន្យល់ម្តងទៀតអំពីអ្វីដែលត្រូវបញ្ចូលនៅជំហាននេះ។"
-RECOVERY_GUIDANCE_GUIDED = "ដើម្បីបន្តលំហូរបច្ចុប្បន្ន សូមធ្វើតាមការណែនាំខាងក្រោម។"
-RECOVERY_GUIDANCE_ESCALATION_READY = "បើបញ្ហានេះកើតឡើងម្ដងហើយម្ដងទៀត អ្នកអាចផ្លាស់ទីដោយសុវត្ថិភាពតាមធាតុខាងក្រោម។"
-RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "ខ្ញុំបានរកឃើញតម្លៃបេក្ខភាពជាច្រើនពីសារតែមួយ។ សូមពិនិត្យសេចក្តីព្រាងខាងក្រោមមុនបន្ត។"
-RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "ខ្ញុំបានអនុវត្តតម្លៃបេក្ខភាពជាច្រើនទៅកាន់សេចក្តីព្រាងបច្ចុប្បន្ន។ សូមពិនិត្យខាងក្រោម។"
+RECOVERY_GUIDANCE_SOFT = "ខ្ញុំនឹងពន្យល់ជាថ្មីថាត្រូវបញ្ចូលអ្វី។"
+RECOVERY_GUIDANCE_GUIDED = "សូមធ្វើតាមជំហានខាងក្រោម ដើម្បីបន្ត។"
+RECOVERY_GUIDANCE_ESCALATION_READY = "បើបញ្ហានេះកើតឡើងម្តងទៀត អ្នកអាចជ្រើសធាតុខាងក្រោមបាន។"
+RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "ខ្ញុំរកឃើញតម្លៃជាច្រើនក្នុងសារតែមួយ។ សូមពិនិត្យសេចក្តីព្រាងខាងក្រោមមុនបន្ត។"
+RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "ខ្ញុំបានដាក់តម្លៃជាច្រើនទៅសេចក្តីព្រាងបច្ចុប្បន្ន។ សូមពិនិត្យខាងក្រោម។"
 CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE = (
     "សំណើនេះមើលទៅដូចជាការស្នើសុំជំនួយ ឬ ការគាំទ្រពីមនុស្ស។\n"
     "ខ្ញុំនឹងរក្សាទុកវាជាការបញ្ជូនទៅជំនួយ ហើយការណែនាំបន្តអាចបន្តក្នុងបង្អួចនេះ។\n"
@@ -127,42 +126,42 @@ CHEAP_GATE_MANUAL_RESOLUTION_MESSAGE = (
     "សូមជ្រើសធាតុដែលពាក់ព័ន្ធខាងក្រោម ឬចាប់ផ្តើមម្ដងទៀតដោយ /menu ឬ /start។"
 )
 
-PROFILE_CONFIRMED_MESSAGE = "បានបញ្ជាក់ការបញ្ចូល។\nបានរក្សាទុកក្នុងសម័យបច្ចុប្បន្ន។"
-PROFILE_EDIT_MESSAGE = "សូមជ្រើសរើសព័ត៌មានដែលអ្នកចង់កែប្រែ។"
-PROFILE_EDIT_SELECTION_CONFIRMATION_MESSAGE = "អ្នកចង់ជ្រើសរើសធាតុប្រវត្តិរូបដែលត្រូវកែម្ដងទៀតមែនទេ?\nចុច [{edit_button}] ហើយខ្ញុំនឹងបើកអេក្រង់ជ្រើសរើសការកែប្រែ។"
+PROFILE_CONFIRMED_MESSAGE = "បានបញ្ជាក់ការបញ្ចូល។\nបានរក្សាទុកក្នុងសម័យនេះ។"
+PROFILE_EDIT_MESSAGE = "សូមជ្រើសព័ត៌មានដែលចង់កែ។"
+PROFILE_EDIT_SELECTION_CONFIRMATION_MESSAGE = "ចង់ជ្រើសធាតុប្រវត្តិម្តងទៀតមែនទេ?\nចុច [{edit_button}] ហើយខ្ញុំនឹងបើកអេក្រង់កែប្រែ។"
 PROFILE_NOT_FOUND_MESSAGE = "មិនទាន់មានប្រវត្តិដែលបានរក្សាទុកទេ។\nសូមបំពេញប្រវត្តិជាមុនសិន។"
 PROFILE_NAME_PROMPT = "សូមបញ្ចូលឈ្មោះ។"
 PROFILE_RESIDENCE_PROMPT = "សូមបញ្ចូលទីលំនៅ។"
-PROFILE_CITY_PROMPT = "សូមបញ្ចូលរាជធានី/ខេត្ត។\nឧទាហរណ៍៖ Seoul, Gyeonggi-do"
-PROFILE_DISTRICT_PROMPT = "សូមបញ្ចូលខណ្ឌ/ស្រុក/ក្រុង។\nឧទាហរណ៍៖ Gangnam-gu, Bundang-gu"
-PROFILE_BIRTH_YEAR_PROMPT = "សូមជ្រើសរើសឆ្នាំកំណើតតាមប៊ូតុង។"
-PROFILE_BIRTH_MONTH_PROMPT = "សូមជ្រើសរើសខែកំណើតតាមប៊ូតុង។"
-PROFILE_BIRTH_DAY_PROMPT = "សូមជ្រើសរើសថ្ងៃកំណើតតាមប៊ូតុង។"
+PROFILE_CITY_PROMPT = "សូមបញ្ចូលរាជធានី/ខេត្ត។\nឧទាហរណ៍៖ ភ្នំពេញ"
+PROFILE_DISTRICT_PROMPT = "សូមបញ្ចូលខណ្ឌ/ស្រុក/ក្រុង។\nឧទាហរណ៍៖ ខណ្ឌ៧មករា, សែនសុខ"
+PROFILE_BIRTH_YEAR_PROMPT = "សូមជ្រើសឆ្នាំកំណើតពីប៊ូតុង។"
+PROFILE_BIRTH_MONTH_PROMPT = "សូមជ្រើសខែកំណើតពីប៊ូតុង។"
+PROFILE_BIRTH_DAY_PROMPT = "សូមជ្រើសថ្ងៃកំណើតពីប៊ូតុង។"
 PROFILE_NAME_FALLBACK = "សូមបញ្ចូលឈ្មោះម្ដងទៀត។"
 PROFILE_RESIDENCE_FALLBACK = "សូមបញ្ចូលទីលំនៅម្ដងទៀត។"
 PROFILE_CITY_FALLBACK = "សូមបញ្ចូលរាជធានី/ខេត្តឲ្យត្រឹមត្រូវម្ដងទៀត។"
 PROFILE_DISTRICT_FALLBACK = "សូមបញ្ចូលខណ្ឌ/ស្រុក/ក្រុងឲ្យត្រឹមត្រូវម្ដងទៀត។"
-PROFILE_BIRTH_YEAR_FALLBACK = "សូមជ្រើសរើសប៊ូតុងឆ្នាំកំណើត។"
-PROFILE_BIRTH_MONTH_FALLBACK = "សូមជ្រើសរើសប៊ូតុងខែកំណើត។"
-PROFILE_BIRTH_DAY_FALLBACK = "សូមជ្រើសរើសប៊ូតុងថ្ងៃកំណើត។"
+PROFILE_BIRTH_YEAR_FALLBACK = "សូមជ្រើសឆ្នាំកំណើតពីប៊ូតុង។"
+PROFILE_BIRTH_MONTH_FALLBACK = "សូមជ្រើសខែកំណើតពីប៊ូតុង។"
+PROFILE_BIRTH_DAY_FALLBACK = "សូមជ្រើសថ្ងៃកំណើតពីប៊ូតុង។"
 PROFILE_CONFIRM_FALLBACK = "សូមជ្រើសរើស [បញ្ជាក់] ឬ [កែប្រែ]។"
-PROFILE_EDIT_SELECT_FALLBACK = "សូមជ្រើសរើសព័ត៌មានដែលត្រូវកែប្រែតាមប៊ូតុង។"
-PROFILE_REPAIR_NAME_MESSAGE = "យើងនឹងបញ្ចូលឈ្មោះម្ដងទៀត។"
-PROFILE_REPAIR_RESIDENCE_MESSAGE = "យើងនឹងបញ្ចូលទីលំនៅម្ដងទៀត។"
-PROFILE_REPAIR_CITY_MESSAGE = "យើងនឹងបញ្ចូលរាជធានី/ខេត្តម្ដងទៀត។"
-PROFILE_REPAIR_DISTRICT_MESSAGE = "យើងនឹងបញ្ចូលខណ្ឌ/ស្រុក/ក្រុងម្ដងទៀត។"
-PROFILE_REPAIR_BIRTH_MESSAGE = "យើងនឹងបញ្ចូលថ្ងៃខែឆ្នាំកំណើតម្ដងទៀត។\nសូមជ្រើសរើសឆ្នាំកំណើត។"
-PROFILE_DIRECT_UPDATE_MESSAGE = "ខ្ញុំបានអនុវត្តការកែតាមភាសាធម្មជាតិហើយ។ សូមពិនិត្យហើយចុច [បញ្ជាក់]។"
-LLM_REPAIR_CANDIDATE_HINT = "ខ្ញុំយល់ថាអ្នកចង់ប្ដូរទៅជា \"{candidate_value}\"។\nបើត្រឹមត្រូវ សូមចុច ចាប់ផ្តើមកែ។"
-LLM_REPAIR_UNSUPPORTED_MESSAGE = "ខ្ញុំមិនទាន់អាចកំណត់ធាតុដែលត្រូវកែបានភ្លាមៗទេ។\nសូមជ្រើសរើសដោយផ្ទាល់ពីធាតុដែលពាក់ព័ន្ធខាងក្រោម។"
-LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "ខ្ញុំមិនទាន់ប្រាកដគ្រប់គ្រាន់ថាអ្នកចង់កែធាតុណាទេ។\nសូមជ្រើសរើសដោយផ្ទាល់ពីធាតុដែលពាក់ព័ន្ធខាងក្រោម។"
+PROFILE_EDIT_SELECT_FALLBACK = "សូមជ្រើសព័ត៌មានដែលត្រូវកែពីប៊ូតុង។"
+PROFILE_REPAIR_NAME_MESSAGE = "យើងនឹងបញ្ចូលឈ្មោះម្តងទៀត។"
+PROFILE_REPAIR_RESIDENCE_MESSAGE = "យើងនឹងបញ្ចូលទីលំនៅម្តងទៀត។"
+PROFILE_REPAIR_CITY_MESSAGE = "យើងនឹងបញ្ចូលរាជធានី/ខេត្តម្តងទៀត។"
+PROFILE_REPAIR_DISTRICT_MESSAGE = "យើងនឹងបញ្ចូលខណ្ឌ/ស្រុក/ក្រុងម្តងទៀត។"
+PROFILE_REPAIR_BIRTH_MESSAGE = "យើងនឹងបញ្ចូលថ្ងៃខែឆ្នាំកំណើតម្តងទៀត។\nសូមជ្រើសឆ្នាំកំណើត។"
+PROFILE_DIRECT_UPDATE_MESSAGE = "បានកែតាមភាសាធម្មជាតិហើយ។ សូមពិនិត្យ ហើយចុច [បញ្ជាក់]។"
+LLM_REPAIR_CANDIDATE_HINT = "ខ្ញុំគិតថាអ្នកចង់ប្ដូរទៅជា \"{candidate_value}\"។\nបើត្រឹមត្រូវ សូមចុច ចាប់ផ្តើមកែ។"
+LLM_REPAIR_UNSUPPORTED_MESSAGE = "ខ្ញុំមិនទាន់ដឹងថាត្រូវកែធាតុណាទេ។\nសូមជ្រើសដោយផ្ទាល់ពីធាតុខាងក្រោម។"
+LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "ខ្ញុំមិនទាន់ប្រាកដថាអ្នកចង់កែធាតុណាទេ។\nសូមជ្រើសដោយផ្ទាល់ពីធាតុខាងក្រោម។"
 LLM_REPAIR_HUMAN_REVIEW_MESSAGE = (
-    "សំណើនេះពិបាកបង្រួមឱ្យនៅសល់តែធាតុកែប្រែមួយដោយស្វ័យប្រវត្តិ។\n"
-    "វាអាចត្រូវការការពិនិត្យដោយមនុស្ស ដូច្នេះសូមជ្រើសរើសដោយផ្ទាល់ពីធាតុដែលពាក់ព័ន្ធខាងក្រោម។"
+    "សំណើនេះពិបាកកាត់ឲ្យសល់តែធាតុកែប្រែមួយដោយស្វ័យប្រវត្តិ។\n"
+    "វាអាចត្រូវការមនុស្សពិនិត្យ ដូច្នេះសូមជ្រើសដោយផ្ទាល់ពីធាតុខាងក្រោម។"
 )
 LLM_REPAIR_RUNTIME_FAILURE_MESSAGE = (
-    "ខ្ញុំបានព្យាយាមបកស្រាយដោយស្វ័យប្រវត្តិ ប៉ុន្តែឥឡូវនេះវាមិនទាន់មានស្ថិរភាពគ្រប់គ្រាន់ទេ។\n"
-    "សូមបន្តដោយជ្រើសរើសដោយផ្ទាល់ពីធាតុដែលពាក់ព័ន្ធខាងក្រោម។"
+    "ខ្ញុំបានព្យាយាមបកស្រាយដោយស្វ័យប្រវត្តិ ប៉ុន្តែឥឡូវនេះមិនទាន់ស្ថិតស្ថេរល្អទេ។\n"
+    "សូមបន្តដោយជ្រើសដោយផ្ទាល់ពីធាតុខាងក្រោម។"
 )
 
 FERTILIZER_KIND_LABELS = {
@@ -173,46 +172,46 @@ FERTILIZER_KIND_LABELS = {
 }
 FERTILIZER_USED_LABEL_YES = "បានប្រើ"
 FERTILIZER_USED_LABEL_NO = "មិនបានប្រើ"
-FERTILIZER_USED_PROMPT = "តើអ្នកបានប្រើជីសម្រាប់ការងារនេះទេ?"
-FERTILIZER_KIND_PROMPT = "សូមជ្រើសរើសប្រភេទជី។"
+FERTILIZER_USED_PROMPT = "តើបានប្រើជីឬនៅ?"
+FERTILIZER_KIND_PROMPT = "សូមជ្រើសប្រភេទជី។"
 FERTILIZER_PRODUCT_PROMPT = "សូមបញ្ចូលឈ្មោះផលិតផល។"
-FERTILIZER_AMOUNT_PROMPT = "សូមបញ្ចូលបរិមាណដែលបានប្រើ។\nឧទាហរណ៍៖ 20kg, one bag"
-FERTILIZER_DATE_PROMPT = "សូមបញ្ចូលកាលបរិច្ឆេទប្រើប្រាស់។\nឧទាហរណ៍៖ 2026-04-21, today, yesterday"
-FERTILIZER_CONFIRM_PROMPT = "សូមបញ្ជាក់ការបញ្ចូលជី។"
+FERTILIZER_AMOUNT_PROMPT = "សូមបញ្ចូលបរិមាណដែលបានប្រើ។\nឧទាហរណ៍៖ 20kg, 1 ថង់"
+FERTILIZER_DATE_PROMPT = "សូមបញ្ចូលថ្ងៃប្រើជី។\nឧទាហរណ៍៖ 2026-04-21, ថ្ងៃនេះ, ម្សិលមិញ"
+FERTILIZER_CONFIRM_PROMPT = "សូមពិនិត្យការបញ្ចូលជី។"
 FERTILIZER_USED_FALLBACK = "សូមជ្រើសរើស បាទ/ចាស ឬ ទេ។"
-FERTILIZER_KIND_FALLBACK = "សូមជ្រើសរើសប៊ូតុងប្រភេទជី។"
+FERTILIZER_KIND_FALLBACK = "សូមជ្រើសប្រភេទជីពីប៊ូតុង។"
 FERTILIZER_PRODUCT_FALLBACK = "សូមបញ្ចូលឈ្មោះផលិតផលម្ដងទៀត។"
 FERTILIZER_AMOUNT_FALLBACK = "សូមបញ្ចូលបរិមាណម្ដងទៀត។\nឧទាហរណ៍៖ 20kg"
-FERTILIZER_DATE_FALLBACK = "សូមបញ្ចូលកាលបរិច្ឆេទម្ដងទៀត។\nឧទាហរណ៍៖ 2026-04-21"
-FERTILIZER_CONFIRM_FALLBACK = "សូមចុច [បញ្ជាក់] ឬថយក្រោយដើម្បីកែប្រែ។"
-FERTILIZER_CONFIRMED_MESSAGE = "បានរក្សាទុកសេចក្តីព្រាងការបញ្ចូលជីក្នុងសម័យបច្ចុប្បន្ន។"
-FERTILIZER_EDIT_MESSAGE = "សូមជ្រើសរើសធាតុជីដែលចង់កែប្រែ។"
-FERTILIZER_EDIT_SELECTION_CONFIRMATION_MESSAGE = "អ្នកចង់ជ្រើសរើសធាតុជីដែលត្រូវកែម្ដងទៀតមែនទេ?\nចុច [{edit_button}] ហើយខ្ញុំនឹងបើកអេក្រង់ជ្រើសរើសការកែប្រែ។"
+FERTILIZER_DATE_FALLBACK = "សូមបញ្ចូលថ្ងៃប្រើជីម្ដងទៀត។\nឧទាហរណ៍៖ 2026-04-21"
+FERTILIZER_CONFIRM_FALLBACK = "សូមចុច [បញ្ជាក់] ឬថយក្រោយ ដើម្បីកែប្រែ។"
+FERTILIZER_CONFIRMED_MESSAGE = "បានរក្សាទុកសេចក្តីព្រាងជីក្នុងសម័យនេះ។"
+FERTILIZER_EDIT_MESSAGE = "សូមជ្រើសធាតុជីដែលចង់កែ។"
+FERTILIZER_EDIT_SELECTION_CONFIRMATION_MESSAGE = "អ្នកចង់ជ្រើសធាតុជីម្តងទៀតមែនទេ?\nចុច [{edit_button}] ហើយខ្ញុំនឹងបើកអេក្រង់កែប្រែ។"
 FERTILIZER_NOT_FOUND_MESSAGE = "មិនទាន់មានទិន្នន័យជីដែលបានរក្សាទុកទេ។\nសូមបំពេញការបញ្ចូលជាមុនសិន។"
-FERTILIZER_REPAIR_USED_MESSAGE = "យើងនឹងបញ្ចូលស្ថានភាពប្រើជីឡើងវិញ។"
-FERTILIZER_REPAIR_KIND_MESSAGE = "យើងនឹងបញ្ចូលប្រភេទជីឡើងវិញ។"
-FERTILIZER_REPAIR_PRODUCT_MESSAGE = "យើងនឹងបញ្ចូលឈ្មោះផលិតផលជីឡើងវិញ។"
-FERTILIZER_REPAIR_AMOUNT_MESSAGE = "យើងនឹងបញ្ចូលបរិមាណជីឡើងវិញ។"
-FERTILIZER_REPAIR_DATE_MESSAGE = "យើងនឹងបញ្ចូលកាលបរិច្ឆេទប្រើជីឡើងវិញ។"
-FERTILIZER_DIRECT_UPDATE_MESSAGE = "ខ្ញុំបានអនុវត្តការកែតាមភាសាធម្មជាតិហើយ។ សូមពិនិត្យហើយចុច [បញ្ជាក់]។"
-YIELD_READY_PROMPT = "តើការប្រមូលផលរួចរាល់ហើយឬនៅ?"
-YIELD_FIELD_PROMPT = "សូមជ្រើសរើស ឬ បញ្ចូលស្រែដែលបានប្រមូលផល។"
+FERTILIZER_REPAIR_USED_MESSAGE = "យើងនឹងបញ្ចូលស្ថានភាពប្រើជីម្តងទៀត។"
+FERTILIZER_REPAIR_KIND_MESSAGE = "យើងនឹងបញ្ចូលប្រភេទជីម្តងទៀត។"
+FERTILIZER_REPAIR_PRODUCT_MESSAGE = "យើងនឹងបញ្ចូលឈ្មោះផលិតផលជីម្តងទៀត។"
+FERTILIZER_REPAIR_AMOUNT_MESSAGE = "យើងនឹងបញ្ចូលបរិមាណជីម្តងទៀត។"
+FERTILIZER_REPAIR_DATE_MESSAGE = "យើងនឹងបញ្ចូលថ្ងៃប្រើជីម្តងទៀត។"
+FERTILIZER_DIRECT_UPDATE_MESSAGE = "បានកែតាមភាសាធម្មជាតិហើយ។ សូមពិនិត្យ ហើយចុច [បញ្ជាក់]។"
+YIELD_READY_PROMPT = "តើបានប្រមូលផលរួចហើយឬនៅ?"
+YIELD_FIELD_PROMPT = "សូមជ្រើស ឬបញ្ចូលស្រែដែលបានប្រមូលផល។"
 YIELD_AMOUNT_PROMPT = "សូមបញ្ចូលបរិមាណប្រមូលផល។\nឧទាហរណ៍៖ 320kg"
-YIELD_DATE_PROMPT = "សូមបញ្ចូលកាលបរិច្ឆេទប្រមូលផល។\nឧទាហរណ៍៖ 2026-04-21, ថ្ងៃនេះ, ម្សិលមិញ"
-YIELD_CONFIRM_PROMPT = "សូមបញ្ជាក់ការបញ្ចូលទិន្នផល។"
+YIELD_DATE_PROMPT = "សូមបញ្ចូលថ្ងៃប្រមូលផល។\nឧទាហរណ៍៖ 2026-04-21, ថ្ងៃនេះ, ម្សិលមិញ"
+YIELD_CONFIRM_PROMPT = "សូមពិនិត្យការបញ្ចូលទិន្នផល។"
 YIELD_READY_FALLBACK = "សូមជ្រើសរើស បាទ/ចាស ឬ ទេ។"
 YIELD_FIELD_FALLBACK = "សូមបញ្ចូលស្រែដែលបានប្រមូលផលម្ដងទៀត។"
 YIELD_AMOUNT_FALLBACK = "សូមបញ្ចូលបរិមាណប្រមូលផលម្ដងទៀត។\nឧទាហរណ៍៖ 320kg"
-YIELD_DATE_FALLBACK = "សូមបញ្ចូលកាលបរិច្ឆេទប្រមូលផលម្ដងទៀត។\nឧទាហរណ៍៖ 2026-04-21, ថ្ងៃនេះ, ម្សិលមិញ"
-YIELD_CONFIRM_FALLBACK = "សូមចុច [បញ្ជាក់] ឬ ថយក្រោយដើម្បីកែប្រែ។"
-YIELD_EDIT_MESSAGE = "សូមជ្រើសរើសធាតុទិន្នផលដែលចង់កែប្រែ។"
-YIELD_EDIT_SELECT_FALLBACK = "សូមជ្រើសធាតុដែលត្រូវកែ ឬ ចុច [ចាប់ផ្តើមកែ] ថយក្រោយ បោះបង់ ឬ ចាប់ផ្តើមឡើងវិញ។"
-YIELD_CONFIRMED_MESSAGE = "ការបញ្ចូលទិន្នផលត្រូវបានបញ្ជាក់ជាសេចក្តីព្រាងសម្រាប់រក្សាទុក។\nវាត្រូវបានរក្សាទុកក្នុងសម័យបច្ចុប្បន្ន។"
-INPUT_RESOLVE_TARGET_PROMPT = "សូមជ្រើសរើសតម្លៃដែលត្រូវបញ្ជាក់ឲ្យបានច្បាស់។"
-INPUT_RESOLVE_METHOD_PROMPT = "សូមជ្រើសរើសវិធីបញ្ចូល។\nអាចប្រើអត្ថបទ OCR ឬ សាកល្បងម្ដងទៀត។"
-INPUT_RESOLVE_RAW_INPUT_PROMPT = "សូមបញ្ចូល ឬ ផ្ញើអត្ថបទដើមដែលត្រូវបញ្ជាក់។"
-INPUT_RESOLVE_CANDIDATES_PROMPT = "សូមពិនិត្យបេក្ខភាព ហើយជ្រើសរើស 1-3 ឬ សាកល្បងម្ដងទៀត។"
-INPUT_RESOLVE_DECISION_PROMPT = "សូមជ្រើសរើស បញ្ជាក់រួច សាកល្បងម្ដងទៀត ឬ ពិនិត្យដោយមនុស្ស។"
+YIELD_DATE_FALLBACK = "សូមបញ្ចូលថ្ងៃប្រមូលផលម្ដងទៀត។\nឧទាហរណ៍៖ 2026-04-21, ថ្ងៃនេះ, ម្សិលមិញ"
+YIELD_CONFIRM_FALLBACK = "សូមចុច [បញ្ជាក់] ឬថយក្រោយ ដើម្បីកែប្រែ។"
+YIELD_EDIT_MESSAGE = "សូមជ្រើសធាតុទិន្នផលដែលចង់កែ។"
+YIELD_EDIT_SELECT_FALLBACK = "សូមជ្រើសធាតុដែលត្រូវកែ ឬ ចុច [ចាប់ផ្តើមកែ] ឬថយក្រោយ។"
+YIELD_CONFIRMED_MESSAGE = "បានរក្សាទុកសេចក្តីព្រាងទិន្នផលក្នុងសម័យនេះ។"
+INPUT_RESOLVE_TARGET_PROMPT = "សូមជ្រើសតម្លៃដែលចង់បញ្ជាក់។"
+INPUT_RESOLVE_METHOD_PROMPT = "សូមជ្រើសវិធីបញ្ចូល។\nអាចប្រើអក្សរពីរូបភាព ឬសាកល្បងម្តងទៀត។"
+INPUT_RESOLVE_RAW_INPUT_PROMPT = "សូមបញ្ចូល ឬផ្ញើអត្ថបទដើមដែលចង់ពិនិត្យ។"
+INPUT_RESOLVE_CANDIDATES_PROMPT = "សូមពិនិត្យជម្រើស ហើយជ្រើស 1-3 ឬសាកល្បងម្តងទៀត។"
+INPUT_RESOLVE_DECISION_PROMPT = "សូមជ្រើស បញ្ជាក់រួច សាកល្បងម្តងទៀត ឬឲ្យមនុស្សពិនិត្យ។"
 
 
 def format_profile_confirmation(
@@ -224,26 +223,26 @@ def format_profile_confirmation(
     residence: str,
 ) -> str:
     return (
-        "សូមបញ្ជាក់។\n"
+        "សូមពិនិត្យទិន្នន័យ។\n"
         f"- ឈ្មោះ: {name}\n"
         f"- ទីលំនៅ: {residence}\n"
         f"- រាជធានី/ខេត្ត: {city}\n"
         f"- ខណ្ឌ/ស្រុក/ក្រុង: {district}\n"
         f"- ថ្ងៃខែឆ្នាំកំណើត: {birth_date}\n"
-        "\nបើត្រឹមត្រូវ សូមជ្រើសរើស [បញ្ជាក់] មិនដូច្នោះទេ [កែប្រែ]។"
+        "\nបើត្រឹមត្រូវ សូមចុច [បញ្ជាក់]។ បើមិនត្រឹមត្រូវ សូមចុច [កែប្រែ]។"
     )
 
 
 def format_repair_confirmation(*, field_label: str, edit_button: str) -> str:
     return (
-        f"អ្នកចង់កែធាតុ {field_label} មែនទេ?\n"
-        f"ចុច [{edit_button}] ហើយខ្ញុំនឹងស្នើឲ្យបញ្ចូលតម្លៃនោះម្តងទៀត។"
+        f"ចង់កែធាតុ {field_label} មែនទេ?\n"
+        f"ចុច [{edit_button}] ហើយខ្ញុំនឹងស្នើឲ្យបញ្ចូលម្តងទៀត។"
     )
 
 
 def format_change_preview(*, field_label: str, before_value: str, after_value: str) -> str:
     return (
-        f"សូមពិនិត្យការផ្លាស់ប្តូរសម្រាប់ {field_label}។\n"
+        f"សូមពិនិត្យការផ្លាស់ប្តូរ {field_label}។\n"
         f"- មុន: {before_value}\n"
         f"- ថ្មី: {after_value}"
     )
@@ -258,7 +257,7 @@ def format_profile_summary(
     residence: str,
 ) -> str:
     return (
-        "នេះគឺជាប្រវត្តិដែលបានរក្សាទុករបស់អ្នក។\n"
+        "នេះជាប្រវត្តិដែលបានរក្សាទុក។\n"
         f"- ឈ្មោះ: {name}\n"
         f"- ទីលំនៅ: {residence}\n"
         f"- រាជធានី/ខេត្ត: {city}\n"
@@ -277,12 +276,12 @@ def format_fertilizer_confirmation(
 ) -> str:
     if used is False:
         return (
-            "សូមបញ្ជាក់ការបញ្ចូលជី។\n"
+            "សូមពិនិត្យការបញ្ចូលជី។\n"
             "- បានប្រើជី: ទេ\n\n"
             "បើត្រឹមត្រូវ សូមចុច [បញ្ជាក់]។"
         )
     return (
-        "សូមបញ្ជាក់ការបញ្ចូលជី។\n"
+        "សូមពិនិត្យការបញ្ចូលជី។\n"
         f"- បានប្រើជី: {'បាទ/ចាស' if used else '-'}\n"
         f"- ប្រភេទ: {kind_label}\n"
         f"- ផលិតផល: {product_name}\n"
@@ -302,11 +301,11 @@ def format_fertilizer_summary(
 ) -> str:
     if used is False:
         return (
-            "នេះគឺជាការបញ្ចូលជីដែលបានរក្សាទុក។\n"
+            "នេះជាការបញ្ចូលជីដែលបានរក្សាទុក។\n"
             "- បានប្រើជី: ទេ"
         )
     return (
-        "នេះគឺជាការបញ្ចូលជីដែលបានរក្សាទុក។\n"
+        "នេះជាការបញ្ចូលជីដែលបានរក្សាទុក។\n"
         f"- បានប្រើជី: {'បាទ/ចាស' if used else '-'}\n"
         f"- ប្រភេទ: {kind_label}\n"
         f"- ផលិតផល: {product_name}\n"
@@ -324,7 +323,7 @@ def format_yield_confirmation(
 ) -> str:
     return (
         "សូមពិនិត្យការបញ្ចូលទិន្នផល។\n"
-        f"- ស្ថានភាពរួចរាល់: {'រួចរាល់' if ready else 'មិនទាន់រួចរាល់' if ready is False else '-'}\n"
+        f"- រួចរាល់ឬនៅ: {'រួចរាល់' if ready else 'មិនទាន់រួចរាល់' if ready is False else '-'}\n"
         f"- ស្រែ: {field_name}\n"
         f"- បរិមាណ: {amount_text}\n"
         f"- កាលបរិច្ឆេទប្រមូលផល: {harvest_date}\n\n"
@@ -336,7 +335,7 @@ def format_support_admin_reply(*, admin_message: str) -> str:
     return (
         "ចម្លើយពីក្រុមប្រតិបត្តិការ។\n"
         f"{admin_message}\n\n"
-        "បើអ្នកត្រូវការបន្ថែមព័ត៌មាន សូមបន្តសរសេរក្នុងបង្អួចជជែកនេះ។"
+        "បើត្រូវការ សូមបន្តសរសេរក្នុងបង្អួចនេះ។"
     )
 
 
@@ -377,10 +376,10 @@ def weather_code_label(code: int) -> str:
 
 
 def format_today_date(current: datetime) -> str:
-    weekdays = ["ច", "អ", "ព", "ព្រ", "សុ", "ស", "អា"]
+    weekdays = ["ច", "អ", "ព", "ព្រហ", "សុ", "សៅ", "អាទិ"]
     weekday = weekdays[current.weekday()]
     return (
-        "កាលបរិច្ឆេទថ្ងៃនេះ។\n"
+        "ថ្ងៃនេះ។\n"
         f"- កាលបរិច្ឆេទ: {current.strftime('%Y-%m-%d')} ({weekday})\n"
         f"- ម៉ោង: {current.strftime('%H:%M:%S')} KST"
     )

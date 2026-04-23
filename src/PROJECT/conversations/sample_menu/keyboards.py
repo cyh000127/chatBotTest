@@ -54,7 +54,6 @@ def main_menu_keyboard(catalog) -> list[list[dict[str, str]]]:
         ],
         [_button(catalog.BUTTON_HELP, "intent:help")],
         [_button(catalog.BUTTON_RESTART, "intent:restart")],
-        [_button(catalog.BUTTON_CANCEL, "intent:cancel")],
     ]
 
 
@@ -97,10 +96,7 @@ def profile_recovery_confirm_keyboard(catalog) -> list[list[dict[str, str]]]:
             _button(catalog.BUTTON_EDIT_DISTRICT, "profile:edit:district"),
         ],
         [_button(catalog.BUTTON_EDIT_BIRTH_DATE, "profile:edit:birth_date")],
-        [
-            _button(catalog.BUTTON_BACK, "intent:back"),
-            _button(catalog.BUTTON_CANCEL, "intent:cancel"),
-        ],
+        [_button(catalog.BUTTON_BACK, "intent:back")],
         [_button(catalog.BUTTON_RESTART, "intent:restart")],
     ]
 
@@ -117,10 +113,7 @@ def fertilizer_recovery_confirm_keyboard(catalog) -> list[list[dict[str, str]]]:
             _button(catalog.BUTTON_FERTILIZER_EDIT_AMOUNT, "fertilizer:edit:amount"),
         ],
         [_button(catalog.BUTTON_FERTILIZER_EDIT_DATE, "fertilizer:edit:date")],
-        [
-            _button(catalog.BUTTON_BACK, "intent:back"),
-            _button(catalog.BUTTON_CANCEL, "intent:cancel"),
-        ],
+        [_button(catalog.BUTTON_BACK, "intent:back")],
         [_button(catalog.BUTTON_RESTART, "intent:restart")],
     ]
 
