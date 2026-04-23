@@ -1,8 +1,9 @@
 from PROJECT.dispatch.session_dispatcher import set_support_handoff, support_handoff
-from PROJECT.support_handoff import SupportHandoffState, append_admin_reply, append_user_message, new_support_handoff
+from PROJECT.support_handoff import SupportHandoffState, append_admin_reply, append_user_message, close_handoff, new_support_handoff
 from PROJECT.telemetry.event_logger import log_event
 from PROJECT.telemetry.events import (
     SUPPORT_HANDOFF_ADMIN_REPLY_RECORDED,
+    SUPPORT_HANDOFF_CLOSED,
     SUPPORT_HANDOFF_CREATED,
     SUPPORT_HANDOFF_USER_MESSAGE_ADDED,
 )
@@ -69,6 +70,25 @@ def record_support_handoff_admin_reply(user_data: dict, *, admin_message: str, s
         handoff_id=updated.handoff_id,
         route_hint=updated.route_hint,
         state=updated.current_step,
+        admin_reply_count=updated.admin_reply_count,
+    )
+    return updated
+
+
+def close_support_handoff(user_data: dict, *, reason: str, source: str = "runtime") -> SupportHandoffState | None:
+    current = support_handoff(user_data)
+    if current is None or current.closed:
+        return current
+    updated = close_handoff(current)
+    set_support_handoff(user_data, updated)
+    log_event(
+        SUPPORT_HANDOFF_CLOSED,
+        source=source,
+        handoff_id=updated.handoff_id,
+        route_hint=updated.route_hint,
+        reason=reason,
+        state=updated.current_step,
+        user_message_count=len(updated.user_messages),
         admin_reply_count=updated.admin_reply_count,
     )
     return updated

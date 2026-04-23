@@ -103,3 +103,12 @@ def append_admin_reply(handoff: SupportHandoffState, admin_message: str) -> Supp
         admin_reply_count=handoff.admin_reply_count + 1,
         admin_messages=(*handoff.admin_messages, admin_message),
     )
+
+
+def close_handoff(handoff: SupportHandoffState) -> SupportHandoffState:
+    return replace(
+        handoff,
+        status=SupportHandoffStatus.CLOSED,
+        awaiting_admin_reply=False,
+        closed=True,
+    )

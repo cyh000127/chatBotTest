@@ -26,7 +26,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_state,
     set_yield_draft,
 )
-from PROJECT.dispatch.support_handoff_dispatcher import create_support_handoff_request, record_support_handoff_admin_reply
+from PROJECT.dispatch.support_handoff_dispatcher import close_support_handoff, create_support_handoff_request, record_support_handoff_admin_reply
 from PROJECT.i18n.translator import get_catalog, language_keyboard
 
 
@@ -136,6 +136,23 @@ async def relay_support_admin_reply(update, context, *, admin_message: str) -> b
     await send_text(
         update,
         service.support_admin_reply_text(catalog, admin_message),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+    )
+    return True
+
+
+async def close_support_handoff_from_admin(update, context, *, reason: str = "admin_resolved") -> bool:
+    catalog = catalog_for(context)
+    handoff = close_support_handoff(
+        context.user_data,
+        reason=reason,
+        source="admin_close",
+    )
+    if handoff is None:
+        return False
+    await send_text(
+        update,
+        catalog.SUPPORT_HANDOFF_CLOSED_MESSAGE,
         keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
     )
     return True
@@ -256,6 +273,7 @@ async def open_fertilizer_edit_selector(update, context) -> bool:
 
 async def start_command(update, context) -> None:
     catalog = catalog_for(context)
+    close_support_handoff(context.user_data, reason="user_restart", source="start_command")
     reset_session(context.user_data)
     set_state(context.user_data, STATE_MAIN_MENU)
     await send_text(
@@ -276,6 +294,7 @@ async def help_command(update, context) -> None:
 
 async def menu_command(update, context) -> None:
     catalog = catalog_for(context)
+    close_support_handoff(context.user_data, reason="user_menu_exit", source="menu_command")
     reset_session(context.user_data)
     await send_text(
         update,
@@ -286,6 +305,7 @@ async def menu_command(update, context) -> None:
 
 async def cancel_command(update, context) -> None:
     catalog = catalog_for(context)
+    close_support_handoff(context.user_data, reason="user_cancel", source="cancel_command")
     cancel_session(context.user_data)
     await send_text(
         update,

@@ -119,7 +119,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_yield_draft,
     yield_draft,
 )
-from PROJECT.dispatch.support_handoff_dispatcher import create_support_handoff_request, record_support_handoff_user_message
+from PROJECT.dispatch.support_handoff_dispatcher import close_support_handoff, create_support_handoff_request, record_support_handoff_user_message
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
 from PROJECT.llm import GeminiNotConfiguredError, GeminiRecoveryError, GeminiResponseFormatError, LlmEditAction, LlmEditIntentResult
 from PROJECT.policy import (
@@ -1457,6 +1457,13 @@ async def text_message(update, context) -> None:
             keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), current_catalog(context), profile_draft(context.user_data)),
         )
         return
+
+    if has_active_support_handoff(context.user_data) and intent in HANDOFF_SAFE_EXIT_INTENTS:
+        close_support_handoff(
+            context.user_data,
+            reason="user_safe_exit",
+            source="active_handoff_safe_exit",
+        )
 
     early_gate = classify_cheap_gate(
         inbound.text,

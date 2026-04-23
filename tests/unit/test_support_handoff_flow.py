@@ -113,3 +113,38 @@ def test_admin_reply_is_recorded_and_relayed_in_same_chat(monkeypatch):
     assert handoff.awaiting_admin_reply is False
     assert handoff.admin_messages == ("확인했습니다. 사진을 다시 보내주세요.",)
     assert any("운영자 답변" in text for text in sent_messages)
+
+
+def test_active_support_handoff_safe_exit_restarts_session(monkeypatch):
+    sent_messages: list[str] = []
+
+    async def fake_send_text(update, text, keyboard_layout=None):
+        sent_messages.append(text)
+
+    monkeypatch.setattr(messages, "send_text", fake_send_text)
+    context = _context()
+
+    asyncio.run(messages.text_message(_update("상담원 연결해주세요"), context))
+    asyncio.run(messages.text_message(_update("처음부터"), context))
+
+    assert support_handoff(context.user_data) is None
+    assert any("메인 메뉴" in text for text in sent_messages)
+
+
+def test_admin_can_close_support_handoff(monkeypatch):
+    sent_messages: list[str] = []
+
+    async def fake_send_text(update, text, keyboard_layout=None):
+        sent_messages.append(text)
+
+    monkeypatch.setattr(commands, "send_text", fake_send_text)
+    context = _context()
+
+    asyncio.run(commands.show_support_guidance(_update("/support"), context))
+    closed = asyncio.run(commands.close_support_handoff_from_admin(_update("admin"), context))
+
+    handoff = support_handoff(context.user_data)
+    assert closed is True
+    assert handoff is not None
+    assert handoff.closed is True
+    assert any("지원 이관을 종료" in text for text in sent_messages)

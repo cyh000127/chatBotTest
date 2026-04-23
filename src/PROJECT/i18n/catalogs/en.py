@@ -75,6 +75,7 @@ MYFIELDS_ENTRY_MESSAGE = "This is the myfields entry point.\nFor now, the runtim
 INPUT_RESOLVE_ENTRY_MESSAGE = "This is the input resolve entry point.\nThe current runtime opens the canonical value collection path first.\nCandidate generation and manual-review linkage remain in a separate implementation scope."
 SUPPORT_ESCALATION_MESSAGE = "This is the support guidance path.\nThe support.escalate route is not connected to real-time chat yet.\nYou can safely return with /help, /menu, or /start."
 SUPPORT_HANDOFF_MESSAGE_RECORDED = "I added this message to the support handoff thread.\nYou can receive follow-up guidance in this same chat without opening a new chat.\nUse /start if you want to restart."
+SUPPORT_HANDOFF_CLOSED_MESSAGE = "The support handoff is closed.\nYou can ask for help again in this chat if needed."
 
 HELP_MESSAGE = (
     "Available commands:\n"
