@@ -26,8 +26,6 @@ class GeminiSettings:
 @dataclass(frozen=True)
 class Settings:
     bot_token: str
-    weather_api_base: str = "https://api.open-meteo.com/v1/forecast"
-    timezone_name: str = "Asia/Seoul"
     gemini: GeminiSettings | None = None
     local_ai_gate: LocalAiGate = LocalAiGate.DISABLED
 
