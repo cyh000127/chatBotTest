@@ -20,6 +20,7 @@ python -m PROJECT.main
 - `/support` 지원 안내 진입점
 - 프로필 입력, 확인, 항목별 수정
 - `/fertilizer` 비료 입력 정상 경로
+- `/yield` 수확량 입력 정상 경로
 - 뒤로가기, 취소, 처음부터
 - 상태별 fallback, 알 수 없는 입력 처리
 - 다국어 카탈로그 기반 응답
@@ -54,6 +55,7 @@ python -m pytest
 - `canonical_intents/*`: 외부 입력을 내부 intent로 정규화
 - `dispatch/*`: 세션 상태 기반 라우팅
 - `conversations/sample_menu/*`: 메뉴 플로우 상태, 키보드, 메시지 조합
+- `conversations/yield_intake/*`: 수확량 입력 상태와 메시지 조합
 - `i18n/catalogs/ko.py`: 사용자 노출 문구
 
 ## 문서
