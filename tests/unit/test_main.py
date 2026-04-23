@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from PROJECT.channels.telegram.app import create_application
 from PROJECT.policy import LocalAiGate
 from PROJECT import main as project_main
-from PROJECT.settings import GeminiSettings, Settings
+from PROJECT.settings import AdminApiSettings, GeminiSettings, Settings
 
 
 def test_create_application_registers_settings():
@@ -145,6 +145,7 @@ def test_startup_log_fields_reflect_runtime_mode_from_actual_model_availability(
         "manual_review_fallback_active": False,
         "llm_recovery_enabled": False,
         "llm_edit_intent_enabled": False,
+        "admin_api_enabled": False,
     }
 
 
@@ -178,6 +179,26 @@ def test_main_logs_bot_started_with_runtime_snapshot(monkeypatch):
                 "manual_review_fallback_active": False,
                 "llm_recovery_enabled": False,
                 "llm_edit_intent_enabled": True,
+                "admin_api_enabled": False,
             },
         )
     ]
+
+
+def test_main_starts_admin_api_server_when_enabled(monkeypatch):
+    started: list[Settings] = []
+    application = SimpleNamespace(run_polling=lambda: None)
+    settings = Settings(
+        bot_token="test-token",
+        admin_api=AdminApiSettings(enabled=True, host="127.0.0.1", port=8000),
+    )
+
+    monkeypatch.setattr(project_main, "configure_logging", lambda: None)
+    monkeypatch.setattr(project_main, "load_settings", lambda: settings)
+    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings: application)
+    monkeypatch.setattr(project_main, "start_admin_api_server", lambda loaded_settings: started.append(loaded_settings))
+    monkeypatch.setattr(project_main, "log_event", lambda event, **fields: None)
+
+    project_main.main()
+
+    assert started == [settings]

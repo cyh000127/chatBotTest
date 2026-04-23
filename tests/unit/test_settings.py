@@ -1,5 +1,13 @@
 from PROJECT.policy import LocalAiGate
-from PROJECT.settings import DEFAULT_ADMIN_API_HOST, DEFAULT_ADMIN_API_PORT, GeminiSettings, Settings, load_settings, parse_bool_env
+from PROJECT.settings import (
+    DEFAULT_ADMIN_API_HOST,
+    DEFAULT_ADMIN_API_PORT,
+    DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS,
+    GeminiSettings,
+    Settings,
+    load_settings,
+    parse_bool_env,
+)
 
 
 def test_settings_defaults_include_gemini_configuration():
@@ -9,6 +17,7 @@ def test_settings_defaults_include_gemini_configuration():
     assert settings.admin_api.enabled is False
     assert settings.admin_api.host == DEFAULT_ADMIN_API_HOST
     assert settings.admin_api.port == DEFAULT_ADMIN_API_PORT
+    assert settings.admin_api.outbox_poll_interval_seconds == DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS
     assert settings.local_ai_gate == LocalAiGate.DISABLED
     assert settings.enable_llm_edit_intent is False
     assert settings.enable_llm_recovery is False
@@ -101,6 +110,7 @@ def test_load_settings_reads_admin_api_env(monkeypatch):
     monkeypatch.setenv("ADMIN_API_ENABLED", "true")
     monkeypatch.setenv("ADMIN_API_HOST", "0.0.0.0")
     monkeypatch.setenv("ADMIN_API_PORT", "9000")
+    monkeypatch.setenv("ADMIN_OUTBOX_POLL_INTERVAL_SECONDS", "2.5")
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
     settings = load_settings()
@@ -108,3 +118,4 @@ def test_load_settings_reads_admin_api_env(monkeypatch):
     assert settings.admin_api.enabled is True
     assert settings.admin_api.host == "0.0.0.0"
     assert settings.admin_api.port == 9000
+    assert settings.admin_api.outbox_poll_interval_seconds == 2.5

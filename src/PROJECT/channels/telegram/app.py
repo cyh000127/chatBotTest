@@ -2,8 +2,22 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, f
 
 from PROJECT.channels.telegram.handlers.commands import cancel_command, fertilizer_command, help_command, input_resolve_command, language_command, menu_command, myfields_command, profile_command, start_command, support_command, yield_command
 from PROJECT.channels.telegram.handlers.messages import button_callback, text_message, unknown_command
+from PROJECT.admin.delivery import run_outbox_delivery_loop
 from PROJECT.llm import GeminiEditIntentResolver, GeminiRecoveryClassifier
 from PROJECT.settings import Settings
+
+
+async def start_admin_background_tasks(application) -> None:
+    settings = application.bot_data["settings"]
+    if not settings.admin_api.enabled:
+        return
+    application.bot_data["admin_outbox_delivery_task"] = application.create_task(
+        run_outbox_delivery_loop(
+            application.bot,
+            interval_seconds=settings.admin_api.outbox_poll_interval_seconds,
+        ),
+        name="admin_outbox_delivery_loop",
+    )
 
 
 def create_application(settings: Settings):
@@ -17,12 +31,10 @@ def create_application(settings: Settings):
         if settings.llm_edit_intent_runtime_enabled
         else None
     )
-    application = (
-        __import__("telegram.ext", fromlist=["Application"])
-        .Application.builder()
-        .token(settings.bot_token)
-        .build()
-    )
+    builder = __import__("telegram.ext", fromlist=["Application"]).Application.builder().token(settings.bot_token)
+    if settings.admin_api.enabled:
+        builder = builder.post_init(start_admin_background_tasks)
+    application = builder.build()
     application.bot_data["settings"] = settings
     application.bot_data["llm_runtime_mode"] = settings.llm_runtime_mode
     application.bot_data["gemini_recovery_classifier"] = gemini_recovery_classifier

@@ -15,6 +15,7 @@ DEFAULT_GEMINI_TIMEOUT_SECONDS = 15.0
 TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
 DEFAULT_ADMIN_API_HOST = "127.0.0.1"
 DEFAULT_ADMIN_API_PORT = 8000
+DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS = 1.0
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,7 @@ class AdminApiSettings:
     enabled: bool = False
     host: str = DEFAULT_ADMIN_API_HOST
     port: int = DEFAULT_ADMIN_API_PORT
+    outbox_poll_interval_seconds: float = DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS
 
 
 @dataclass(frozen=True)
@@ -123,6 +125,14 @@ def load_settings() -> Settings:
         admin_api_port = int(admin_api_port_raw)
     except ValueError:
         admin_api_port = DEFAULT_ADMIN_API_PORT
+    admin_outbox_poll_interval_raw = os.getenv(
+        "ADMIN_OUTBOX_POLL_INTERVAL_SECONDS",
+        str(DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS),
+    ).strip()
+    try:
+        admin_outbox_poll_interval_seconds = float(admin_outbox_poll_interval_raw)
+    except ValueError:
+        admin_outbox_poll_interval_seconds = DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS
 
     return Settings(
         bot_token=bot_token,
@@ -132,5 +142,6 @@ def load_settings() -> Settings:
             enabled=parse_bool_env("ADMIN_API_ENABLED", default=False),
             host=admin_api_host,
             port=admin_api_port,
+            outbox_poll_interval_seconds=admin_outbox_poll_interval_seconds,
         ),
     )
