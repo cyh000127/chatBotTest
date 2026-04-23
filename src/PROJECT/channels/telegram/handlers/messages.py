@@ -19,6 +19,7 @@ from PROJECT.channels.telegram.handlers.commands import (
     show_current_profile,
     start_fertilizer_input,
     start_profile_input,
+    start_yield_input,
 )
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
@@ -42,6 +43,14 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
 )
+from PROJECT.conversations.yield_intake import service as yield_service
+from PROJECT.conversations.yield_intake.states import (
+    STATE_YIELD_AMOUNT,
+    STATE_YIELD_CONFIRM,
+    STATE_YIELD_DATE,
+    STATE_YIELD_FIELD,
+    STATE_YIELD_READY,
+)
 from PROJECT.conversations.sample_menu import service
 from PROJECT.conversations.sample_menu.keyboards import (
     fallback_keyboard_layout_for_state,
@@ -59,9 +68,11 @@ from PROJECT.dispatch.command_router import (
     ROUTE_OPEN_INPUT_RESOLVE,
     ROUTE_OPEN_MYFIELDS,
     ROUTE_OPEN_PROFILE,
+    ROUTE_OPEN_YIELD,
     ROUTE_PROFILE_EDIT,
     ROUTE_PROFILE_FINALIZE,
     ROUTE_SUPPORT_GUIDANCE,
+    ROUTE_YIELD_FINALIZE,
     route_message,
 )
 from PROJECT.dispatch.input_fallback import fallback_key_for_state
@@ -71,6 +82,7 @@ from PROJECT.dispatch.session_dispatcher import (
     cancel_session,
     confirmed_fertilizer,
     confirmed_profile,
+    confirmed_yield,
     current_locale,
     current_state,
     fertilizer_draft,
@@ -91,6 +103,7 @@ from PROJECT.dispatch.session_dispatcher import (
     reset_session,
     reset_recovery_attempts,
     set_confirmed_fertilizer,
+    set_confirmed_yield,
     set_fertilizer_draft,
     set_last_recovery_context,
     set_confirmed_profile,
@@ -100,6 +113,8 @@ from PROJECT.dispatch.session_dispatcher import (
     set_pending_slot,
     set_profile_draft,
     set_state,
+    set_yield_draft,
+    yield_draft,
 )
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
 from PROJECT.llm import GeminiNotConfiguredError, GeminiRecoveryError, GeminiResponseFormatError, LlmEditAction, LlmEditIntentResult
@@ -161,6 +176,14 @@ FERTILIZER_STATES = {
     STATE_FERTILIZER_AMOUNT,
     STATE_FERTILIZER_DATE,
     STATE_FERTILIZER_CONFIRM,
+}
+
+YIELD_STATES = {
+    STATE_YIELD_READY,
+    STATE_YIELD_FIELD,
+    STATE_YIELD_AMOUNT,
+    STATE_YIELD_DATE,
+    STATE_YIELD_CONFIRM,
 }
 
 PROFILE_EDIT_CALLBACK_TO_STATE = {
@@ -244,6 +267,10 @@ def confirmed_profile_draft(context) -> profile_service.ProfileDraft:
 
 def confirmed_fertilizer_draft(context) -> fertilizer_service.FertilizerDraft:
     return fertilizer_service.draft_from_dict(confirmed_fertilizer(context.user_data))
+
+
+def current_yield(context) -> yield_service.YieldDraft:
+    return yield_service.draft_from_dict(yield_draft(context.user_data))
 
 
 def log_rule_matched(*, rule_name: str, domain: str, target_state: str, scope: str) -> None:
@@ -348,6 +375,22 @@ async def send_fertilizer_confirmation(update, context) -> None:
         update,
         fertilizer_service.confirmation_text(draft, catalog),
         keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_CONFIRM, catalog),
+    )
+
+
+async def send_yield_prompt(update, context, state: str, text: str | None = None) -> None:
+    await send_text(
+        update,
+        text or yield_service.prompt_for_state(state, current_catalog(context)),
+        keyboard_layout=yield_service.keyboard_for_state(state, current_catalog(context)),
+    )
+
+
+async def send_yield_confirmation(update, context) -> None:
+    await send_text(
+        update,
+        yield_service.confirmation_text(current_yield(context), current_catalog(context)),
+        keyboard_layout=yield_service.keyboard_for_state(STATE_YIELD_CONFIRM, current_catalog(context)),
     )
 
 
@@ -1094,6 +1137,8 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "fertilizer_used", {"used": data.rsplit(":", 1)[1] == "yes"}
     if data.startswith("fertilizer:kind:"):
         return "fertilizer_kind", {"kind": data.rsplit(":", 1)[1]}
+    if data.startswith("yield:ready:"):
+        return "yield_ready", {"ready": data.rsplit(":", 1)[1] == "yes"}
     return registry.INTENT_UNKNOWN_TEXT, {}
 
 
@@ -1276,6 +1321,58 @@ async def handle_fertilizer_state(update, context, state: str, text: str) -> boo
 
     if state == STATE_FERTILIZER_CONFIRM:
         await send_fertilizer_prompt(update, context, state, fertilizer_service.fallback_text_for_state(state, catalog))
+        return True
+
+    return False
+
+
+async def handle_yield_state(update, context, state: str, text: str) -> bool:
+    catalog = current_catalog(context)
+    draft = current_yield(context)
+
+    if state == STATE_YIELD_READY:
+        ready = yield_service.parse_ready(text)
+        if ready is None:
+            await send_yield_prompt(update, context, state, yield_service.fallback_text_for_state(state, catalog))
+            return True
+        set_yield_draft(context.user_data, yield_service.update_draft(draft, ready=ready).to_dict())
+        set_state(context.user_data, STATE_YIELD_FIELD, push_history=True)
+        await send_yield_prompt(update, context, STATE_YIELD_FIELD)
+        return True
+
+    if state == STATE_YIELD_FIELD:
+        field_name = yield_service.parse_field_name(text)
+        if field_name is None:
+            await send_yield_prompt(update, context, state, yield_service.fallback_text_for_state(state, catalog))
+            return True
+        set_yield_draft(context.user_data, yield_service.update_draft(draft, field_name=field_name).to_dict())
+        set_state(context.user_data, STATE_YIELD_AMOUNT, push_history=True)
+        await send_yield_prompt(update, context, STATE_YIELD_AMOUNT)
+        return True
+
+    if state == STATE_YIELD_AMOUNT:
+        amount = yield_service.parse_amount(text)
+        if amount is None:
+            await send_yield_prompt(update, context, state, yield_service.fallback_text_for_state(state, catalog))
+            return True
+        value, unit = amount
+        set_yield_draft(context.user_data, yield_service.update_draft(draft, amount_value=value, amount_unit=unit).to_dict())
+        set_state(context.user_data, STATE_YIELD_DATE, push_history=True)
+        await send_yield_prompt(update, context, STATE_YIELD_DATE)
+        return True
+
+    if state == STATE_YIELD_DATE:
+        harvest_date = yield_service.parse_harvest_date(text)
+        if harvest_date is None:
+            await send_yield_prompt(update, context, state, yield_service.fallback_text_for_state(state, catalog))
+            return True
+        set_yield_draft(context.user_data, yield_service.update_draft(draft, harvest_date=harvest_date).to_dict())
+        set_state(context.user_data, STATE_YIELD_CONFIRM, push_history=True)
+        await send_yield_confirmation(update, context)
+        return True
+
+    if state == STATE_YIELD_CONFIRM:
+        await send_yield_prompt(update, context, state, yield_service.fallback_text_for_state(state, catalog))
         return True
 
     return False
@@ -1670,6 +1767,11 @@ async def text_message(update, context) -> None:
         await start_profile_input(update, context)
         return
 
+    if decision.route == ROUTE_OPEN_YIELD:
+        reset_recovery_attempts(context.user_data)
+        await start_yield_input(update, context)
+        return
+
     if decision.route == ROUTE_OPEN_MYFIELDS:
         reset_recovery_attempts(context.user_data)
         await myfields_command(update, context)
@@ -1748,6 +1850,17 @@ async def text_message(update, context) -> None:
         )
         return
 
+    if decision.route == ROUTE_YIELD_FINALIZE:
+        set_confirmed_yield(context.user_data, yield_draft(context.user_data))
+        set_state(context.user_data, STATE_MAIN_MENU)
+        reset_recovery_attempts(context.user_data)
+        await send_text(
+            update,
+            yield_service.confirmed_text(catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
     if state in PROFILE_STATES:
         handled = await handle_profile_state(update, context, state, inbound.text)
         if handled:
@@ -1756,6 +1869,12 @@ async def text_message(update, context) -> None:
 
     if state in FERTILIZER_STATES:
         handled = await handle_fertilizer_state(update, context, state, inbound.text)
+        if handled:
+            reset_recovery_attempts(context.user_data)
+            return
+
+    if state in YIELD_STATES:
+        handled = await handle_yield_state(update, context, state, inbound.text)
         if handled:
             reset_recovery_attempts(context.user_data)
             return
@@ -2072,6 +2191,19 @@ async def button_callback(update, context) -> None:
         await send_fertilizer_prompt(update, context, STATE_FERTILIZER_PRODUCT)
         return
 
+    if action == "yield_ready":
+        await clear_callback_markup(update)
+        if state != STATE_YIELD_READY:
+            if current_state(context.user_data) in YIELD_STATES:
+                await send_yield_prompt(update, context, current_state(context.user_data))
+            return
+        draft = current_yield(context)
+        updated = yield_service.update_draft(draft, ready=payload["ready"])
+        set_yield_draft(context.user_data, updated.to_dict())
+        set_state(context.user_data, STATE_YIELD_FIELD, push_history=True)
+        await send_yield_prompt(update, context, STATE_YIELD_FIELD)
+        return
+
     decision = route_message(state, action, payload)
     await clear_callback_markup(update)
     catalog = current_catalog(context)
@@ -2102,6 +2234,10 @@ async def button_callback(update, context) -> None:
 
     if decision.route == ROUTE_OPEN_FERTILIZER:
         await start_fertilizer_input(update, context)
+        return
+
+    if decision.route == ROUTE_OPEN_YIELD:
+        await start_yield_input(update, context)
         return
 
     if decision.route == ROUTE_CANCEL:
@@ -2148,6 +2284,16 @@ async def button_callback(update, context) -> None:
         await send_text(
             update,
             fertilizer_service.confirmed_text(catalog),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
+    if decision.route == ROUTE_YIELD_FINALIZE:
+        set_confirmed_yield(context.user_data, yield_draft(context.user_data))
+        set_state(context.user_data, STATE_MAIN_MENU)
+        await send_text(
+            update,
+            yield_service.confirmed_text(catalog),
             keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
         )
         return

@@ -2,6 +2,7 @@ from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONF
 from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.keyboards import fallback_keyboard_layout_for_state
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
+from PROJECT.conversations.yield_intake.states import STATE_YIELD_CONFIRM, STATE_YIELD_FIELD
 from PROJECT.dispatch.input_fallback import FALLBACK_CANCELLED, FALLBACK_DEFAULT, fallback_key_for_state
 from PROJECT.i18n.translator import get_catalog
 
@@ -17,6 +18,11 @@ def test_cancelled_fallback():
 def test_fertilizer_fallbacks():
     assert fallback_key_for_state(STATE_FERTILIZER_USED) == "fertilizer_input"
     assert fallback_key_for_state(STATE_FERTILIZER_CONFIRM) == "fertilizer_confirm"
+
+
+def test_yield_fallbacks():
+    assert fallback_key_for_state(STATE_YIELD_FIELD) == "yield_input"
+    assert fallback_key_for_state(STATE_YIELD_CONFIRM) == "yield_confirm"
 
 
 def test_default_fallback_keyboard_uses_main_menu_buttons():

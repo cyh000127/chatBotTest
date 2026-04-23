@@ -97,6 +97,8 @@ FALLBACK_MESSAGES = {
     "profile_confirm": "You are in the profile confirmation step.\nWould you choose whether to confirm or edit below?",
     "fertilizer_input": "I could not process the fertilizer input right away.\nWould you choose which related fertilizer item to continue or change?",
     "fertilizer_confirm": "You are in the fertilizer confirmation step.\nWould you choose whether to confirm or edit below?",
+    "yield_input": "I could not process the yield input right away.\nWould you choose the related step below to continue?",
+    "yield_confirm": "You are in the yield confirmation step.\nWould you choose confirm or go back below?",
 }
 RECOVERY_GUIDANCE_SOFT = "Let me restate what this step needs."
 RECOVERY_GUIDANCE_GUIDED = "Please continue with the current flow using the guide below."
@@ -192,6 +194,12 @@ YIELD_FIELD_PROMPT = "Select or enter the harvested field."
 YIELD_AMOUNT_PROMPT = "Enter the harvest amount.\nExample: 320kg"
 YIELD_DATE_PROMPT = "Enter the harvest date.\nExample: 2026-04-21, today, yesterday"
 YIELD_CONFIRM_PROMPT = "Please confirm the yield entry."
+YIELD_READY_FALLBACK = "Choose Yes or No."
+YIELD_FIELD_FALLBACK = "Enter the harvested field again."
+YIELD_AMOUNT_FALLBACK = "Enter the harvest amount again.\nExample: 320kg"
+YIELD_DATE_FALLBACK = "Enter the harvest date again.\nExample: 2026-04-21, today, yesterday"
+YIELD_CONFIRM_FALLBACK = "Press [Confirm] or go back to revise."
+YIELD_CONFIRMED_MESSAGE = "The yield entry has been confirmed as a stored draft.\nIt is kept in the current session."
 INPUT_RESOLVE_TARGET_PROMPT = "Choose which value needs canonical resolution."
 INPUT_RESOLVE_METHOD_PROMPT = "Choose the input method.\nContinue with typed text, OCR image, or retry."
 INPUT_RESOLVE_RAW_INPUT_PROMPT = "Enter or submit the raw text to resolve."
@@ -296,6 +304,23 @@ def format_fertilizer_summary(
         f"- Product: {product_name}\n"
         f"- Amount: {amount_text}\n"
         f"- Applied date: {applied_date}"
+    )
+
+
+def format_yield_confirmation(
+    *,
+    ready: bool | None,
+    field_name: str,
+    amount_text: str,
+    harvest_date: str,
+) -> str:
+    return (
+        "Please review the yield entry.\n"
+        f"- Harvest ready: {'Ready' if ready else 'Not ready' if ready is False else '-'}\n"
+        f"- Field: {field_name}\n"
+        f"- Amount: {amount_text}\n"
+        f"- Harvest date: {harvest_date}\n\n"
+        "If this looks right, press [Confirm]."
     )
 
 

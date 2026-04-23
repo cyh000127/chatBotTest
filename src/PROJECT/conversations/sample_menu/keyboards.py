@@ -22,6 +22,14 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_RESIDENCE,
 )
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_LANGUAGE_SELECT
+from PROJECT.conversations.yield_intake import service as yield_service
+from PROJECT.conversations.yield_intake.states import (
+    STATE_YIELD_AMOUNT,
+    STATE_YIELD_CONFIRM,
+    STATE_YIELD_DATE,
+    STATE_YIELD_FIELD,
+    STATE_YIELD_READY,
+)
 from PROJECT.i18n.translator import language_keyboard
 
 
@@ -132,6 +140,8 @@ def fallback_keyboard_layout_for_state(
         return fertilizer_service.keyboard_for_state(state, catalog)
     if state == STATE_FERTILIZER_CONFIRM:
         return fertilizer_recovery_confirm_keyboard(catalog)
+    if state in {STATE_YIELD_READY, STATE_YIELD_FIELD, STATE_YIELD_AMOUNT, STATE_YIELD_DATE, STATE_YIELD_CONFIRM}:
+        return yield_service.keyboard_for_state(state, catalog)
     if state in {
         STATE_PROFILE_NAME,
         STATE_PROFILE_RESIDENCE,
@@ -161,6 +171,8 @@ def keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) ->
         STATE_FERTILIZER_CONFIRM,
     }:
         return fertilizer_service.keyboard_for_state(state, catalog)
+    if state in {STATE_YIELD_READY, STATE_YIELD_FIELD, STATE_YIELD_AMOUNT, STATE_YIELD_DATE, STATE_YIELD_CONFIRM}:
+        return yield_service.keyboard_for_state(state, catalog)
     if state in {
         STATE_PROFILE_NAME,
         STATE_PROFILE_RESIDENCE,

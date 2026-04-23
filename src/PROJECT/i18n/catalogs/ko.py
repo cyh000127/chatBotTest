@@ -97,6 +97,8 @@ FALLBACK_MESSAGES = {
     "profile_confirm": "프로필 확인 단계예요.\n아래 관련 항목 중 확인하거나 수정할 항목을 선택해주시겠어요?",
     "fertilizer_input": "비료 입력을 바로 처리하지 못했어요.\n아래 관련 항목 중 수정하거나 이어서 입력할 항목을 선택해주시겠어요?",
     "fertilizer_confirm": "비료 확인 단계예요.\n아래 관련 항목 중 확인하거나 수정할 항목을 선택해주시겠어요.",
+    "yield_input": "수확량 입력을 바로 처리하지 못했어요.\n아래 관련 항목 중 이어서 입력할 항목을 선택해주시겠어요?",
+    "yield_confirm": "수확량 확인 단계예요.\n아래 관련 항목 중 확인하거나 뒤로가기를 선택해주세요.",
 }
 RECOVERY_GUIDANCE_SOFT = "지금 단계에서 필요한 입력 기준을 다시 안내할게요."
 RECOVERY_GUIDANCE_GUIDED = "현재 흐름을 이어가려면 아래 기준으로 진행해주세요."
@@ -192,6 +194,12 @@ YIELD_FIELD_PROMPT = "수확한 필드를 선택하거나 입력해주세요."
 YIELD_AMOUNT_PROMPT = "수확량을 입력해주세요.\n예: 320kg"
 YIELD_DATE_PROMPT = "수확일을 입력해주세요.\n예: 2026-04-21, 오늘, 어제"
 YIELD_CONFIRM_PROMPT = "수확 입력 내용을 확인해주세요."
+YIELD_READY_FALLBACK = "예 또는 아니오를 선택해주세요."
+YIELD_FIELD_FALLBACK = "수확한 필드를 다시 입력해주세요."
+YIELD_AMOUNT_FALLBACK = "수확량을 다시 입력해주세요.\n예: 320kg"
+YIELD_DATE_FALLBACK = "수확일을 다시 입력해주세요.\n예: 2026-04-21, 오늘, 어제"
+YIELD_CONFIRM_FALLBACK = "[확인]을 누르거나 뒤로가기로 수정해주세요."
+YIELD_CONFIRMED_MESSAGE = "수확량 입력을 저장용 초안으로 확인했습니다.\n현재 세션에 보관해두었어요."
 INPUT_RESOLVE_TARGET_PROMPT = "어떤 값을 확정해야 하는지 선택해주세요."
 INPUT_RESOLVE_METHOD_PROMPT = "입력 방식을 선택해주세요.\n텍스트 입력, OCR 이미지, 다시 시도 중 하나로 진행합니다."
 INPUT_RESOLVE_RAW_INPUT_PROMPT = "확정할 원문을 입력하거나 제출해주세요."
@@ -296,6 +304,23 @@ def format_fertilizer_summary(
         f"- 제품명: {product_name}\n"
         f"- 사용량: {amount_text}\n"
         f"- 사용일: {applied_date}"
+    )
+
+
+def format_yield_confirmation(
+    *,
+    ready: bool | None,
+    field_name: str,
+    amount_text: str,
+    harvest_date: str,
+) -> str:
+    return (
+        "수확 입력을 확인했어요.\n"
+        f"- 수확 준비 여부: {'준비됨' if ready else '미준비' if ready is False else '-'}\n"
+        f"- 필드: {field_name}\n"
+        f"- 수확량: {amount_text}\n"
+        f"- 수확일: {harvest_date}\n\n"
+        "맞으면 [확인]을 눌러주세요."
     )
 
 WEATHER_CODE_LABELS = {
