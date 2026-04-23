@@ -8,6 +8,7 @@ from PROJECT.dispatch.session_dispatcher import (
     go_back,
     has_confirmed_profile,
     has_confirmed_yield,
+    has_active_support_handoff,
     has_seen_llm_input,
     increment_llm_calls_in_step,
     increment_auth_failures,
@@ -17,6 +18,7 @@ from PROJECT.dispatch.session_dispatcher import (
     pending_candidate,
     pending_repair_confirmation,
     reset_session,
+    set_support_handoff,
     set_last_recovery_context,
     set_pending_candidate,
     set_pending_repair_confirmation,
@@ -24,8 +26,10 @@ from PROJECT.dispatch.session_dispatcher import (
     set_confirmed_yield,
     set_state,
     set_yield_draft,
+    support_handoff,
     yield_draft,
 )
+from PROJECT.support_handoff import SupportHandoffStatus, new_support_handoff
 
 
 def test_reset_session_sets_main_menu():
@@ -108,6 +112,47 @@ def test_reset_session_clears_pending_candidate():
     reset_session(user_data)
 
     assert pending_candidate(user_data) is None
+
+
+def test_support_handoff_helper_stores_contract_payload():
+    user_data = {}
+    handoff = new_support_handoff(
+        handoff_id="handoff-test",
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        current_step=STATE_MAIN_MENU,
+        recent_messages_summary="state=main_menu",
+        failure_count=1,
+        user_message="관리자 연결해주세요",
+    )
+
+    set_support_handoff(user_data, handoff)
+
+    stored = support_handoff(user_data)
+    assert stored is not None
+    assert stored.handoff_id == "handoff-test"
+    assert stored.status == SupportHandoffStatus.WAITING_ADMIN_REPLY
+    assert stored.route_hint == "support.escalate"
+    assert stored.awaiting_admin_reply is True
+    assert stored.user_messages == ("관리자 연결해주세요",)
+    assert has_active_support_handoff(user_data) is True
+
+
+def test_reset_session_clears_support_handoff_contract():
+    user_data = {}
+    set_support_handoff(
+        user_data,
+        new_support_handoff(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            current_step=STATE_MAIN_MENU,
+        ),
+    )
+
+    reset_session(user_data)
+
+    assert support_handoff(user_data) is None
+    assert has_active_support_handoff(user_data) is False
 
 
 def test_llm_step_call_counter_tracks_per_step():

@@ -1,5 +1,6 @@
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
 from PROJECT.i18n.translator import DEFAULT_LOCALE
+from PROJECT.support_handoff import SupportHandoffState, support_handoff_from_dict
 
 
 def _default_session() -> dict:
@@ -23,6 +24,7 @@ def _default_session() -> dict:
         "last_recovery_context": None,
         "pending_repair_confirmation": None,
         "pending_candidate": None,
+        "support_handoff": None,
         "llm_step_call_counts": {},
         "llm_seen_inputs": {},
     }
@@ -239,6 +241,26 @@ def pending_candidate(user_data: dict) -> dict | None:
 
 def clear_pending_candidate(user_data: dict) -> None:
     set_pending_candidate(user_data, None)
+
+
+def set_support_handoff(user_data: dict, handoff: SupportHandoffState | dict | None) -> None:
+    if isinstance(handoff, SupportHandoffState):
+        get_session(user_data)["support_handoff"] = handoff.to_dict()
+        return
+    get_session(user_data)["support_handoff"] = handoff
+
+
+def support_handoff(user_data: dict) -> SupportHandoffState | None:
+    return support_handoff_from_dict(get_session(user_data).get("support_handoff"))
+
+
+def has_active_support_handoff(user_data: dict) -> bool:
+    handoff = support_handoff(user_data)
+    return handoff is not None and not handoff.closed
+
+
+def clear_support_handoff(user_data: dict) -> None:
+    set_support_handoff(user_data, None)
 
 
 def llm_calls_in_step(user_data: dict, step: str | None) -> int:
