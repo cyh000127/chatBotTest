@@ -1,8 +1,89 @@
-# PROJECT
+# Runtime Overview
 
-텔레그램 입력을 canonical intent로 정규화하고, 세션 상태에 따라 메뉴 응답을 구성하는 샘플 봇입니다.
+이 저장소는 메신저 기반 구조화 입력 런타임을 검증하기 위한 구현체다.
 
-## 실행
+핵심 목적은 사용자의 자유 대화를 처리하는 범용 챗봇이 아니라, 정해진 단계에서 필요한 값을 수집하고 검증한 뒤 확인 절차를 거쳐 다음 행동으로 연결하는 것이다.
+
+## 기준 문서
+
+해석 우선순위는 다음 순서를 따른다.
+
+1. 상위 참고 문서 묶음
+2. 현재 저장소의 문서 묶음
+3. 코드와 테스트
+
+현재 저장소의 문서 묶음은 상위 참고 문서에 없는 세부 런타임 규칙을 구현 가능한 형태로 정리한다.
+
+대표 문서는 다음과 같다.
+
+- `Documentation Index`: 문서 묶음의 해석 원칙과 현재 기준 요약
+- `Feature Scope Baseline`: 구현 대상과 제외 대상을 구분하는 범위 기준
+- `Chatbot Operation Policy v2`: rule-first 상호작용, recovery, handoff, telemetry 기준
+- `Stage 2 Rule Engine`: 규칙 엔진 단계와 공통 계약
+- `Rule-First LLM Handoff`: 제한적 모델 보조와 handoff 경계
+- `Model Recovery Setup`: recovery classifier 구성과 런타임 gate 기준
+- `Structured Interaction Policy`: confirm, edit, fallback UX 원칙
+- `Support Handoff Chatbot Relay`: 기존 챗봇 대화창 안에서 운영자 후속 답변을 중계하는 기준
+
+## 현재 구현 범위
+
+현재 우선 구현 범위는 farmer-facing 핵심 루프에 맞춰져 있다.
+
+- 시작 진입, 도움말, 메뉴, 취소, 재시작
+- 언어 선택
+- 비료 입력
+- 수확량 입력
+- 자기 조회 진입점 안내
+- input resolve 진입점 안내
+- 상태별 fallback과 guided recovery
+- pending candidate 분리와 confirm 전 저장 금지
+- 제한적 recovery classifier와 정책 gate
+- `support.escalate`, `manual_resolution_required`, admin follow-up queue 정렬
+- 지원 이관 상태의 사용자 추가 메시지 수집
+- 운영자 후속 답변의 챗봇 대화창 중계
+- admin follow-up outbox와 delivery loop
+- 로컬 관리자 follow-up API와 편의용 웹 화면
+
+## 운영 원칙
+
+- 메인 경로는 rule-first로 유지한다.
+- 모델은 current-step recovery classifier 또는 edit intent 보조기로만 사용한다.
+- 자연어 수정 요청은 직접 업데이트가 아니라 수정 의도 신호로만 다룬다.
+- 모델이나 규칙에서 추출한 후보값은 pending candidate로만 저장한다.
+- 명시적 confirm 전에는 authoritative value로 승격하지 않는다.
+- unknown 입력은 종료하지 않고 guided fallback으로 회수한다.
+- 반복 실패, 명시적 도움 요청, 운영성 요청은 handoff 경로로 보낸다.
+- handoff는 새 채팅방 생성이나 실시간 상담 연결이 아니라 기존 챗봇 대화창 안에서 운영자 후속 답변을 중계하기 위한 이관 신호다.
+
+## 편의 기능의 해석
+
+아래 기능은 명세의 제품 계약을 확장하기 위한 것이 아니라, 현재 프로젝트에서 개발과 검증을 쉽게 하기 위해 부득이하게 둔 로컬 보조 기능이다.
+
+- 로컬 관리자 follow-up 웹 화면은 정식 운영 콘솔이 아니라 요청 확인, 대화 내용 확인, 응답 전송을 빠르게 검증하기 위한 편의 화면이다.
+- 웹 응답 화면은 PowerShell JSON 요청에서 한글 본문이 깨질 수 있는 문제를 피하기 위해 UTF-8 HTML form 경로를 제공한다.
+- 프로필 입력 흐름은 제품 온보딩 계약이 아니라 구조화 입력, 수정, confirm, recovery UX를 검증하기 위한 샘플 흐름이다.
+- runtime-local AI gate는 상위 정책 시스템이 아직 연결되지 않은 상태에서 모델 호출 가능 여부를 로컬에서 제한하기 위한 보조 장치다.
+- 인메모리 follow-up queue와 outbox는 프로세스 로컬 검증용이며, 영속 저장소나 정식 운영 큐를 대체하지 않는다.
+
+따라서 위 항목은 문서와 테스트에서 명확히 편의 기능으로 격리해야 하며, 상위 참고 문서의 제품 범위와 충돌하는 근거로 사용하지 않는다.
+
+## 제외 범위
+
+아래 항목은 제품 범위에 없거나 데모성 기능이므로 새 구현 대상으로 삼지 않는다.
+
+- 오늘 날짜 조회
+- 오늘 날씨 조회
+- 도시 선택형 날씨 메뉴
+- 단순 데모 메뉴
+- 로컬 샘플용 임시 인증 흐름을 제품 인증으로 사용하는 것
+- 로컬 샘플용 프로필 입력 흐름을 제품 온보딩으로 사용하는 것
+- 운영 시스템과 무관한 범용 잡담 응답
+- 별도 상담방 생성
+- 실시간 상담 보장
+
+## 로컬 실행
+
+저장소 루트에서 가상환경을 활성화한 뒤 의존성을 설치하고 런타임을 실행한다.
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
@@ -10,59 +91,77 @@ pip install -e .[dev]
 python -m PROJECT.main
 ```
 
-## 현재 기능
+관리자 follow-up API가 켜져 있으면 같은 프로세스에서 로컬 API 서버가 함께 시작된다.
 
-- `/start`, `/help`, `/menu`, `/cancel`
-- `/language` 언어 변경
-- 명세 범위 기준 메인 메뉴 진입
-- `/myfields` 자기 조회 진입점 안내
-- `/resolve` input resolve 진입점 안내
-- `/support` 지원 안내 진입점
-- 프로필 입력, 확인, 항목별 수정
-- `/fertilizer` 비료 입력 정상 경로
-- `/yield` 수확량 입력 정상 경로
-- 뒤로가기, 취소, 처음부터
-- 상태별 fallback, 알 수 없는 입력 처리
-- 다국어 카탈로그 기반 응답
-- pending candidate 분리, unknown LLM 경계, handoff route 정책 적용
-- Gemini edit-intent / recovery classifier 설정 및 정책 게이트 연결
-- `llm_runtime_mode`, `manual_review_fallback_active`, `llm_failed` 기준 운영 로그 정리
+환경 변수 예시는 다음과 같다.
 
-## 운영 기준
+```powershell
+$env:ADMIN_API_ENABLED = "true"
+$env:ADMIN_API_HOST = "127.0.0.1"
+$env:ADMIN_API_PORT = "8000"
+python -m PROJECT.main
+```
 
-- 메인 경로는 rule-first로 유지하고, LLM은 제한적 보조 판정기로만 사용한다.
-- 자연어 수정은 직접 반영하지 않고 수정 의도 신호로만 다룬다.
-- LLM 결과는 항상 validator와 state machine을 다시 거친다.
-- 최상위 운영 정책은 [`docs/CHATBOT_OPERATION_POLICY_V2.md`](./docs/CHATBOT_OPERATION_POLICY_V2.md)를 기준으로 한다.
-- 현재 repo의 `.env` `AI_MODE`는 상위 정책을 대체하는 source of truth가 아니라, 상위 정책이 아직 연결되지 않은 상태에서 쓰는 runtime-local helper gate다.
-- runtime-local helper 기준으로도 `disabled`와 `manual_review_fallback`은 서로 다른 운영 모드로 구분한다.
-- `local_ai_gate`는 요청된 보조 모드를 뜻하고, `llm_runtime_mode`는 실제 모델 자격 증명과 활성 resolver 주입 결과까지 반영한 런타임 상태를 뜻한다.
-- 따라서 gate가 열려 있어도 모델 자격 증명이 없으면 런타임은 `rules_only_disabled`로 남고, `bot_started` telemetry도 그 상태를 그대로 기록한다.
-- handoff vocabulary는 `support.escalate`, `manual_resolution_required`, 관리자 follow-up queue 기준으로 정렬한다.
+## 로컬 관리자 화면
+
+관리자 follow-up API가 실행 중일 때 아래 화면을 사용할 수 있다.
+
+- 요청 목록: `http://127.0.0.1:8000/admin/pages/follow-ups`
+- 사용자 대화 내용: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}`
+- 사용자 응답 작성: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}/reply`
+
+이 화면에서 응답을 보내면 admin reply가 follow-up 항목에 기록되고 outbox에 메시지가 생성된다.
+
+## JSON API
+
+로컬 검증용 JSON API는 다음 경로를 제공한다.
+
+- `GET /admin/follow-ups`
+- `GET /admin/follow-ups/{follow_up_id}`
+- `POST /admin/follow-ups/{follow_up_id}/reply`
+- `POST /admin/follow-ups/{follow_up_id}/close`
+- `GET /admin/outbox`
+
+PowerShell에서 JSON API로 한글 응답을 직접 보낼 때는 `charset=utf-8`을 명시해야 한다.
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri "http://127.0.0.1:8000/admin/follow-ups/{follow_up_id}/reply" `
+  -ContentType "application/json; charset=utf-8" `
+  -Body '{"message":"입력 내용을 확인했습니다. 아래 메뉴에서 다시 선택해주세요."}'
+```
+
+더 안전하게 보내려면 UTF-8 byte array를 사용한다.
+
+```powershell
+$json = '{"message":"입력 내용을 확인했습니다. 아래 메뉴에서 다시 선택해주세요."}'
+$body = [System.Text.Encoding]::UTF8.GetBytes($json)
+
+Invoke-RestMethod -Method Post `
+  -Uri "http://127.0.0.1:8000/admin/follow-ups/{follow_up_id}/reply" `
+  -ContentType "application/json; charset=utf-8" `
+  -Body $body
+```
 
 ## 검증
 
+전체 테스트는 단위 테스트와 계약 테스트를 함께 실행한다.
+
 ```powershell
-python -m pytest
+.\.venv\Scripts\python.exe -m pytest
 ```
 
-- 전체 테스트는 `tests/unit`, `tests/contract` 기준으로 검증한다.
-- handoff route, pending candidate, unknown LLM 경계, LLM 실패 fallback은 정책/시나리오 테스트로 함께 검증한다.
+현재 검증 대상은 rule-first routing, fallback, pending candidate, 제한적 모델 gate, support handoff, admin follow-up API, 웹 응답 화면, outbox delivery를 포함한다.
 
-## 구조
+## 코드 구조 요약
 
-- `channels/telegram/*`: 텔레그램 라이브러리 의존 코드
-- `canonical_intents/*`: 외부 입력을 내부 intent로 정규화
-- `dispatch/*`: 세션 상태 기반 라우팅
-- `conversations/sample_menu/*`: 메뉴 플로우 상태, 키보드, 메시지 조합
-- `conversations/yield_intake/*`: 수확량 입력 상태와 메시지 조합
-- `i18n/catalogs/ko.py`: 사용자 노출 문구
-
-## 문서
-
-- [`docs/README.md`](./docs/README.md): 프로젝트 내부 문서 인덱스
-- [`docs/CHATBOT_OPERATION_POLICY_V2.md`](./docs/CHATBOT_OPERATION_POLICY_V2.md): 상위 정책 정렬 메모를 포함한 챗봇 운영 기준 문서
-- [`docs/STAGE2_RULE_ENGINE.md`](./docs/STAGE2_RULE_ENGINE.md): 2단계 규칙 엔진 구조
-- [`docs/RULE_FIRST_LLM_HANDOFF.md`](./docs/RULE_FIRST_LLM_HANDOFF.md): 3단계 LLM 호출 전제 조건
-- [`docs/MODEL_RECOVERY_SETUP.md`](./docs/MODEL_RECOVERY_SETUP.md): 모델 recovery 설정과 runtime-local helper gate 설명
-- [`docs/STRUCTURED_INTERACTION_POLICY.md`](./docs/STRUCTURED_INTERACTION_POLICY.md): fallback, 수정 확인, 제한적 LLM 상호작용 정책
+- `canonical_intents`: 외부 입력을 내부 intent로 정규화
+- `rule_engine`: normalization, intent rule, step schema, validation, recovery context
+- `dispatch`: 세션 상태 기반 라우팅과 handoff dispatch
+- `conversations`: 단계형 입력 상태와 메시지 조합
+- `admin`: follow-up queue와 outbox runtime
+- `admin_api`: 로컬 follow-up JSON API와 편의용 HTML 화면
+- `channels`: 메신저 채널 adapter
+- `i18n`: 사용자 노출 문구 catalog
+- `telemetry`: 운영 이벤트 이름과 로깅
+- `tests`: 정책, 런타임, 계약, 편의 화면 검증
