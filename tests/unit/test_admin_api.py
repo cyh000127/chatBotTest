@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from PROJECT.admin.follow_up import InMemoryAdminRuntime, OutboxStatus
+from PROJECT.admin.follow_up import FOLLOW_UP_CLOSED_NOTICE, InMemoryAdminRuntime, OutboxStatus
 from PROJECT.admin_api.app import create_admin_api_app
 
 
@@ -52,6 +52,31 @@ def test_admin_api_can_close_follow_up():
 
     assert response.status_code == 200
     assert response.json()["follow_up"]["closed"] is True
+    assert runtime.list_outbox(status=OutboxStatus.PENDING)[0].text == FOLLOW_UP_CLOSED_NOTICE
+
+
+def test_admin_api_reply_close_after_send_creates_reply_and_closed_notice_outbox():
+    runtime = InMemoryAdminRuntime()
+    follow_up = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+    client = TestClient(create_admin_api_app(runtime))
+
+    response = client.post(
+        f"/admin/follow-ups/{follow_up.follow_up_id}/reply",
+        json={"message": "처리를 완료했습니다.", "close_after_send": True},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["follow_up"]["closed"] is True
+    assert [message.text for message in runtime.list_outbox(status=OutboxStatus.PENDING)] == [
+        "처리를 완료했습니다.",
+        FOLLOW_UP_CLOSED_NOTICE,
+    ]
 
 
 def test_admin_pages_show_follow_up_request_list():
@@ -127,6 +152,32 @@ def test_admin_reply_page_accepts_utf8_reply_and_creates_outbox():
     assert runtime.list_outbox(status=OutboxStatus.PENDING)[0].text == (
         "입력 내용을 확인했습니다. 아래 메뉴에서 다시 선택해주세요."
     )
+
+
+def test_admin_reply_page_close_after_send_creates_closed_notice_outbox():
+    runtime = InMemoryAdminRuntime()
+    follow_up = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+        user_message="확인해주세요",
+    )
+    client = TestClient(create_admin_api_app(runtime))
+
+    response = client.post(
+        f"/admin/pages/follow-ups/{follow_up.follow_up_id}/reply",
+        data={"message": "처리를 완료했습니다.", "close_after_send": "true"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert runtime.get_follow_up(follow_up.follow_up_id).closed is True
+    assert [message.text for message in runtime.list_outbox(status=OutboxStatus.PENDING)] == [
+        "처리를 완료했습니다.",
+        FOLLOW_UP_CLOSED_NOTICE,
+    ]
 
 
 def test_admin_reply_page_rejects_closed_follow_up():

@@ -1,4 +1,4 @@
-from PROJECT.admin.follow_up import FollowUpStatus, InMemoryAdminRuntime, OutboxStatus
+from PROJECT.admin.follow_up import FOLLOW_UP_CLOSED_NOTICE, FollowUpStatus, InMemoryAdminRuntime, OutboxStatus
 
 
 def test_create_follow_up_records_command_request_and_queue_item():
@@ -78,3 +78,39 @@ def test_closed_follow_up_does_not_accept_more_messages_or_admin_replies():
     assert closed.status == FollowUpStatus.CLOSED
     assert runtime.append_user_message(follow_up.follow_up_id, "추가 문의") is None
     assert runtime.create_admin_reply(follow_up.follow_up_id, "답변") is None
+
+
+def test_close_follow_up_can_create_user_notice_outbox():
+    runtime = InMemoryAdminRuntime()
+    follow_up = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+
+    closed = runtime.close_follow_up(follow_up.follow_up_id, notify_user=True)
+
+    assert closed is not None
+    assert closed.status == FollowUpStatus.CLOSED
+    outbox = runtime.list_outbox(status=OutboxStatus.PENDING)
+    assert len(outbox) == 1
+    assert outbox[0].chat_id == 20
+    assert outbox[0].text == FOLLOW_UP_CLOSED_NOTICE
+
+
+def test_closing_already_closed_follow_up_does_not_duplicate_notice():
+    runtime = InMemoryAdminRuntime()
+    follow_up = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+
+    runtime.close_follow_up(follow_up.follow_up_id, notify_user=True)
+    runtime.close_follow_up(follow_up.follow_up_id, notify_user=True)
+
+    assert len(runtime.list_outbox(status=OutboxStatus.PENDING)) == 1

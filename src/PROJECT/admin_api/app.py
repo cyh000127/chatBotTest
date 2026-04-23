@@ -185,7 +185,7 @@ def create_admin_api_app(runtime: InMemoryAdminRuntime = admin_runtime) -> FastA
         if result is None:
             raise HTTPException(status_code=404, detail="open follow-up not found")
         if close_after_send:
-            runtime.close_follow_up(follow_up_id, source="admin.web.reply_close")
+            runtime.close_follow_up(follow_up_id, source="admin.web.reply_close", notify_user=True)
         return RedirectResponse(f"/admin/pages/follow-ups/{follow_up_id}", status_code=303)
 
     @app.get("/admin/follow-ups")
@@ -208,7 +208,7 @@ def create_admin_api_app(runtime: InMemoryAdminRuntime = admin_runtime) -> FastA
             raise HTTPException(status_code=404, detail="open follow-up not found")
         follow_up, outbox_message = result
         if request.close_after_send:
-            follow_up = runtime.close_follow_up(follow_up_id, source="admin.api.reply_close") or follow_up
+            follow_up = runtime.close_follow_up(follow_up_id, source="admin.api.reply_close", notify_user=True) or follow_up
         return {
             "follow_up": _serialize(follow_up),
             "outbox_message": _serialize(outbox_message),
@@ -216,7 +216,7 @@ def create_admin_api_app(runtime: InMemoryAdminRuntime = admin_runtime) -> FastA
 
     @app.post("/admin/follow-ups/{follow_up_id}/close")
     def close_follow_up(follow_up_id: str, request: CloseFollowUpRequest) -> dict:
-        follow_up = runtime.close_follow_up(follow_up_id, source="admin.api.close")
+        follow_up = runtime.close_follow_up(follow_up_id, source="admin.api.close", notify_user=True)
         if follow_up is None:
             raise HTTPException(status_code=404, detail="follow-up not found")
         return {"follow_up": _serialize(follow_up), "reason": request.reason}

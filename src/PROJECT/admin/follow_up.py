@@ -29,6 +29,13 @@ class OutboxStatus(StrEnum):
     FAILED = "failed"
 
 
+FOLLOW_UP_CLOSED_NOTICE = (
+    "지원 이관이 완료되었습니다.\n"
+    "필요하면 이 대화창에서 다시 도움을 요청할 수 있습니다.\n"
+    "처음부터 다시 진행하려면 /start 를 입력해주세요."
+)
+
+
 @dataclass(frozen=True)
 class CommandRequest:
     request_id: str
@@ -253,19 +260,49 @@ class InMemoryAdminRuntime:
             )
             return updated, outbox_message
 
-    def close_follow_up(self, follow_up_id: str, *, source: str = "runtime") -> FollowUpItem | None:
+    def close_follow_up(
+        self,
+        follow_up_id: str,
+        *,
+        source: str = "runtime",
+        notify_user: bool = False,
+        notice_text: str = FOLLOW_UP_CLOSED_NOTICE,
+    ) -> FollowUpItem | None:
         with self._lock:
             follow_up = self._follow_ups.get(follow_up_id)
             if follow_up is None:
                 return None
+            if follow_up.closed:
+                return follow_up
+            now = _now()
             updated = replace(
                 follow_up,
                 status=FollowUpStatus.CLOSED,
                 awaiting_admin_reply=False,
                 closed=True,
-                updated_at=_now(),
+                updated_at=now,
             )
             self._follow_ups[follow_up_id] = updated
+            if notify_user:
+                outbox_message = OutboxMessage(
+                    outbox_id=f"outbox_{uuid4().hex}",
+                    follow_up_id=follow_up_id,
+                    chat_id=follow_up.chat_id,
+                    text=notice_text,
+                    status=OutboxStatus.PENDING,
+                    source=source,
+                    created_at=now,
+                    updated_at=now,
+                )
+                self._outbox[outbox_message.outbox_id] = outbox_message
+                log_event(
+                    OUTBOX_MESSAGE_CREATED,
+                    source=source,
+                    outbox_id=outbox_message.outbox_id,
+                    follow_up_id=follow_up_id,
+                    chat_id=outbox_message.chat_id,
+                    status=outbox_message.status.value,
+                )
             log_event(
                 ADMIN_FOLLOW_UP_CLOSED,
                 source=source,
