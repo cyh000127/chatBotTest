@@ -7,6 +7,7 @@ from PROJECT.conversations.yield_intake.states import (
     STATE_YIELD_AMOUNT,
     STATE_YIELD_CONFIRM,
     STATE_YIELD_DATE,
+    STATE_YIELD_EDIT_SELECT,
     STATE_YIELD_FIELD,
     STATE_YIELD_READY,
 )
@@ -45,6 +46,7 @@ def prompt_for_state(state: str, catalog) -> str:
         STATE_YIELD_AMOUNT: catalog.YIELD_AMOUNT_PROMPT,
         STATE_YIELD_DATE: catalog.YIELD_DATE_PROMPT,
         STATE_YIELD_CONFIRM: catalog.YIELD_CONFIRM_PROMPT,
+        STATE_YIELD_EDIT_SELECT: catalog.YIELD_EDIT_MESSAGE,
     }
     return mapping[state]
 
@@ -54,6 +56,8 @@ def keyboard_for_state(state: str, catalog) -> list[list[dict[str, str]]]:
         return keyboards.yield_ready_keyboard(catalog)
     if state == STATE_YIELD_CONFIRM:
         return keyboards.yield_confirm_keyboard(catalog)
+    if state == STATE_YIELD_EDIT_SELECT:
+        return keyboards.yield_edit_select_keyboard(catalog)
     return keyboards.yield_input_keyboard(catalog)
 
 
@@ -139,6 +143,7 @@ def fallback_text_for_state(state: str, catalog) -> str:
         STATE_YIELD_AMOUNT: catalog.YIELD_AMOUNT_FALLBACK,
         STATE_YIELD_DATE: catalog.YIELD_DATE_FALLBACK,
         STATE_YIELD_CONFIRM: catalog.YIELD_CONFIRM_FALLBACK,
+        STATE_YIELD_EDIT_SELECT: catalog.YIELD_EDIT_SELECT_FALLBACK,
     }
     return mapping[state]
 

@@ -1,13 +1,21 @@
 from datetime import datetime
 
 from PROJECT.conversations.yield_intake import service
-from PROJECT.conversations.yield_intake.states import STATE_YIELD_CONFIRM, STATE_YIELD_READY
+from PROJECT.conversations.yield_intake.states import STATE_YIELD_CONFIRM, STATE_YIELD_EDIT_SELECT, STATE_YIELD_READY
 from PROJECT.i18n.catalogs import ko
 
 
 def test_prompt_for_yield_steps_exists():
     assert service.prompt_for_state(STATE_YIELD_READY, ko)
     assert service.prompt_for_state(STATE_YIELD_CONFIRM, ko)
+    assert service.prompt_for_state(STATE_YIELD_EDIT_SELECT, ko)
+
+
+def test_yield_confirm_keyboard_exposes_edit_entry():
+    layout = service.keyboard_for_state(STATE_YIELD_CONFIRM, ko)
+
+    assert layout[0][0]["text"] == ko.BUTTON_CONFIRM
+    assert layout[1][0]["text"] == ko.BUTTON_EDIT
 
 
 def test_parse_yield_ready_amount_and_date():

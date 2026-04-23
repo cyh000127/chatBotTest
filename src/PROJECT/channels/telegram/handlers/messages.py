@@ -48,6 +48,7 @@ from PROJECT.conversations.yield_intake.states import (
     STATE_YIELD_AMOUNT,
     STATE_YIELD_CONFIRM,
     STATE_YIELD_DATE,
+    STATE_YIELD_EDIT_SELECT,
     STATE_YIELD_FIELD,
     STATE_YIELD_READY,
 )
@@ -72,6 +73,7 @@ from PROJECT.dispatch.command_router import (
     ROUTE_PROFILE_EDIT,
     ROUTE_PROFILE_FINALIZE,
     ROUTE_SUPPORT_GUIDANCE,
+    ROUTE_YIELD_EDIT,
     ROUTE_YIELD_FINALIZE,
     route_message,
 )
@@ -184,6 +186,7 @@ YIELD_STATES = {
     STATE_YIELD_AMOUNT,
     STATE_YIELD_DATE,
     STATE_YIELD_CONFIRM,
+    STATE_YIELD_EDIT_SELECT,
 }
 
 PROFILE_EDIT_CALLBACK_TO_STATE = {
@@ -1139,6 +1142,8 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "fertilizer_kind", {"kind": data.rsplit(":", 1)[1]}
     if data.startswith("yield:ready:"):
         return "yield_ready", {"ready": data.rsplit(":", 1)[1] == "yes"}
+    if data == "yield:edit:start":
+        return "yield_edit_start", {}
     return registry.INTENT_UNKNOWN_TEXT, {}
 
 
@@ -1372,6 +1377,10 @@ async def handle_yield_state(update, context, state: str, text: str) -> bool:
         return True
 
     if state == STATE_YIELD_CONFIRM:
+        await send_yield_prompt(update, context, state, yield_service.fallback_text_for_state(state, catalog))
+        return True
+
+    if state == STATE_YIELD_EDIT_SELECT:
         await send_yield_prompt(update, context, state, yield_service.fallback_text_for_state(state, catalog))
         return True
 
@@ -1827,6 +1836,12 @@ async def text_message(update, context) -> None:
         )
         return
 
+    if decision.route == ROUTE_YIELD_EDIT:
+        set_state(context.user_data, decision.next_state or STATE_YIELD_EDIT_SELECT, push_history=decision.push_history)
+        reset_recovery_attempts(context.user_data)
+        await send_yield_prompt(update, context, current_state(context.user_data))
+        return
+
     if decision.route == ROUTE_PROFILE_FINALIZE:
         set_confirmed_profile(context.user_data, profile_draft(context.user_data))
         set_state(context.user_data, STATE_MAIN_MENU)
@@ -2204,6 +2219,17 @@ async def button_callback(update, context) -> None:
         await send_yield_prompt(update, context, STATE_YIELD_FIELD)
         return
 
+    if action == "yield_edit_start":
+        await clear_callback_markup(update)
+        if state != STATE_YIELD_EDIT_SELECT:
+            if current_state(context.user_data) in YIELD_STATES:
+                await send_yield_prompt(update, context, current_state(context.user_data))
+            return
+        set_yield_draft(context.user_data, yield_service.new_draft().to_dict())
+        set_state(context.user_data, STATE_YIELD_READY, push_history=True)
+        await send_yield_prompt(update, context, STATE_YIELD_READY)
+        return
+
     decision = route_message(state, action, payload)
     await clear_callback_markup(update)
     catalog = current_catalog(context)
@@ -2265,6 +2291,11 @@ async def button_callback(update, context) -> None:
             profile_service.edit_text(catalog),
             keyboard_layout=profile_service.keyboard_for_state(current_state(context.user_data), current_profile(context), catalog),
         )
+        return
+
+    if decision.route == ROUTE_YIELD_EDIT:
+        set_state(context.user_data, decision.next_state or STATE_YIELD_EDIT_SELECT, push_history=decision.push_history)
+        await send_yield_prompt(update, context, current_state(context.user_data))
         return
 
     if decision.route == ROUTE_PROFILE_FINALIZE:

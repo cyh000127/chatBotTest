@@ -13,7 +13,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
 )
-from PROJECT.conversations.yield_intake.states import STATE_YIELD_CONFIRM, STATE_YIELD_READY
+from PROJECT.conversations.yield_intake.states import STATE_YIELD_CONFIRM, STATE_YIELD_EDIT_SELECT, STATE_YIELD_READY
 
 ROUTE_HELP = "help"
 ROUTE_MAIN_MENU = "main_menu"
@@ -25,6 +25,7 @@ ROUTE_OPEN_YIELD = "open_yield"
 ROUTE_OPEN_INPUT_RESOLVE = "open_input_resolve"
 ROUTE_SUPPORT_GUIDANCE = "support_guidance"
 ROUTE_PROFILE_EDIT = "profile_edit"
+ROUTE_YIELD_EDIT = "yield_edit"
 ROUTE_PROFILE_FINALIZE = "profile_finalize"
 ROUTE_FERTILIZER_FINALIZE = "fertilizer_finalize"
 ROUTE_YIELD_FINALIZE = "yield_finalize"
@@ -71,4 +72,6 @@ def route_message(state: str, intent: str, payload: dict | None = None) -> Route
         return RouteDecision(ROUTE_YIELD_FINALIZE)
     if state == STATE_PROFILE_CONFIRM and intent == registry.INTENT_EDIT:
         return RouteDecision(ROUTE_PROFILE_EDIT, next_state=STATE_PROFILE_EDIT_SELECT, push_history=True)
+    if state == STATE_YIELD_CONFIRM and intent == registry.INTENT_EDIT:
+        return RouteDecision(ROUTE_YIELD_EDIT, next_state=STATE_YIELD_EDIT_SELECT, push_history=True)
     return RouteDecision(ROUTE_UNKNOWN_INPUT)

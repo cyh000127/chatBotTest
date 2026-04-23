@@ -18,7 +18,7 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_RESIDENCE,
 )
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED
-from PROJECT.conversations.yield_intake.states import STATE_YIELD_AMOUNT, STATE_YIELD_CONFIRM, STATE_YIELD_DATE, STATE_YIELD_FIELD, STATE_YIELD_READY
+from PROJECT.conversations.yield_intake.states import STATE_YIELD_AMOUNT, STATE_YIELD_CONFIRM, STATE_YIELD_DATE, STATE_YIELD_EDIT_SELECT, STATE_YIELD_FIELD, STATE_YIELD_READY
 
 FALLBACK_DEFAULT = "default"
 FALLBACK_CANCELLED = "cancelled"
@@ -52,5 +52,7 @@ def fallback_key_for_state(state: str) -> str:
     if state in {STATE_YIELD_READY, STATE_YIELD_FIELD, STATE_YIELD_AMOUNT, STATE_YIELD_DATE}:
         return "yield_input"
     if state == STATE_YIELD_CONFIRM:
+        return "yield_confirm"
+    if state == STATE_YIELD_EDIT_SELECT:
         return "yield_confirm"
     return FALLBACK_DEFAULT
