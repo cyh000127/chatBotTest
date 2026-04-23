@@ -28,6 +28,7 @@
 - 자기 조회 진입점
 - input resolve 진입점
 - restart / fallback / support escalation 안내
+- 챗봇 대화창 안에서 관리자 후속 답변을 중계하는 지원 이관 흐름
 
 ## 4. 제외 범위
 
@@ -45,6 +46,8 @@
 - candidate value는 pending candidate로만 저장한다.
 - confirm 전에는 authoritative value로 승격하지 않는다.
 - unknown 입력은 guided fallback으로 회수한다.
+- support.escalate는 새 채팅방 생성이나 실시간 상담방 연결이 아니라 기존 챗봇 대화창 안에서 운영자 후속 답변을 중계하기 위한 이관 신호다.
+- 운영자 답변은 봇을 통해 사용자에게 전달되며, 이관 이후에도 사용자 대화 표면은 기존 챗봇 대화창을 유지한다.
 
 ## 6. 문서 작성 규칙
 

@@ -29,6 +29,8 @@
   구조화 입력, 수정 요청, fallback, confirm, handoff UX 원칙을 설명한다.
 - `FEATURE_SCOPE_BASELINE.md`
   구현 대상 기능과 비대상 기능을 구분하는 제품 범위 기준을 정리한다.
+- `SUPPORT_HANDOFF_CHATBOT_RELAY.md`
+  지원 이관이 기존 챗봇 대화창 안에서 운영자 후속 답변을 중계하는 방식임을 정의한다.
 
 현재 기준 핵심 요약:
 
@@ -48,6 +50,7 @@
 - 자기 조회 진입점
 - input resolve 진입점
 - restart, fallback, support escalation 안내
+- 기존 챗봇 대화창 안에서 이루어지는 운영자 후속 답변 중계
 
 현재 구현 기준의 제외 대상:
 

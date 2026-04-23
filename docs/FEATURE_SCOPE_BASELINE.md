@@ -27,6 +27,7 @@ farmer-facing runtime의 핵심 범위는 다음과 같다.
 - self-service 조회
 - restart 및 guided recovery
 - support escalation 또는 admin follow-up 연결
+- 기존 챗봇 대화창 안에서 운영자 후속 답변을 중계하는 지원 이관
 
 ## 3. 구현 대상 기능
 
@@ -41,6 +42,8 @@ farmer-facing runtime의 핵심 범위는 다음과 같다.
 - structured confirm / edit / cancel / restart
 - unknown fallback과 state-aware recovery
 - `support.escalate`, `manual_resolution_required`, admin follow-up 안내
+- 지원 이관 상태의 사용자 추가 메시지 수집
+- 운영자 후속 답변의 챗봇 대화창 중계
 - 다국어 farmer-facing 메시지 카탈로그
 
 ## 4. 제한적 보조 기능
@@ -70,6 +73,8 @@ farmer-facing runtime의 핵심 범위는 다음과 같다.
 - 단순 데모 메뉴
 - 로컬 샘플용 임시 인증 흐름
 - 운영 시스템과 무관한 범용 잡담 응답
+- 별도 상담방 생성
+- 실시간 상담 보장
 
 ## 6. 구현 우선순위
 

@@ -59,6 +59,7 @@
 - `support.escalate`
 - `manual_resolution_required`
 - `admin_follow_up_queue`
+- `bot_mediated_admin_reply`
 
 ### 3.4 Recovery vocabulary
 
@@ -91,8 +92,8 @@
 | 수정 의도처럼 보이지만 룰이 애매한 입력 | repair rule | 허용 | 수정 대상 확인 단계로 이동 |
 | confirm 단계의 애매한 수정 요청 | repair rule -> 실패 시 모델 | 허용 | field 후보만 고르고 다시 확인 |
 | 완전한 잡담/도메인 불명 입력 | guided fallback | 금지 | 관련 항목 버튼 제시 |
-| 공격적/민감/운영 이관 필요 입력 | safety gate | 금지 | 사람 연결 또는 운영 안내 |
-| 반복 실패 누적 | recovery/handoff | 제한적 또는 금지 | 버튼 유도 강화 또는 사람 연결 |
+| 공격적/민감/운영 이관 필요 입력 | safety gate | 금지 | 지원 이관 또는 운영 안내 |
+| 반복 실패 누적 | recovery/handoff | 제한적 또는 금지 | 버튼 유도 강화 또는 지원 이관 |
 
 ## 5. Unknown / Fallback 규칙
 
@@ -264,6 +265,17 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 - `support.escalate`
 - `manual_resolution_required`
 - `admin_follow_up_queue`
+
+지원 이관의 사용자 대화 표면은 기존 챗봇 대화창이다.
+
+강제 규칙:
+
+- 새 채팅방을 생성하지 않는다.
+- 실시간 상담 연결을 보장하지 않는다.
+- `support.escalate`는 운영자 후속 처리를 요청하는 이관 신호다.
+- 운영자 답변은 봇을 통해 기존 챗봇 대화창으로 중계한다.
+- 이관 상태에서 사용자의 추가 메시지는 이관 항목의 대화 이력으로 누적한다.
+- 명시적 restart는 이관 상태에서도 우선 처리한다.
 
 ## 17. 정책 코드 분리 원칙
 
