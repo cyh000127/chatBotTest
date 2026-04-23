@@ -1,11 +1,14 @@
 from PROJECT.policy import LocalAiGate
-from PROJECT.settings import GeminiSettings, Settings, load_settings, parse_bool_env
+from PROJECT.settings import DEFAULT_ADMIN_API_HOST, DEFAULT_ADMIN_API_PORT, GeminiSettings, Settings, load_settings, parse_bool_env
 
 
 def test_settings_defaults_include_gemini_configuration():
     settings = Settings(bot_token="test-token")
 
     assert settings.gemini is None
+    assert settings.admin_api.enabled is False
+    assert settings.admin_api.host == DEFAULT_ADMIN_API_HOST
+    assert settings.admin_api.port == DEFAULT_ADMIN_API_PORT
     assert settings.local_ai_gate == LocalAiGate.DISABLED
     assert settings.enable_llm_edit_intent is False
     assert settings.enable_llm_recovery is False
@@ -91,3 +94,17 @@ def test_load_settings_uses_legacy_edit_intent_flag_when_local_ai_gate_is_missin
     settings = load_settings()
 
     assert settings.local_ai_gate == LocalAiGate.REPAIR_ASSIST_ONLY
+
+
+def test_load_settings_reads_admin_api_env(monkeypatch):
+    monkeypatch.setenv("BOT_TOKEN", "test-token")
+    monkeypatch.setenv("ADMIN_API_ENABLED", "true")
+    monkeypatch.setenv("ADMIN_API_HOST", "0.0.0.0")
+    monkeypatch.setenv("ADMIN_API_PORT", "9000")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    settings = load_settings()
+
+    assert settings.admin_api.enabled is True
+    assert settings.admin_api.host == "0.0.0.0"
+    assert settings.admin_api.port == 9000

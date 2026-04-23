@@ -13,6 +13,8 @@ DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 DEFAULT_GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_GEMINI_TIMEOUT_SECONDS = 15.0
 TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
+DEFAULT_ADMIN_API_HOST = "127.0.0.1"
+DEFAULT_ADMIN_API_PORT = 8000
 
 
 @dataclass(frozen=True)
@@ -24,10 +26,18 @@ class GeminiSettings:
 
 
 @dataclass(frozen=True)
+class AdminApiSettings:
+    enabled: bool = False
+    host: str = DEFAULT_ADMIN_API_HOST
+    port: int = DEFAULT_ADMIN_API_PORT
+
+
+@dataclass(frozen=True)
 class Settings:
     bot_token: str
     gemini: GeminiSettings | None = None
     local_ai_gate: LocalAiGate = LocalAiGate.DISABLED
+    admin_api: AdminApiSettings = AdminApiSettings()
 
     @property
     def ai_mode(self) -> LocalAiGate:
@@ -107,8 +117,20 @@ def load_settings() -> Settings:
     if not ai_mode_raw and legacy_edit_intent_enabled:
         local_ai_gate = LocalAiGate.REPAIR_ASSIST_ONLY
 
+    admin_api_host = os.getenv("ADMIN_API_HOST", DEFAULT_ADMIN_API_HOST).strip() or DEFAULT_ADMIN_API_HOST
+    admin_api_port_raw = os.getenv("ADMIN_API_PORT", str(DEFAULT_ADMIN_API_PORT)).strip()
+    try:
+        admin_api_port = int(admin_api_port_raw)
+    except ValueError:
+        admin_api_port = DEFAULT_ADMIN_API_PORT
+
     return Settings(
         bot_token=bot_token,
         gemini=gemini_settings,
         local_ai_gate=local_ai_gate,
+        admin_api=AdminApiSettings(
+            enabled=parse_bool_env("ADMIN_API_ENABLED", default=False),
+            host=admin_api_host,
+            port=admin_api_port,
+        ),
     )
