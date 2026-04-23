@@ -21,9 +21,9 @@ class UnknownInputDisposition(StrEnum):
 class HandoffRoute(StrEnum):
     SUPPORT_ESCALATE = "support.escalate"
     MANUAL_RESOLUTION_REQUIRED = "manual_resolution_required"
-    ADMIN_FOLLOWUP_QUEUE = "admin_followup_queue"
+    ADMIN_FOLLOWUP_QUEUE = "admin_follow_up_queue"
     MANUAL_REVIEW_REQUIRED = "manual_resolution_required"
-    ADMIN_FOLLOWUP_REQUIRED = "admin_followup_queue"
+    ADMIN_FOLLOWUP_REQUIRED = "admin_follow_up_queue"
 
 
 @dataclass(frozen=True)

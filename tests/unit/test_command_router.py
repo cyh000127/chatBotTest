@@ -24,13 +24,13 @@ def test_profile_entry_routes_to_profile_input():
 
 
 def test_fertilizer_entry_routes_to_fertilizer_input():
-    decision = route_message(STATE_MAIN_MENU, registry.INTENT_FERTILIZER_INPUT_START)
+    decision = route_message(STATE_MAIN_MENU, registry.INTENT_AGRI_INPUT_START)
     assert decision.route == ROUTE_OPEN_FERTILIZER
     assert decision.next_state == STATE_FERTILIZER_USED
 
 
 def test_myfields_entry_routes_to_self_lookup_entry():
-    decision = route_message(STATE_MAIN_MENU, registry.INTENT_MYFIELDS_ENTRY)
+    decision = route_message(STATE_MAIN_MENU, registry.INTENT_FIELD_LIST)
     assert decision.route == ROUTE_OPEN_MYFIELDS
 
 

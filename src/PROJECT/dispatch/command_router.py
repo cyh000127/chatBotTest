@@ -50,9 +50,9 @@ def route_message(state: str, intent: str, payload: dict | None = None) -> Route
         return RouteDecision(ROUTE_MAIN_MENU)
     if intent == registry.INTENT_PROFILE:
         return RouteDecision(ROUTE_OPEN_PROFILE, next_state=STATE_PROFILE_NAME)
-    if intent == registry.INTENT_MYFIELDS_ENTRY:
+    if intent == registry.INTENT_FIELD_LIST:
         return RouteDecision(ROUTE_OPEN_MYFIELDS)
-    if intent == registry.INTENT_FERTILIZER_INPUT_START:
+    if intent == registry.INTENT_AGRI_INPUT_START:
         return RouteDecision(ROUTE_OPEN_FERTILIZER, next_state=STATE_FERTILIZER_USED)
     if intent == registry.INTENT_YIELD_INPUT_START:
         return RouteDecision(ROUTE_OPEN_YIELD, next_state=STATE_YIELD_READY)

@@ -8,8 +8,8 @@ COMMAND_TO_INTENT = {
     "help": registry.INTENT_HELP,
     "menu": registry.INTENT_MENU,
     "profile": registry.INTENT_PROFILE,
-    "myfields": registry.INTENT_MYFIELDS_ENTRY,
-    "fertilizer": registry.INTENT_FERTILIZER_INPUT_START,
+    "myfields": registry.INTENT_FIELD_LIST,
+    "fertilizer": registry.INTENT_AGRI_INPUT_START,
     "yield": registry.INTENT_YIELD_INPUT_START,
     "resolve": registry.INTENT_INPUT_RESOLVE_START,
     "support": registry.INTENT_SUPPORT_ESCALATE,
@@ -187,7 +187,7 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
 
     if collapsed in {"myfields", "내농지", "농지조회", "내필드"}:
         return IntentDecision(
-            canonical_intent=registry.INTENT_MYFIELDS_ENTRY,
+            canonical_intent=registry.INTENT_FIELD_LIST,
             current_step=current_step,
             source=RuleSource.INTENT_RULE,
             matched_rule="myfields_exact",
@@ -212,7 +212,7 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
     has_start = any(marker in collapsed for marker in START_MARKERS)
     if has_myfields and (has_view or "조회" in collapsed):
         return IntentDecision(
-            canonical_intent=registry.INTENT_MYFIELDS_ENTRY,
+            canonical_intent=registry.INTENT_FIELD_LIST,
             current_step=current_step,
             source=RuleSource.INTENT_RULE,
             matched_rule="myfields_view_phrase",
@@ -240,7 +240,7 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
         )
     if has_fertilizer and has_start:
         return IntentDecision(
-            canonical_intent=registry.INTENT_FERTILIZER_INPUT_START,
+            canonical_intent=registry.INTENT_AGRI_INPUT_START,
             current_step=current_step,
             source=RuleSource.INTENT_RULE,
             matched_rule="fertilizer_start_phrase",

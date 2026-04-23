@@ -59,7 +59,7 @@
     {
       "id": "fertilizer_start",
       "payload": {
-        "canonical_intent": "fertilizer.input.start",
+        "canonical_intent": "agri.input.start",
         "current_step": "entry",
         "source": "intent_rule",
         "confidence": 1.0,
@@ -165,7 +165,7 @@
     {
       "id": "fertilizer_confirm_reask",
       "payload": {
-        "canonical_intent": "fertilizer.input.start",
+        "canonical_intent": "agri.input.start",
         "current_step": "fertilizer_confirm",
         "current_question": "비료 입력을 확인했어요.\n- 비료 사용 여부: 사용함\n- 비료 유형: 복합비료\n- 제품명: 한아름 복합비료\n- 사용량: 20 kg\n- 사용일: 2026-04-21\n\n맞으면 [확인]을 눌러주세요.",
         "expected_input_type": "confirmation_action",

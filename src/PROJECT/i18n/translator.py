@@ -41,9 +41,9 @@ def all_button_intents() -> dict[str, str]:
         mapping.update(
             {
                 catalog.BUTTON_PROFILE: registry.INTENT_PROFILE,
-                catalog.BUTTON_FERTILIZER: registry.INTENT_FERTILIZER_INPUT_START,
+                catalog.BUTTON_FERTILIZER: registry.INTENT_AGRI_INPUT_START,
                 catalog.BUTTON_YIELD: registry.INTENT_YIELD_INPUT_START,
-                catalog.BUTTON_MYFIELDS: registry.INTENT_MYFIELDS_ENTRY,
+                catalog.BUTTON_MYFIELDS: registry.INTENT_FIELD_LIST,
                 catalog.BUTTON_INPUT_RESOLVE: registry.INTENT_INPUT_RESOLVE_START,
                 catalog.BUTTON_SUPPORT: registry.INTENT_SUPPORT_ESCALATE,
                 catalog.BUTTON_HELP: registry.INTENT_HELP,

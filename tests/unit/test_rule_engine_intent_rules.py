@@ -41,7 +41,7 @@ def test_classify_global_intent_supports_fertilizer_start_phrase():
     decision = classify_global_intent_text("비료 입력할게요")
 
     assert decision is not None
-    assert decision.canonical_intent == registry.INTENT_FERTILIZER_INPUT_START
+    assert decision.canonical_intent == registry.INTENT_AGRI_INPUT_START
 
 
 def test_classify_global_intent_supports_yield_start_phrase():
@@ -55,7 +55,7 @@ def test_classify_global_intent_supports_myfields_entry_phrase():
     decision = classify_global_intent_text("내 농지 조회")
 
     assert decision is not None
-    assert decision.canonical_intent == registry.INTENT_MYFIELDS_ENTRY
+    assert decision.canonical_intent == registry.INTENT_FIELD_LIST
 
 
 def test_classify_global_intent_supports_input_resolve_command():

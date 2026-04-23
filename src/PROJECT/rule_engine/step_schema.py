@@ -59,7 +59,7 @@ def render_shared_step_question(
 SHARED_STEP_SCHEMAS = {
     STATE_FERTILIZER_USED: SharedStepSchema(
         domain="fertilizer",
-        canonical_intent=registry.INTENT_FERTILIZER_INPUT_START,
+        canonical_intent=registry.INTENT_AGRI_INPUT_START,
         current_step=STATE_FERTILIZER_USED,
         expected_input_type="binary_yes_no",
         allowed_value_shape="one_of:used|not_used",
@@ -68,7 +68,7 @@ SHARED_STEP_SCHEMAS = {
     ),
     STATE_FERTILIZER_KIND: SharedStepSchema(
         domain="fertilizer",
-        canonical_intent=registry.INTENT_FERTILIZER_INPUT_START,
+        canonical_intent=registry.INTENT_AGRI_INPUT_START,
         current_step=STATE_FERTILIZER_KIND,
         expected_input_type="fertilizer_kind",
         allowed_value_shape="one_of:compound|urea|compost|liquid",
@@ -77,7 +77,7 @@ SHARED_STEP_SCHEMAS = {
     ),
     STATE_FERTILIZER_PRODUCT: SharedStepSchema(
         domain="fertilizer",
-        canonical_intent=registry.INTENT_FERTILIZER_INPUT_START,
+        canonical_intent=registry.INTENT_AGRI_INPUT_START,
         current_step=STATE_FERTILIZER_PRODUCT,
         expected_input_type="product_name",
         allowed_value_shape="free_text_product_name",
@@ -86,7 +86,7 @@ SHARED_STEP_SCHEMAS = {
     ),
     STATE_FERTILIZER_AMOUNT: SharedStepSchema(
         domain="fertilizer",
-        canonical_intent=registry.INTENT_FERTILIZER_INPUT_START,
+        canonical_intent=registry.INTENT_AGRI_INPUT_START,
         current_step=STATE_FERTILIZER_AMOUNT,
         expected_input_type="amount_with_unit",
         allowed_value_shape="supported_amount_unit_pair",
@@ -95,7 +95,7 @@ SHARED_STEP_SCHEMAS = {
     ),
     STATE_FERTILIZER_DATE: SharedStepSchema(
         domain="fertilizer",
-        canonical_intent=registry.INTENT_FERTILIZER_INPUT_START,
+        canonical_intent=registry.INTENT_AGRI_INPUT_START,
         current_step=STATE_FERTILIZER_DATE,
         expected_input_type="applied_date",
         allowed_value_shape="absolute_or_limited_relative_date",
@@ -104,7 +104,7 @@ SHARED_STEP_SCHEMAS = {
     ),
     STATE_FERTILIZER_CONFIRM: SharedStepSchema(
         domain="fertilizer",
-        canonical_intent=registry.INTENT_FERTILIZER_INPUT_START,
+        canonical_intent=registry.INTENT_AGRI_INPUT_START,
         current_step=STATE_FERTILIZER_CONFIRM,
         expected_input_type="confirmation_action",
         allowed_value_shape="one_of:confirm|back|cancel",

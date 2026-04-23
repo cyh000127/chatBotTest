@@ -18,7 +18,7 @@ from PROJECT.settings import GeminiSettings
 
 def sample_recovery_context() -> RecoveryContextDraft:
     return RecoveryContextDraft(
-        canonical_intent="fertilizer.input.start",
+        canonical_intent="agri.input.start",
         current_step="fertilizer_amount",
         current_question="사용량을 입력해주세요.",
         expected_input_type="amount_with_unit",

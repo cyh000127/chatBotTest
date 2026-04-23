@@ -4,7 +4,7 @@
       "id": "fertilizer_amount",
       "state": "fertilizer_amount",
       "domain": "fertilizer",
-      "canonical_intent": "fertilizer.input.start",
+      "canonical_intent": "agri.input.start",
       "expected_input_type": "amount_with_unit",
       "allowed_value_shape": "supported_amount_unit_pair",
       "hard_constraints": [
@@ -52,7 +52,7 @@
       "id": "fertilizer_confirm",
       "state": "fertilizer_confirm",
       "domain": "fertilizer",
-      "canonical_intent": "fertilizer.input.start",
+      "canonical_intent": "agri.input.start",
       "expected_input_type": "confirmation_action",
       "allowed_value_shape": "one_of:confirm|back|cancel",
       "hard_constraints": [

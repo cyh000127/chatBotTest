@@ -28,14 +28,14 @@ def test_normalized_input_to_dict_preserves_core_fields():
 
 def test_intent_decision_contract_supports_payload_and_rule_metadata():
     decision = IntentDecision(
-        canonical_intent="fertilizer.input.start",
+        canonical_intent="agri.input.start",
         current_step="entry",
         source=RuleSource.INTENT_RULE,
         matched_rule="fertilizer_start_keyword",
         payload={"entry_source": "text"},
     )
 
-    assert decision.canonical_intent == "fertilizer.input.start"
+    assert decision.canonical_intent == "agri.input.start"
     assert decision.source == RuleSource.INTENT_RULE
     assert decision.payload["entry_source"] == "text"
 
