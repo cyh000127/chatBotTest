@@ -68,3 +68,21 @@ def test_explicit_support_request_text_creates_support_handoff(monkeypatch):
     assert handoff.current_step == STATE_MAIN_MENU
     assert handoff.user_messages == ("상담원 연결해주세요",)
     assert sent_messages
+
+
+def test_active_support_handoff_records_followup_message(monkeypatch):
+    sent_messages: list[str] = []
+
+    async def fake_send_text(update, text, keyboard_layout=None):
+        sent_messages.append(text)
+
+    monkeypatch.setattr(messages, "send_text", fake_send_text)
+    context = _context()
+
+    asyncio.run(messages.text_message(_update("상담원 연결해주세요"), context))
+    asyncio.run(messages.text_message(_update("추가로 사진 업로드도 안 됩니다"), context))
+
+    handoff = support_handoff(context.user_data)
+    assert handoff is not None
+    assert handoff.user_messages == ("상담원 연결해주세요", "추가로 사진 업로드도 안 됩니다")
+    assert any("추가 내용" in text for text in sent_messages)

@@ -89,6 +89,7 @@ from PROJECT.dispatch.session_dispatcher import (
     current_state,
     fertilizer_draft,
     go_back,
+    has_active_support_handoff,
     has_confirmed_fertilizer,
     has_confirmed_profile,
     has_seen_llm_input,
@@ -118,7 +119,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_yield_draft,
     yield_draft,
 )
-from PROJECT.dispatch.support_handoff_dispatcher import create_support_handoff_request
+from PROJECT.dispatch.support_handoff_dispatcher import create_support_handoff_request, record_support_handoff_user_message
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
 from PROJECT.llm import GeminiNotConfiguredError, GeminiRecoveryError, GeminiResponseFormatError, LlmEditAction, LlmEditIntentResult
 from PROJECT.policy import (
@@ -258,6 +259,12 @@ EDIT_INTENT_HINT_MARKERS = (
     "change",
     "wrong",
 )
+HANDOFF_SAFE_EXIT_INTENTS = {
+    registry.INTENT_START,
+    registry.INTENT_MENU,
+    registry.INTENT_RESTART,
+    registry.INTENT_CANCEL,
+}
 
 
 def current_catalog(context):
@@ -1432,6 +1439,24 @@ async def text_message(update, context) -> None:
     inbound = parse_update(update)
     state = current_state(context.user_data)
     session_locale = current_locale(context.user_data)
+    intent, payload = text_to_intent(
+        inbound.text,
+        current_step=state,
+        locale=session_locale,
+    )
+
+    if has_active_support_handoff(context.user_data) and intent not in HANDOFF_SAFE_EXIT_INTENTS:
+        record_support_handoff_user_message(
+            context.user_data,
+            user_message=inbound.text,
+            source="active_handoff_user_message",
+        )
+        await send_text(
+            update,
+            current_catalog(context).SUPPORT_HANDOFF_MESSAGE_RECORDED,
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), current_catalog(context), profile_draft(context.user_data)),
+        )
+        return
 
     early_gate = classify_cheap_gate(
         inbound.text,
@@ -1795,11 +1820,6 @@ async def text_message(update, context) -> None:
             reset_recovery_attempts(context.user_data)
             return
 
-    intent, payload = text_to_intent(
-        inbound.text,
-        current_step=state,
-        locale=session_locale,
-    )
     decision = route_message(state, intent, payload)
     catalog = current_catalog(context)
 

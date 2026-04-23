@@ -1,7 +1,7 @@
-from PROJECT.dispatch.session_dispatcher import set_support_handoff
-from PROJECT.support_handoff import SupportHandoffState, new_support_handoff
+from PROJECT.dispatch.session_dispatcher import set_support_handoff, support_handoff
+from PROJECT.support_handoff import SupportHandoffState, append_user_message, new_support_handoff
 from PROJECT.telemetry.event_logger import log_event
-from PROJECT.telemetry.events import SUPPORT_HANDOFF_CREATED
+from PROJECT.telemetry.events import SUPPORT_HANDOFF_CREATED, SUPPORT_HANDOFF_USER_MESSAGE_ADDED
 
 
 def create_support_handoff_request(
@@ -34,3 +34,20 @@ def create_support_handoff_request(
         failure_count=handoff.failure_count,
     )
     return handoff
+
+
+def record_support_handoff_user_message(user_data: dict, *, user_message: str, source: str = "runtime") -> SupportHandoffState | None:
+    current = support_handoff(user_data)
+    if current is None or current.closed:
+        return None
+    updated = append_user_message(current, user_message)
+    set_support_handoff(user_data, updated)
+    log_event(
+        SUPPORT_HANDOFF_USER_MESSAGE_ADDED,
+        source=source,
+        handoff_id=updated.handoff_id,
+        route_hint=updated.route_hint,
+        state=updated.current_step,
+        message_count=len(updated.user_messages),
+    )
+    return updated

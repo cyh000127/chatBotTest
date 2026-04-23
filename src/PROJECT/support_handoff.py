@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from uuid import uuid4
 
@@ -80,4 +80,13 @@ def new_support_handoff(
         failure_count=failure_count,
         user_message=user_message,
         user_messages=(user_message,) if user_message else (),
+    )
+
+
+def append_user_message(handoff: SupportHandoffState, user_message: str) -> SupportHandoffState:
+    return replace(
+        handoff,
+        status=SupportHandoffStatus.WAITING_ADMIN_REPLY,
+        awaiting_admin_reply=True,
+        user_messages=(*handoff.user_messages, user_message),
     )
