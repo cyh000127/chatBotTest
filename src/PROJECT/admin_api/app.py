@@ -79,6 +79,12 @@ def _conversation_messages(messages: tuple[str, ...], *, empty_text: str) -> str
     return "\n".join(f'<div class="message">{escape(message)}</div>' for message in messages)
 
 
+def _latest_user_message(item) -> str:
+    if item.user_messages:
+        return item.user_messages[-1]
+    return item.user_message or "사용자 원문 없음"
+
+
 def create_admin_api_app(runtime: InMemoryAdminRuntime = admin_runtime) -> FastAPI:
     app = FastAPI(title="PROJECT Admin Follow-up API")
 
@@ -102,8 +108,10 @@ def create_admin_api_app(runtime: InMemoryAdminRuntime = admin_runtime) -> FastA
   </div>
   <h2><a href="/admin/pages/follow-ups/{escape(item.follow_up_id)}">{escape(item.follow_up_id)}</a></h2>
   <p>사유: {escape(item.reason)} / 단계: {escape(item.current_step or "-")}</p>
-  <p class="muted">사용자: {escape(str(item.user_id or "-"))} / 채팅: {escape(str(item.chat_id))}</p>
-  <p class="message">{escape(item.user_message or "사용자 원문 없음")}</p>
+  <p class="muted">사용자: {escape(str(item.user_id or "-"))} / 채팅: {escape(str(item.chat_id))} / 사용자 메시지 {len(item.user_messages)}개</p>
+  <p class="muted">최근 사용자 메시지</p>
+  <p class="message">{escape(_latest_user_message(item))}</p>
+  <a href="/admin/pages/follow-ups/{escape(item.follow_up_id)}">전체 대화 보기</a>
   <a href="/admin/pages/follow-ups/{escape(item.follow_up_id)}/reply">응답하기</a>
 </section>"""
                 for item in follow_ups

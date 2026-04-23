@@ -64,6 +64,7 @@ def test_admin_pages_show_follow_up_request_list():
         current_step="main_menu",
         user_message="상담원 연결해주세요",
     )
+    runtime.append_user_message(follow_up.follow_up_id, "추가로 사진 업로드도 안 됩니다")
     client = TestClient(create_admin_api_app(runtime))
 
     response = client.get("/admin/pages/follow-ups")
@@ -71,7 +72,10 @@ def test_admin_pages_show_follow_up_request_list():
     assert response.status_code == 200
     assert "지원 이관 요청 목록" in response.text
     assert follow_up.follow_up_id in response.text
-    assert "상담원 연결해주세요" in response.text
+    assert "사용자 메시지 2개" in response.text
+    assert "최근 사용자 메시지" in response.text
+    assert "추가로 사진 업로드도 안 됩니다" in response.text
+    assert "전체 대화 보기" in response.text
 
 
 def test_admin_pages_show_follow_up_conversation():
