@@ -18,7 +18,16 @@ ONBOARDING_STATUS_PENDING_APPROVAL = "pending_approval"
 ONBOARDING_STATUS_APPROVED = "approved"
 ONBOARDING_STATUS_REJECTED = "rejected"
 ONBOARDING_STEP_LANGUAGE_SELECT = "language_select"
+ONBOARDING_STEP_NAME_INPUT = "name_input"
+ONBOARDING_STEP_PHONE_INPUT = "phone_input"
+ONBOARDING_STEP_PROJECT_CONFIRM = "project_confirm"
+ONBOARDING_STEP_PENDING_APPROVAL = "pending_approval"
 ONBOARDING_EVENT_STARTED = "onboarding_started"
+ONBOARDING_EVENT_LOCALE_SELECTED = "onboarding_locale_selected"
+ONBOARDING_EVENT_NAME_COLLECTED = "onboarding_name_collected"
+ONBOARDING_EVENT_PHONE_COLLECTED = "onboarding_phone_collected"
+ONBOARDING_EVENT_STEP_CHANGED = "onboarding_step_changed"
+ONBOARDING_EVENT_SUBMITTED = "onboarding_submitted"
 ONBOARDING_ACTOR_TYPE_SYSTEM = "system"
 OPEN_ONBOARDING_STATUSES = (
     ONBOARDING_STATUS_STARTED,
@@ -154,6 +163,77 @@ class SqliteOnboardingRepository:
                 return None
             return row_to_onboarding_session(row)
 
+    def update_locale(self, onboarding_session_id: str, locale_code: str) -> OnboardingSession:
+        session = self._require_by_id(onboarding_session_id)
+        draft = _draft_from_json(session.draft_payload_json)
+        draft["preferred_locale"] = locale_code
+        return self._update_session(
+            session=session,
+            next_step=ONBOARDING_STEP_NAME_INPUT,
+            next_status=ONBOARDING_STATUS_COLLECTING,
+            draft=draft,
+            event_type_code=ONBOARDING_EVENT_LOCALE_SELECTED,
+            preferred_locale_code=locale_code,
+            event_payload={"preferred_locale": locale_code},
+        )
+
+    def update_name(self, onboarding_session_id: str, name: str) -> OnboardingSession:
+        session = self._require_by_id(onboarding_session_id)
+        draft = _draft_from_json(session.draft_payload_json)
+        draft["name"] = name
+        return self._update_session(
+            session=session,
+            next_step=ONBOARDING_STEP_PHONE_INPUT,
+            next_status=ONBOARDING_STATUS_COLLECTING,
+            draft=draft,
+            event_type_code=ONBOARDING_EVENT_NAME_COLLECTED,
+            event_payload={"field": "name"},
+        )
+
+    def update_phone(
+        self,
+        onboarding_session_id: str,
+        *,
+        phone_raw: str,
+        phone_normalized: str,
+    ) -> OnboardingSession:
+        session = self._require_by_id(onboarding_session_id)
+        draft = _draft_from_json(session.draft_payload_json)
+        draft["phone_raw"] = phone_raw
+        draft["phone_normalized"] = phone_normalized
+        return self._update_session(
+            session=session,
+            next_step=ONBOARDING_STEP_PROJECT_CONFIRM,
+            next_status=ONBOARDING_STATUS_COLLECTING,
+            draft=draft,
+            event_type_code=ONBOARDING_EVENT_PHONE_COLLECTED,
+            event_payload={"field": "phone"},
+        )
+
+    def move_to_step(self, onboarding_session_id: str, next_step: str) -> OnboardingSession:
+        session = self._require_by_id(onboarding_session_id)
+        return self._update_session(
+            session=session,
+            next_step=next_step,
+            next_status=ONBOARDING_STATUS_COLLECTING,
+            draft=_draft_from_json(session.draft_payload_json),
+            event_type_code=ONBOARDING_EVENT_STEP_CHANGED,
+            event_payload={"target_step": next_step},
+        )
+
+    def submit_pending_approval(self, onboarding_session_id: str) -> OnboardingSession:
+        session = self._require_by_id(onboarding_session_id)
+        submitted_at = utc_now_text()
+        return self._update_session(
+            session=session,
+            next_step=ONBOARDING_STEP_PENDING_APPROVAL,
+            next_status=ONBOARDING_STATUS_PENDING_APPROVAL,
+            draft=_draft_from_json(session.draft_payload_json),
+            event_type_code=ONBOARDING_EVENT_SUBMITTED,
+            event_payload={"status": ONBOARDING_STATUS_PENDING_APPROVAL},
+            submitted_at=submitted_at,
+        )
+
     def _find_open_session(
         self,
         *,
@@ -197,13 +277,74 @@ class SqliteOnboardingRepository:
         )
         self._connection.commit()
 
+    def _require_by_id(self, onboarding_session_id: str) -> OnboardingSession:
+        session = self.get_by_id(onboarding_session_id)
+        if session is None:
+            raise ValueError("온보딩 세션을 찾을 수 없습니다.")
+        return session
+
+    def _update_session(
+        self,
+        *,
+        session: OnboardingSession,
+        next_step: str,
+        next_status: str,
+        draft: dict,
+        event_type_code: str,
+        event_payload: dict,
+        preferred_locale_code: str | None = None,
+        submitted_at: str | None = None,
+    ) -> OnboardingSession:
+        with self._lock:
+            now = utc_now_text()
+            self._connection.execute(
+                """
+                UPDATE onboarding_sessions
+                SET session_status_code = ?,
+                    current_step_code = ?,
+                    preferred_locale_code = COALESCE(?, preferred_locale_code),
+                    draft_payload_json = ?,
+                    last_interaction_at = ?,
+                    submitted_at = COALESCE(?, submitted_at),
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    next_status,
+                    next_step,
+                    preferred_locale_code,
+                    json.dumps(draft, ensure_ascii=False, sort_keys=True),
+                    now,
+                    submitted_at,
+                    now,
+                    session.id,
+                ),
+            )
+            self._insert_event(
+                onboarding_session_id=session.id,
+                event_type_code=event_type_code,
+                from_step_code=session.current_step_code,
+                to_step_code=next_step,
+                from_status_code=session.session_status_code,
+                to_status_code=next_status,
+                payload=event_payload,
+                occurred_at=now,
+            )
+            self._connection.commit()
+            updated = self.get_by_id(session.id)
+            if updated is None:
+                raise RuntimeError("수정한 온보딩 세션을 다시 읽을 수 없습니다.")
+            return updated
+
     def _insert_event(
         self,
         *,
         onboarding_session_id: str,
         event_type_code: str,
-        to_step_code: str | None,
-        to_status_code: str | None,
+        from_step_code: str | None = None,
+        to_step_code: str | None = None,
+        from_status_code: str | None = None,
+        to_status_code: str | None = None,
         payload: dict,
         occurred_at: str,
     ) -> None:
@@ -214,20 +355,24 @@ class SqliteOnboardingRepository:
               id,
               onboarding_session_id,
               event_type_code,
+              from_step_code,
               to_step_code,
+              from_status_code,
               to_status_code,
               payload_json,
               acted_by_type,
               occurred_at,
               recorded_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 event_id,
                 onboarding_session_id,
                 event_type_code,
+                from_step_code,
                 to_step_code,
+                from_status_code,
                 to_status_code,
                 json.dumps(payload, ensure_ascii=False, sort_keys=True),
                 ONBOARDING_ACTOR_TYPE_SYSTEM,
@@ -239,3 +384,13 @@ class SqliteOnboardingRepository:
 
 def row_to_onboarding_session(row: sqlite3.Row) -> OnboardingSession:
     return OnboardingSession(**dict(row))
+
+
+def _draft_from_json(payload_json: str) -> dict:
+    try:
+        payload = json.loads(payload_json)
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    return payload

@@ -1,7 +1,7 @@
 import asyncio
 from types import SimpleNamespace
 
-from PROJECT.channels.telegram.handlers import commands
+from PROJECT.channels.telegram.handlers import commands, onboarding
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_USED
 from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.dispatch.session_dispatcher import current_state, get_session, reset_session
@@ -49,6 +49,7 @@ def test_start_with_valid_invitation_creates_onboarding_session(monkeypatch, tmp
         sent.append((text, keyboard_layout))
 
     monkeypatch.setattr(commands, "send_text", fake_send_text)
+    monkeypatch.setattr(onboarding, "send_text", fake_send_text)
     runtime, invitation_repository, onboarding_repository = _sqlite_repositories(tmp_path)
 
     try:

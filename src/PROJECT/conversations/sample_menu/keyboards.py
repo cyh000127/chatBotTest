@@ -22,6 +22,8 @@ from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_RESIDENCE,
 )
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_LANGUAGE_SELECT
+from PROJECT.conversations.onboarding import service as onboarding_service
+from PROJECT.conversations.onboarding.states import ONBOARDING_STATES
 from PROJECT.conversations.yield_intake import service as yield_service
 from PROJECT.conversations.yield_intake.states import (
     STATE_YIELD_AMOUNT,
@@ -124,6 +126,8 @@ def fallback_keyboard_layout_for_state(
     draft: dict | None = None,
     recovery_context: dict | None = None,
 ) -> list[list[dict[str, str]]]:
+    if state in ONBOARDING_STATES:
+        return onboarding_service.keyboard_for_state(state, catalog) or main_menu_keyboard(catalog)
     if state in {
         STATE_FERTILIZER_USED,
         STATE_FERTILIZER_KIND,
@@ -156,6 +160,8 @@ def fallback_keyboard_layout_for_state(
 
 
 def keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) -> list[list[dict[str, str]]]:
+    if state in ONBOARDING_STATES:
+        return onboarding_service.keyboard_for_state(state, catalog) or main_menu_keyboard(catalog)
     if state in {
         STATE_FERTILIZER_USED,
         STATE_FERTILIZER_KIND,

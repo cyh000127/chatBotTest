@@ -21,6 +21,11 @@ from PROJECT.channels.telegram.handlers.commands import (
     show_current_profile,
     yield_command,
 )
+from PROJECT.channels.telegram.handlers.onboarding import (
+    handle_onboarding_callback,
+    handle_onboarding_language_selection,
+    handle_onboarding_text,
+)
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
 from PROJECT.conversations.fertilizer_intake.states import (
@@ -59,6 +64,7 @@ from PROJECT.conversations.sample_menu.keyboards import (
     repair_confirmation_keyboard,
 )
 from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
+from PROJECT.conversations.onboarding.states import ONBOARDING_STATES
 from PROJECT.dispatch.command_router import (
     ROUTE_CANCEL,
     ROUTE_FERTILIZER_FINALIZE,
@@ -1175,6 +1181,10 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "repair_cancel", {}
     if data.startswith("language:"):
         return "language_select", {"locale": data.split(":", 1)[1]}
+    if data == "onboarding:confirm":
+        return "onboarding_confirm", {}
+    if data.startswith("onboarding:edit:"):
+        return "onboarding_edit", {"target": data.rsplit(":", 1)[1]}
     if data.startswith("profile:year_nav:"):
         return "profile_year_nav", {"direction": data.rsplit(":", 1)[1]}
     if data.startswith("profile:year:"):
@@ -1540,6 +1550,9 @@ async def text_message(update, context) -> None:
     if state == STATE_LANGUAGE_SELECT:
         locale = resolve_language_choice(inbound.text)
         if locale is not None:
+            if await handle_onboarding_language_selection(update, context, locale):
+                reset_recovery_attempts(context.user_data)
+                return
             set_locale(context.user_data, locale)
             set_state(context.user_data, STATE_MAIN_MENU)
             catalog = current_catalog(context)
@@ -1965,6 +1978,11 @@ async def text_message(update, context) -> None:
         )
         return
 
+    if state in ONBOARDING_STATES:
+        if await handle_onboarding_text(update, context, state=state, text=inbound.text, intent=intent):
+            reset_recovery_attempts(context.user_data)
+            return
+
     if state in PROFILE_STATES:
         handled = await handle_profile_state(update, context, state, inbound.text)
         if handled:
@@ -2097,6 +2115,8 @@ async def button_callback(update, context) -> None:
 
     if action == "language_select":
         await clear_callback_markup(update)
+        if await handle_onboarding_language_selection(update, context, payload["locale"]):
+            return
         set_locale(context.user_data, payload["locale"])
         set_state(context.user_data, STATE_MAIN_MENU)
         catalog = current_catalog(context)
@@ -2106,6 +2126,11 @@ async def button_callback(update, context) -> None:
             keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
         )
         return
+
+    if action in {"onboarding_confirm", "onboarding_edit"}:
+        await clear_callback_markup(update)
+        if await handle_onboarding_callback(update, context, action=action, payload=payload):
+            return
 
     if action == "repair_confirm":
         await clear_callback_markup(update)

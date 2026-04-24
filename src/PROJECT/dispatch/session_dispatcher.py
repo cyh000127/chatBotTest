@@ -25,6 +25,7 @@ def _default_session() -> dict:
         "onboarding_project_id": None,
         "onboarding_status": None,
         "onboarding_step": None,
+        "onboarding_draft": None,
         "recovery_attempts": 0,
         "last_recovery_context": None,
         "pending_repair_confirmation": None,
@@ -50,6 +51,7 @@ def reset_session(user_data: dict) -> dict:
     onboarding_project_id = get_session(user_data).get("onboarding_project_id") if "session" in user_data else None
     onboarding_status = get_session(user_data).get("onboarding_status") if "session" in user_data else None
     onboarding_step = get_session(user_data).get("onboarding_step") if "session" in user_data else None
+    onboarding_draft = get_session(user_data).get("onboarding_draft") if "session" in user_data else None
     confirmed_profile = get_session(user_data).get("confirmed_profile") if "session" in user_data else None
     confirmed_fertilizer = get_session(user_data).get("confirmed_fertilizer") if "session" in user_data else None
     confirmed_yield = get_session(user_data).get("confirmed_yield") if "session" in user_data else None
@@ -64,6 +66,7 @@ def reset_session(user_data: dict) -> dict:
     user_data["session"]["onboarding_project_id"] = onboarding_project_id
     user_data["session"]["onboarding_status"] = onboarding_status
     user_data["session"]["onboarding_step"] = onboarding_step
+    user_data["session"]["onboarding_draft"] = onboarding_draft
     user_data["session"]["confirmed_profile"] = confirmed_profile
     user_data["session"]["confirmed_fertilizer"] = confirmed_fertilizer
     user_data["session"]["confirmed_yield"] = confirmed_yield
@@ -211,6 +214,7 @@ def set_onboarding_session(
     project_id: str | None,
     status: str,
     step: str,
+    draft: dict | None = None,
 ) -> None:
     session = get_session(user_data)
     session["authenticated"] = False
@@ -219,6 +223,21 @@ def set_onboarding_session(
     session["onboarding_project_id"] = project_id
     session["onboarding_status"] = status
     session["onboarding_step"] = step
+    session["onboarding_draft"] = draft
+
+
+def set_onboarding_progress(
+    user_data: dict,
+    *,
+    status: str,
+    step: str,
+    draft: dict | None = None,
+) -> None:
+    session = get_session(user_data)
+    session["onboarding_status"] = status
+    session["onboarding_step"] = step
+    if draft is not None:
+        session["onboarding_draft"] = draft
 
 
 def current_onboarding_session_id(user_data: dict) -> str | None:
@@ -229,6 +248,14 @@ def current_onboarding_status(user_data: dict) -> str | None:
     return get_session(user_data).get("onboarding_status")
 
 
+def current_onboarding_step(user_data: dict) -> str | None:
+    return get_session(user_data).get("onboarding_step")
+
+
+def onboarding_draft(user_data: dict) -> dict | None:
+    return get_session(user_data).get("onboarding_draft")
+
+
 def clear_onboarding_session(user_data: dict) -> None:
     session = get_session(user_data)
     session["onboarding_session_id"] = None
@@ -236,6 +263,7 @@ def clear_onboarding_session(user_data: dict) -> None:
     session["onboarding_project_id"] = None
     session["onboarding_status"] = None
     session["onboarding_step"] = None
+    session["onboarding_draft"] = None
 
 
 def auth_failures(user_data: dict) -> int:

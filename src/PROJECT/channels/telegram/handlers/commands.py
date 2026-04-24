@@ -32,6 +32,7 @@ from PROJECT.dispatch.session_dispatcher import (
     is_authenticated,
 )
 from PROJECT.dispatch.support_handoff_dispatcher import close_support_handoff, create_support_handoff_request, record_support_handoff_admin_reply
+from PROJECT.channels.telegram.handlers.onboarding import send_onboarding_prompt, sync_onboarding_session
 from PROJECT.i18n.translator import get_catalog, language_keyboard
 from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED
 from PROJECT.storage.onboarding import ONBOARDING_STATUS_APPROVED
@@ -414,19 +415,15 @@ async def start_command(update, context) -> None:
             project_id=invitation.project_id,
             status=onboarding_session.session_status_code,
             step=onboarding_session.current_step_code,
+            draft=sync_onboarding_session(context, onboarding_session),
         )
-        set_state(context.user_data, STATE_LANGUAGE_SELECT)
         log_event(
             ONBOARDING_STARTED,
             onboarding_session_id=onboarding_session.id,
             invitation_id=invitation.id,
-            state=STATE_LANGUAGE_SELECT,
+            state=current_state(context.user_data),
         )
-        await send_text(
-            update,
-            catalog.ONBOARDING_STARTED_MESSAGE,
-            keyboard_layout=language_keyboard(),
-        )
+        await send_onboarding_prompt(update, context)
         return
 
     reset_session(context.user_data)

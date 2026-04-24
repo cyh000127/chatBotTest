@@ -21,6 +21,7 @@ BUTTON_ENTER_VALUE_DIRECTLY = "নিজে লিখুন"
 BUTTON_YES = "হ্যাঁ"
 BUTTON_NO = "না"
 BUTTON_EDIT_NAME = "নাম"
+BUTTON_EDIT_PHONE = "ফোন"
 BUTTON_EDIT_RESIDENCE = "ঠিকানা"
 BUTTON_EDIT_CITY = "জেলা/বিভাগ"
 BUTTON_EDIT_DISTRICT = "উপজেলা/থানা"
@@ -56,6 +57,19 @@ ONBOARDING_IDENTITY_REQUIRED_MESSAGE = "আপনার Telegram ব্যবহ
 ONBOARDING_STARTED_MESSAGE = "আমন্ত্রণ কোড যাচাই হয়েছে।\nঅনবোর্ডিং চালিয়ে যেতে ভাষা বেছে নিন।"
 ONBOARDING_ACCESS_REQUIRED_MESSAGE = "সেবা ব্যবহারের আগে অনবোর্ডিং এবং অ্যাডমিন অনুমোদন দরকার।\nআমন্ত্রণ কোড থাকলে /start <invite_code> দিয়ে শুরু করুন।"
 ONBOARDING_PENDING_APPROVAL_MESSAGE = "অনবোর্ডিং এখনও শেষ হয়নি বা অ্যাডমিন অনুমোদনের অপেক্ষায় আছে।\nঅনুমোদনের পরে সেবা ব্যবহার করতে পারবেন।"
+ONBOARDING_NAME_PROMPT = "আপনার নাম লিখুন।"
+ONBOARDING_NAME_FALLBACK = "নাম আবার লিখুন।\nউদাহরণ: Sample Farmer"
+ONBOARDING_PHONE_PROMPT = "দেশের কোডসহ ফোন নম্বর লিখুন।\nউদাহরণ: +855 12 345 678, +880 17 1234 5678"
+ONBOARDING_PHONE_FALLBACK = "ফোন নম্বর আবার লিখুন।\nএখন শুধু +855 বা +880 দেশের কোড চালু আছে।"
+ONBOARDING_CONFIRM_MESSAGE = (
+    "অনবোর্ডিং তথ্য দেখে নিন।\n"
+    "- নাম: {name}\n"
+    "- ফোন: {phone}\n"
+    "- ভাষা: {language}\n\n"
+    "ঠিক থাকলে [ঠিক আছে] চাপুন, বদলাতে হলে একটি অংশ বেছে নিন।"
+)
+ONBOARDING_CONFIRM_FALLBACK = "[ঠিক আছে] চাপুন বা বদলানোর অংশ বেছে নিন।"
+ONBOARDING_PENDING_APPROVAL_SUBMITTED_MESSAGE = "আপনার অনবোর্ডিং অনুরোধ অনুমোদনের জন্য পাঠানো হয়েছে।\nঅ্যাডমিন অনুমোদনের পরে সেবা ব্যবহার করতে পারবেন।"
 
 CITY_BUTTON_TO_KEY = {
     "সিওল": "서울",
