@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from PROJECT.admin.follow_up import FOLLOW_UP_CLOSED_NOTICE, InMemoryAdminRuntime, OutboxStatus
 from PROJECT.admin_api.app import create_admin_api_app
 from PROJECT.settings import SqliteSettings
+from PROJECT.storage.admin_audit import RESULT_FAILURE, RESULT_SUCCESS, SqliteAdminAuditRepository
 from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED, SqliteInvitationRepository
 from PROJECT.storage.onboarding import ONBOARDING_STATUS_APPROVED, ONBOARDING_STATUS_REJECTED, SqliteOnboardingRepository
 from PROJECT.storage.onboarding_admin import OUTBOX_STATUS_PENDING, SqliteOnboardingAdminRepository
@@ -55,6 +56,46 @@ def test_admin_api_lists_follow_ups_and_accepts_reply():
     assert runtime.list_outbox(status=OutboxStatus.PENDING)[0].text == "사진을 다시 보내주세요."
 
 
+def test_admin_api_follow_up_reply_writes_audit_event(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        runtime = InMemoryAdminRuntime()
+        follow_up = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+            user_message="/support",
+        )
+        audit_repository = SqliteAdminAuditRepository(sqlite_runtime.connection)
+        client = TestClient(create_admin_api_app(runtime, admin_audit_repository=audit_repository))
+
+        response = client.post(
+            f"/admin/follow-ups/{follow_up.follow_up_id}/reply",
+            json={"message": "사진을 다시 보내주세요.", "close_after_send": True},
+            headers={"X-Admin-User-Id": "admin_test"},
+        )
+        events = audit_repository.list_events()
+
+        assert response.status_code == 200
+        assert [event.action_code for event in events] == [
+            "admin.follow_up.close",
+            "admin.follow_up.reply",
+        ]
+        assert {event.actor_id for event in events} == {"admin_test"}
+        assert all(event.target_id == follow_up.follow_up_id for event in events)
+        assert events[1].detail == {"close_after_send": True}
+    finally:
+        sqlite_runtime.close()
+
+
 def test_admin_api_access_token_blocks_admin_api_without_credentials():
     runtime = InMemoryAdminRuntime()
     client = TestClient(create_admin_api_app(runtime, admin_access_token="secret-token"))
@@ -102,6 +143,37 @@ def test_admin_page_access_token_redirects_to_login_and_sets_cookie():
     assert "admin_access_token" in login.headers["set-cookie"]
     assert allowed.status_code == 200
     assert "지원 이관 요청 목록" in allowed.text
+
+
+def test_admin_login_attempts_can_be_audited(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                admin_audit_repository=audit_repository,
+                admin_access_token="secret-token",
+            )
+        )
+
+        failed = client.post("/admin/login", data={"access_token": "wrong"})
+        success = client.post("/admin/login", data={"access_token": "secret-token"}, follow_redirects=False)
+        events = audit_repository.list_events()
+
+        assert failed.status_code == 401
+        assert success.status_code == 303
+        assert [event.result_code for event in events] == [RESULT_SUCCESS, RESULT_FAILURE]
+        assert {event.action_code for event in events} == {"admin.login"}
+        assert all(event.request_path == "/admin/login" for event in events)
+    finally:
+        runtime.close()
 
 
 def test_admin_api_returns_404_for_missing_follow_up_reply():
@@ -179,6 +251,7 @@ def test_admin_pages_show_follow_up_request_list():
     assert "/admin/pages/invitations" in response.text
     assert "/admin/pages/onboarding/submissions" in response.text
     assert "/admin/pages/outbox" in response.text
+    assert "/admin/pages/audit-events" in response.text
 
 
 def test_admin_pages_show_outbox_messages():
@@ -202,6 +275,7 @@ def test_admin_pages_show_outbox_messages():
     assert "/admin/pages/follow-ups" in response.text
     assert "/admin/pages/invitations" in response.text
     assert "/admin/pages/onboarding/submissions" in response.text
+    assert "/admin/pages/audit-events" in response.text
 
 
 def test_admin_pages_share_navigation_links():
@@ -213,6 +287,7 @@ def test_admin_pages_share_navigation_links():
         "/admin/pages/invitations",
         "/admin/pages/onboarding/submissions",
         "/admin/pages/outbox",
+        "/admin/pages/audit-events",
     ):
         response = client.get(path)
 
@@ -221,6 +296,7 @@ def test_admin_pages_share_navigation_links():
         assert "/admin/pages/invitations" in response.text
         assert "/admin/pages/onboarding/submissions" in response.text
         assert "/admin/pages/outbox" in response.text
+        assert "/admin/pages/audit-events" in response.text
 
 
 def test_admin_pages_show_follow_up_conversation():
@@ -338,10 +414,18 @@ def test_admin_api_creates_and_lists_invitations(tmp_path):
     assert runtime is not None
     try:
         repository = SqliteInvitationRepository(runtime.connection)
-        client = TestClient(create_admin_api_app(InMemoryAdminRuntime(), invitation_repository=repository))
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                invitation_repository=repository,
+                admin_audit_repository=audit_repository,
+            )
+        )
 
         created = client.post("/admin/invitations", json={})
         listed = client.get("/admin/invitations")
+        audit_events = client.get("/admin/audit-events")
 
         assert created.status_code == 201
         invitation = created.json()["invitation"]
@@ -349,6 +433,11 @@ def test_admin_api_creates_and_lists_invitations(tmp_path):
         assert invitation["start_command"] == f"/start {invitation['invite_code']}"
         assert listed.status_code == 200
         assert listed.json()["items"] == [invitation]
+        assert audit_events.status_code == 200
+        audit_event = audit_events.json()["items"][0]
+        assert audit_event["action_code"] == "admin.invitation.create"
+        assert audit_event["target_id"] == invitation["id"]
+        assert audit_event["detail"]["channel_code"] == "telegram"
     finally:
         runtime.close()
 
@@ -373,6 +462,37 @@ def test_admin_invitation_page_creates_invitation(tmp_path):
         assert page_response.status_code == 200
         assert "초대 코드" in page_response.text
         assert "/start INV-" in page_response.text
+    finally:
+        runtime.close()
+
+
+def test_admin_audit_page_lists_admin_actions(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        invitation_repository = SqliteInvitationRepository(runtime.connection)
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                invitation_repository=invitation_repository,
+                admin_audit_repository=audit_repository,
+            )
+        )
+
+        create_response = client.post("/admin/pages/invitations", data={}, follow_redirects=False)
+        page_response = client.get("/admin/pages/audit-events")
+
+        assert create_response.status_code == 303
+        assert page_response.status_code == 200
+        assert "감사 로그" in page_response.text
+        assert "admin.invitation.create" in page_response.text
+        assert "project_invitation" in page_response.text
     finally:
         runtime.close()
 

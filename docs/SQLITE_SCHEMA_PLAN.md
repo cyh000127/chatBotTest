@@ -12,12 +12,13 @@ The schema follows the reference domains for participant onboarding and messagin
 - admin follow-up queue
 - admin follow-up outcome ledger
 - bot-mediated outbound message outbox
+- local admin action audit trail
 
 This document is a planning contract for the next migration SQL. It is not a replacement for the reference schema.
 
 ## 2. Scope
 
-Tables included in the first SQLite migration:
+Tables included in the current local SQLite migrations:
 
 - `schema_migrations`
 - `admin_users`
@@ -35,8 +36,9 @@ Tables included in the first SQLite migration:
 - `admin_follow_up_messages`
 - `admin_follow_up_outcomes`
 - `outbox_messages`
+- `admin_audit_events`
 
-Tables intentionally not included in the first SQLite migration:
+Tables intentionally not included in the current local SQLite migrations:
 
 - `ai_follow_up_attempts`
 - `participant_identity_link_reviews`
@@ -45,7 +47,7 @@ Tables intentionally not included in the first SQLite migration:
 - `escalations`
 - evidence submission and review tables
 - field registry tables
-- governance and audit access tables
+- production-grade governance access tables
 
 These excluded tables are part of the reference architecture but are outside the current local runtime target.
 
@@ -507,7 +509,33 @@ Outbox rules:
 - Admin pages and Admin API must not send Telegram messages directly.
 - Failed messages remain retryable unless the retry policy later marks them terminal.
 
-## 11. Index Plan
+## 11. Admin Audit Event Table
+
+```sql
+CREATE TABLE admin_audit_events (
+  id TEXT PRIMARY KEY,
+  actor_type_code TEXT NOT NULL,
+  actor_id TEXT,
+  action_code TEXT NOT NULL,
+  target_type_code TEXT,
+  target_id TEXT,
+  result_code TEXT NOT NULL,
+  source_code TEXT NOT NULL,
+  request_path TEXT,
+  detail_json TEXT NOT NULL DEFAULT '{}',
+  occurred_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+```
+
+Audit rules:
+
+- write-oriented Admin API and admin page actions append an audit row.
+- login success and login failure may append an audit row when the audit repository is configured.
+- audit detail must not store access tokens, message body, phone numbers, or other sensitive user input.
+- audit logs are local hardening metadata; they do not replace production RBAC or upstream admin identity.
+
+## 12. Index Plan
 
 ```sql
 CREATE INDEX idx_project_invitations_code_status
@@ -539,7 +567,22 @@ CREATE INDEX idx_follow_up_messages_queue_time
 ON admin_follow_up_messages(admin_follow_up_queue_id, created_at);
 ```
 
-## 12. Reference Alignment Notes
+```sql
+CREATE INDEX idx_admin_audit_events_action_time
+ON admin_audit_events(action_code, occurred_at);
+```
+
+```sql
+CREATE INDEX idx_admin_audit_events_actor_time
+ON admin_audit_events(actor_type_code, actor_id, occurred_at);
+```
+
+```sql
+CREATE INDEX idx_admin_audit_events_target
+ON admin_audit_events(target_type_code, target_id);
+```
+
+## 13. Reference Alignment Notes
 
 The SQLite schema keeps these reference principles:
 
@@ -552,6 +595,7 @@ The SQLite schema keeps these reference principles:
 - `admin_follow_up_queue` is the operational queue aggregate
 - `admin_follow_up_outcomes` is append-only handling history
 - admin replies are bot-mediated through an outbox
+- admin writes are traceable through local audit events without storing sensitive message content
 
 The SQLite schema intentionally defers these reference areas:
 

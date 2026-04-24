@@ -180,12 +180,15 @@ SQLite-backed admin features should remain limited to runtime-safe operations:
 - view admin follow-up queue
 - reply to farmer through bot-mediated outbox
 - close follow-up with an outcome
+- view local admin audit events
 
 The local admin surface should not introduce product behavior that is absent from the reference documents.
 
 The admin surface should not bypass bot-mediated delivery. Admin replies must be written to the outbox and delivered by the bot delivery loop.
 
 When `ADMIN_API_ACCESS_TOKEN` is configured, the local admin surface is protected by a runtime access-token gate. This is a local safety control for development and pilot verification. It is not a replacement for production RBAC, audit logging, or upstream admin identity.
+
+Local audit logging records write-oriented admin actions to `admin_audit_events`. Audit details must remain metadata-only and must not include tokens, message body, phone numbers, or other sensitive user input.
 
 ## 10. Outbox Retry Policy
 

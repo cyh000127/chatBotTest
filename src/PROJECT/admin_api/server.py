@@ -8,6 +8,7 @@ from PROJECT.admin.follow_up import InMemoryAdminRuntime, admin_runtime
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.admin_api.app import create_admin_api_app
 from PROJECT.settings import Settings
+from PROJECT.storage.admin_audit import SqliteAdminAuditRepository
 from PROJECT.storage.invitations import SqliteInvitationRepository
 from PROJECT.storage.onboarding_admin import SqliteOnboardingAdminRepository
 from PROJECT.storage.sqlite import SqliteRuntime
@@ -38,12 +39,18 @@ def start_admin_api_server(
         if sqlite_runtime is not None
         else None
     )
+    admin_audit_repository = (
+        SqliteAdminAuditRepository(sqlite_runtime.connection)
+        if sqlite_runtime is not None
+        else None
+    )
     api_runtime = admin_runtime_for_storage(runtime, sqlite_runtime)
     config = uvicorn.Config(
         create_admin_api_app(
             api_runtime,
             invitation_repository=invitation_repository,
             onboarding_admin_repository=onboarding_admin_repository,
+            admin_audit_repository=admin_audit_repository,
             admin_access_token=settings.admin_api.access_token,
         ),
         host=settings.admin_api.host,

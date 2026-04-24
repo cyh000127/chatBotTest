@@ -23,6 +23,7 @@ REQUIRED_TABLES = {
     "admin_follow_up_messages",
     "admin_follow_up_outcomes",
     "outbox_messages",
+    "admin_audit_events",
 }
 
 DEFERRED_TABLES = {
@@ -42,6 +43,9 @@ REQUIRED_INDEXES = {
     "idx_follow_up_messages_queue_time",
     "idx_project_enrollments_participant_status",
     "idx_participant_identities_provider_user",
+    "idx_admin_audit_events_action_time",
+    "idx_admin_audit_events_actor_time",
+    "idx_admin_audit_events_target",
 }
 
 
@@ -76,13 +80,16 @@ def test_initial_schema_migration_creates_required_tables_and_indexes(tmp_path):
 
     assert runtime is not None
     try:
-        assert runtime.applied_migrations == ("001_initial_schema",)
+        assert runtime.applied_migrations == ("001_initial_schema", "002_admin_audit_events")
         existing_tables = table_names(runtime.connection)
         existing_indexes = index_names(runtime.connection)
         assert REQUIRED_TABLES <= existing_tables
         assert DEFERRED_TABLES.isdisjoint(existing_tables)
         assert REQUIRED_INDEXES <= existing_indexes
-        assert read_applied_migration_versions(runtime.connection) == {"001_initial_schema"}
+        assert read_applied_migration_versions(runtime.connection) == {
+            "001_initial_schema",
+            "002_admin_audit_events",
+        }
     finally:
         runtime.close()
 
@@ -107,6 +114,18 @@ def test_initial_schema_contains_reference_alignment_columns(tmp_path):
             "evidence_request_event_id",
             "input_resolution_session_id",
         } <= column_names(runtime.connection, "admin_follow_up_queue")
+        assert {
+            "actor_type_code",
+            "actor_id",
+            "action_code",
+            "target_type_code",
+            "target_id",
+            "result_code",
+            "source_code",
+            "request_path",
+            "detail_json",
+            "occurred_at",
+        } <= column_names(runtime.connection, "admin_audit_events")
     finally:
         runtime.close()
 

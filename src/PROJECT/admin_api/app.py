@@ -14,6 +14,7 @@ from PROJECT.storage.invitations import (
     DEFAULT_LOCAL_PROJECT_ID,
     SqliteInvitationRepository,
 )
+from PROJECT.storage.admin_audit import RESULT_FAILURE, RESULT_SUCCESS, SqliteAdminAuditRepository
 from PROJECT.storage.onboarding_admin import OnboardingApprovalError, SqliteOnboardingAdminRepository
 
 
@@ -60,6 +61,23 @@ def _serialize_invitation(invitation) -> dict:
     payload = _serialize(invitation)
     payload["start_command"] = invitation.start_command
     return payload
+
+
+def _serialize_audit_event(event) -> dict:
+    return {
+        "id": event.id,
+        "actor_type_code": event.actor_type_code,
+        "actor_id": event.actor_id,
+        "action_code": event.action_code,
+        "target_type_code": event.target_type_code,
+        "target_id": event.target_id,
+        "result_code": event.result_code,
+        "source_code": event.source_code,
+        "request_path": event.request_path,
+        "detail": event.detail,
+        "occurred_at": event.occurred_at,
+        "created_at": event.created_at,
+    }
 
 
 def _require_invitation_repository(invitation_repository: SqliteInvitationRepository | None) -> SqliteInvitationRepository:
@@ -145,6 +163,7 @@ def _topbar(title: str) -> str:
     <a href="/admin/pages/invitations">초대 코드</a>
     <a href="/admin/pages/onboarding/submissions">온보딩 승인</a>
     <a href="/admin/pages/outbox">발송 대기</a>
+    <a href="/admin/pages/audit-events">감사 로그</a>
   </nav>
 </div>"""
 
@@ -166,9 +185,39 @@ def create_admin_api_app(
     *,
     invitation_repository: SqliteInvitationRepository | None = None,
     onboarding_admin_repository: SqliteOnboardingAdminRepository | None = None,
+    admin_audit_repository: SqliteAdminAuditRepository | None = None,
     admin_access_token: str = "",
 ) -> FastAPI:
     app = FastAPI(title="PROJECT Admin Follow-up API")
+
+    def admin_actor_id(request: Request, *, fallback: str = DEFAULT_LOCAL_ADMIN_USER_ID) -> str:
+        return request.headers.get("x-admin-user-id") or fallback
+
+    def record_admin_audit(
+        request: Request,
+        *,
+        action_code: str,
+        source_code: str,
+        target_type_code: str | None = None,
+        target_id: str | None = None,
+        result_code: str = RESULT_SUCCESS,
+        actor_type_code: str = "admin",
+        actor_id: str | None = None,
+        detail: dict | None = None,
+    ) -> None:
+        if admin_audit_repository is None:
+            return
+        admin_audit_repository.record_event(
+            action_code=action_code,
+            actor_type_code=actor_type_code,
+            actor_id=actor_id if actor_id is not None else admin_actor_id(request),
+            target_type_code=target_type_code,
+            target_id=target_id,
+            result_code=result_code,
+            source_code=source_code,
+            request_path=request.url.path,
+            detail=detail,
+        )
 
     def admin_request_authorized(request: Request) -> bool:
         if not admin_access_token:
@@ -214,9 +263,24 @@ def create_admin_api_app(
         form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
         access_token = (form.get("access_token") or [""])[0]
         if access_token != admin_access_token:
+            record_admin_audit(
+                request,
+                action_code="admin.login",
+                source_code="admin.web.login",
+                result_code=RESULT_FAILURE,
+                actor_type_code="unknown",
+                actor_id=None,
+            )
             response = _login_page(error="Access token이 올바르지 않습니다.")
             response.status_code = 401
             return response
+        record_admin_audit(
+            request,
+            action_code="admin.login",
+            source_code="admin.web.login",
+            target_type_code="admin_session",
+            result_code=RESULT_SUCCESS,
+        )
         response = RedirectResponse("/admin", status_code=303)
         response.set_cookie(
             "admin_access_token",
@@ -317,6 +381,33 @@ def create_admin_api_app(
             items = '<section class="card"><p class="muted">발송 대기 또는 발송 이력 메시지가 없습니다.</p></section>'
         return _page("발송 대기", _topbar("발송 대기") + items)
 
+    @app.get("/admin/pages/audit-events", response_class=HTMLResponse)
+    def audit_event_page(limit: int = 100) -> HTMLResponse:
+        if admin_audit_repository is None:
+            return _page(
+                "감사 로그",
+                _topbar("감사 로그")
+                + '<section class="card"><p class="error">SQLite 저장소가 켜져 있지 않아 감사 로그를 조회할 수 없습니다.</p></section>',
+            )
+        events = admin_audit_repository.list_events(limit=limit)
+        if events:
+            items = "\n".join(
+                f"""<section class="card">
+  <div>
+    <span class="badge">{escape(event.result_code)}</span>
+    <span class="muted"> {escape(event.occurred_at)}</span>
+  </div>
+  <h2>{escape(event.action_code)}</h2>
+  <p class="muted">actor: {escape(event.actor_type_code)} / {escape(event.actor_id or "-")}</p>
+  <p class="muted">target: {escape(event.target_type_code or "-")} / {escape(event.target_id or "-")}</p>
+  <p class="muted">source: {escape(event.source_code)} / path: {escape(event.request_path or "-")}</p>
+</section>"""
+                for event in events
+            )
+        else:
+            items = '<section class="card"><p class="muted">기록된 감사 로그가 없습니다.</p></section>'
+        return _page("감사 로그", _topbar("감사 로그") + items)
+
     @app.post("/admin/pages/onboarding/submissions/{onboarding_session_id}/approve")
     async def submit_onboarding_approval_page(onboarding_session_id: str, request: Request):
         repository = _require_onboarding_admin_repository(onboarding_admin_repository)
@@ -330,6 +421,13 @@ def create_admin_api_app(
                 "온보딩 승인 실패",
                 _topbar("온보딩 승인") + f'<section class="card"><p class="error">{escape(str(exc))}</p></section>',
             )
+        record_admin_audit(
+            request,
+            action_code="admin.onboarding.approve",
+            source_code="admin.web.onboarding.approve",
+            target_type_code="onboarding_session",
+            target_id=onboarding_session_id,
+        )
         return RedirectResponse("/admin/pages/onboarding/submissions", status_code=303)
 
     @app.post("/admin/pages/onboarding/submissions/{onboarding_session_id}/reject")
@@ -350,6 +448,14 @@ def create_admin_api_app(
                 "온보딩 반려 실패",
                 _topbar("온보딩 승인") + f'<section class="card"><p class="error">{escape(str(exc))}</p></section>',
             )
+        record_admin_audit(
+            request,
+            action_code="admin.onboarding.reject",
+            source_code="admin.web.onboarding.reject",
+            target_type_code="onboarding_session",
+            target_id=onboarding_session_id,
+            detail={"reason_code": reason_code},
+        )
         return RedirectResponse("/admin/pages/onboarding/submissions", status_code=303)
 
     @app.post("/admin/pages/invitations")
@@ -357,13 +463,26 @@ def create_admin_api_app(
         repository = _require_invitation_repository(invitation_repository)
         raw_body = await request.body()
         form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
-        repository.create_invitation(
+        invitation = repository.create_invitation(
             project_id=(form.get("project_id") or [DEFAULT_LOCAL_PROJECT_ID])[0] or DEFAULT_LOCAL_PROJECT_ID,
             invited_by_admin_user_id=(form.get("invited_by_admin_user_id") or [DEFAULT_LOCAL_ADMIN_USER_ID])[0]
             or DEFAULT_LOCAL_ADMIN_USER_ID,
             channel_code=(form.get("channel_code") or [DEFAULT_INVITATION_CHANNEL])[0] or DEFAULT_INVITATION_CHANNEL,
             target_participant_role_code=(form.get("target_participant_role_code") or [DEFAULT_INVITATION_ROLE])[0]
             or DEFAULT_INVITATION_ROLE,
+        )
+        record_admin_audit(
+            request,
+            action_code="admin.invitation.create",
+            source_code="admin.web.invitation.create",
+            target_type_code="project_invitation",
+            target_id=invitation.id,
+            actor_id=invitation.invited_by_admin_user_id,
+            detail={
+                "project_id": invitation.project_id,
+                "channel_code": invitation.channel_code,
+                "target_participant_role_code": invitation.target_participant_role_code,
+            },
         )
         return RedirectResponse("/admin/pages/invitations", status_code=303)
 
@@ -455,8 +574,24 @@ def create_admin_api_app(
         result = runtime.create_admin_reply(follow_up_id, message, source="admin.web.reply")
         if result is None:
             raise HTTPException(status_code=404, detail="open follow-up not found")
+        record_admin_audit(
+            request,
+            action_code="admin.follow_up.reply",
+            source_code="admin.web.reply",
+            target_type_code="admin_follow_up_queue",
+            target_id=follow_up_id,
+            detail={"close_after_send": close_after_send},
+        )
         if close_after_send:
             runtime.close_follow_up(follow_up_id, source="admin.web.reply_close", notify_user=True)
+            record_admin_audit(
+                request,
+                action_code="admin.follow_up.close",
+                source_code="admin.web.reply_close",
+                target_type_code="admin_follow_up_queue",
+                target_id=follow_up_id,
+                detail={"reason": "close_after_send"},
+            )
         return RedirectResponse(f"/admin/pages/follow-ups/{follow_up_id}", status_code=303)
 
     @app.get("/admin/follow-ups")
@@ -473,41 +608,84 @@ def create_admin_api_app(
         return _serialize(follow_up)
 
     @app.post("/admin/follow-ups/{follow_up_id}/reply")
-    def reply_to_follow_up(follow_up_id: str, request: AdminReplyRequest) -> dict:
-        result = runtime.create_admin_reply(follow_up_id, request.message, source="admin.api.reply")
+    def reply_to_follow_up(follow_up_id: str, payload: AdminReplyRequest, request: Request) -> dict:
+        result = runtime.create_admin_reply(follow_up_id, payload.message, source="admin.api.reply")
         if result is None:
             raise HTTPException(status_code=404, detail="open follow-up not found")
         follow_up, outbox_message = result
-        if request.close_after_send:
+        record_admin_audit(
+            request,
+            action_code="admin.follow_up.reply",
+            source_code="admin.api.reply",
+            target_type_code="admin_follow_up_queue",
+            target_id=follow_up_id,
+            detail={"close_after_send": payload.close_after_send},
+        )
+        if payload.close_after_send:
             follow_up = runtime.close_follow_up(follow_up_id, source="admin.api.reply_close", notify_user=True) or follow_up
+            record_admin_audit(
+                request,
+                action_code="admin.follow_up.close",
+                source_code="admin.api.reply_close",
+                target_type_code="admin_follow_up_queue",
+                target_id=follow_up_id,
+                detail={"reason": "close_after_send"},
+            )
         return {
             "follow_up": _serialize(follow_up),
             "outbox_message": _serialize(outbox_message),
         }
 
     @app.post("/admin/follow-ups/{follow_up_id}/close")
-    def close_follow_up(follow_up_id: str, request: CloseFollowUpRequest) -> dict:
+    def close_follow_up(follow_up_id: str, payload: CloseFollowUpRequest, request: Request) -> dict:
         follow_up = runtime.close_follow_up(follow_up_id, source="admin.api.close", notify_user=True)
         if follow_up is None:
             raise HTTPException(status_code=404, detail="follow-up not found")
-        return {"follow_up": _serialize(follow_up), "reason": request.reason}
+        record_admin_audit(
+            request,
+            action_code="admin.follow_up.close",
+            source_code="admin.api.close",
+            target_type_code="admin_follow_up_queue",
+            target_id=follow_up_id,
+            detail={"reason": payload.reason},
+        )
+        return {"follow_up": _serialize(follow_up), "reason": payload.reason}
 
     @app.get("/admin/outbox")
     def list_outbox() -> dict:
         return {"items": [_serialize(item) for item in runtime.list_outbox()]}
 
+    @app.get("/admin/audit-events")
+    def list_audit_events(limit: int = 100) -> dict:
+        if admin_audit_repository is None:
+            raise HTTPException(status_code=503, detail="admin audit repository unavailable")
+        return {"items": [_serialize_audit_event(event) for event in admin_audit_repository.list_events(limit=limit)]}
+
     @app.post("/admin/invitations", status_code=201)
-    def create_invitation(request: CreateInvitationRequest) -> dict:
+    def create_invitation(payload: CreateInvitationRequest, request: Request) -> dict:
         repository = _require_invitation_repository(invitation_repository)
         invitation = repository.create_invitation(
-            project_id=request.project_id,
-            invited_by_admin_user_id=request.invited_by_admin_user_id,
-            channel_code=request.channel_code,
-            target_contact_type_code=request.target_contact_type_code,
-            target_contact_normalized=request.target_contact_normalized,
-            target_contact_raw=request.target_contact_raw,
-            target_participant_role_code=request.target_participant_role_code,
-            expires_at=request.expires_at,
+            project_id=payload.project_id,
+            invited_by_admin_user_id=payload.invited_by_admin_user_id,
+            channel_code=payload.channel_code,
+            target_contact_type_code=payload.target_contact_type_code,
+            target_contact_normalized=payload.target_contact_normalized,
+            target_contact_raw=payload.target_contact_raw,
+            target_participant_role_code=payload.target_participant_role_code,
+            expires_at=payload.expires_at,
+        )
+        record_admin_audit(
+            request,
+            action_code="admin.invitation.create",
+            source_code="admin.api.invitation.create",
+            target_type_code="project_invitation",
+            target_id=invitation.id,
+            actor_id=invitation.invited_by_admin_user_id,
+            detail={
+                "project_id": invitation.project_id,
+                "channel_code": invitation.channel_code,
+                "target_participant_role_code": invitation.target_participant_role_code,
+            },
         )
         return {"invitation": _serialize_invitation(invitation)}
 
@@ -529,16 +707,28 @@ def create_admin_api_app(
         }
 
     @app.post("/admin/onboarding/submissions/{onboarding_session_id}/approve")
-    def approve_onboarding_submission(onboarding_session_id: str, request: OnboardingApprovalRequest) -> dict:
+    def approve_onboarding_submission(
+        onboarding_session_id: str,
+        payload: OnboardingApprovalRequest,
+        request: Request,
+    ) -> dict:
         repository = _require_onboarding_admin_repository(onboarding_admin_repository)
         try:
             result = repository.approve_submission(
                 onboarding_session_id,
-                admin_user_id=request.admin_user_id,
-                message_text=request.message,
+                admin_user_id=payload.admin_user_id,
+                message_text=payload.message,
             )
         except OnboardingApprovalError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        record_admin_audit(
+            request,
+            action_code="admin.onboarding.approve",
+            source_code="admin.api.onboarding.approve",
+            target_type_code="onboarding_session",
+            target_id=onboarding_session_id,
+            actor_id=payload.admin_user_id,
+        )
         return {
             "session": _serialize(result.session),
             "participant_id": result.participant_id,
@@ -549,17 +739,30 @@ def create_admin_api_app(
         }
 
     @app.post("/admin/onboarding/submissions/{onboarding_session_id}/reject")
-    def reject_onboarding_submission(onboarding_session_id: str, request: OnboardingRejectionRequest) -> dict:
+    def reject_onboarding_submission(
+        onboarding_session_id: str,
+        payload: OnboardingRejectionRequest,
+        request: Request,
+    ) -> dict:
         repository = _require_onboarding_admin_repository(onboarding_admin_repository)
         try:
             result = repository.reject_submission(
                 onboarding_session_id,
-                admin_user_id=request.admin_user_id,
-                reason_code=request.reason_code,
-                message_text=request.message,
+                admin_user_id=payload.admin_user_id,
+                reason_code=payload.reason_code,
+                message_text=payload.message,
             )
         except OnboardingApprovalError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        record_admin_audit(
+            request,
+            action_code="admin.onboarding.reject",
+            source_code="admin.api.onboarding.reject",
+            target_type_code="onboarding_session",
+            target_id=onboarding_session_id,
+            actor_id=payload.admin_user_id,
+            detail={"reason_code": payload.reason_code},
+        )
         return {
             "session": _serialize(result.session),
             "outbox_id": result.outbox_id,

@@ -110,6 +110,7 @@ python -m PROJECT.main
 - 요청 목록: `http://127.0.0.1:8000/admin/pages/follow-ups`
 - 사용자 대화 내용: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}`
 - 사용자 응답 작성: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}/reply`
+- 감사 로그: `http://127.0.0.1:8000/admin/pages/audit-events`
 
 이 화면에서 응답을 보내면 admin reply가 follow-up 항목에 기록되고 outbox에 메시지가 생성된다.
 
@@ -124,6 +125,7 @@ python -m PROJECT.main
 - `POST /admin/follow-ups/{follow_up_id}/reply`
 - `POST /admin/follow-ups/{follow_up_id}/close`
 - `GET /admin/outbox`
+- `GET /admin/audit-events`
 
 PowerShell에서 JSON API로 한글 응답을 직접 보낼 때는 `charset=utf-8`을 명시해야 한다.
 

@@ -96,6 +96,7 @@ http://127.0.0.1:8000/admin/pages/follow-ups
 http://127.0.0.1:8000/admin/pages/invitations
 http://127.0.0.1:8000/admin/pages/onboarding/submissions
 http://127.0.0.1:8000/admin/pages/outbox
+http://127.0.0.1:8000/admin/pages/audit-events
 ```
 
 If `ADMIN_API_ACCESS_TOKEN` is configured, browser requests are redirected to `/admin/login` before accessing admin pages.
@@ -172,6 +173,13 @@ Follow-up flow:
 Admin API and admin pages must not send Telegram messages directly.
 
 If the local admin access-token gate is enabled, all admin JSON and browser routes require authentication before queue, invitation, onboarding, or outbox data is exposed.
+
+Audit flow:
+
+1. Admin performs a write-oriented action through the Admin API or admin page.
+2. Runtime records an `admin_audit_events` row with action, actor, target, result, source, and request path.
+3. Runtime excludes access tokens, message body, phone numbers, and other sensitive user input from audit detail.
+4. Admin can inspect local audit events through `GET /admin/audit-events` or `/admin/pages/audit-events`.
 
 ## 7. Implementation Commits
 
@@ -474,10 +482,10 @@ Implemented local hardening:
 - optional `ADMIN_API_ACCESS_TOKEN` gate for Admin API and admin pages
 - browser login cookie for local admin pages
 - header-based access for JSON API clients
+- local admin action audit trail for write-oriented admin operations
 
 Remaining production hardening:
 
 - real admin identity provider
 - role-based access control
-- request audit trail
 - token rotation policy
