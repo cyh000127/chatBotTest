@@ -77,6 +77,7 @@ class SqliteOnboardingRepository:
         provider_user_id: str,
         provider_handle: str | None = None,
         preferred_locale_code: str = DEFAULT_LOCALE,
+        chat_id: int | None = None,
     ) -> OnboardingSession:
         with self._lock:
             existing = self._find_open_session(
@@ -96,6 +97,8 @@ class SqliteOnboardingRepository:
                 "invite_code": invitation.invite_code,
                 "project_id": invitation.project_id,
             }
+            if chat_id is not None:
+                draft_payload["chat_id"] = chat_id
             self._connection.execute(
                 """
                 INSERT INTO onboarding_sessions (

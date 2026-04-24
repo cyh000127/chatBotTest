@@ -14,6 +14,7 @@ DEFAULT_LOCAL_PROJECT_ID = "project_local_default"
 DEFAULT_INVITATION_CHANNEL = "telegram"
 DEFAULT_INVITATION_ROLE = "farmer"
 INVITATION_STATUS_ISSUED = "issued"
+INVITATION_STATUS_USED = "used"
 INVITE_CODE_PREFIX = "INV"
 INVITE_CODE_ALPHABET = "".join(ch for ch in string.ascii_uppercase + string.digits if ch not in {"0", "O", "1", "I"})
 

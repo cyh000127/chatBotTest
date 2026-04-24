@@ -406,6 +406,7 @@ async def start_command(update, context) -> None:
             provider_user_id=str(effective_user.id),
             provider_handle=getattr(effective_user, "username", None),
             preferred_locale_code=current_locale(context.user_data),
+            chat_id=update.effective_chat.id if update.effective_chat else None,
         )
         reset_session(context.user_data)
         set_onboarding_session(
