@@ -217,6 +217,8 @@ Audit flow:
 2. Runtime records an `admin_audit_events` row with action, actor, target, result, source, and request path.
 3. Runtime excludes access tokens, message body, phone numbers, and other sensitive user input from audit detail.
 4. Admin can inspect local audit events through `GET /admin/audit-events` or `/admin/pages/audit-events`.
+5. Login success, login failure, unauthenticated protected-route access, and role-gate denials are also audit events.
+6. Authentication-denial audit detail may record whether a token was present, but must never record the token value.
 
 Local role flow:
 
@@ -544,6 +546,7 @@ Implemented local hardening:
 - header-based access for JSON API clients
 - local `viewer` and `operator` role gate
 - local admin action audit trail for write-oriented admin operations
+- local admin authentication-denial audit trail without token exposure
 - outbox retry exhaustion to `manual_review`
 - admin requeue from `manual_review` back to bot-mediated `pending`
 - admin revoke for unused issued invitation codes

@@ -412,6 +412,23 @@ def create_admin_api_app(
             return response
         return JSONResponse({"detail": "admin write access required"}, status_code=403)
 
+    def record_admin_access_denied(request: Request, *, html_response: bool) -> None:
+        record_admin_audit(
+            request,
+            action_code="admin.access.denied",
+            source_code="admin.access.token_gate",
+            result_code=RESULT_FAILURE,
+            actor_type_code="unknown",
+            actor_id="unknown",
+            target_type_code="admin_route",
+            detail={
+                "method": request.method.upper(),
+                "html_response": html_response,
+                "token_present": bool(request_access_token(request)),
+                "role": resolved_admin_access_role,
+            },
+        )
+
     @app.middleware("http")
     async def require_admin_access(request: Request, call_next):
         path = request.url.path
@@ -421,7 +438,9 @@ def create_admin_api_app(
             if admin_write_request_blocked(request):
                 return admin_role_denied_response(request)
             return await call_next(request)
-        if wants_html(request):
+        html_response = wants_html(request)
+        record_admin_access_denied(request, html_response=html_response)
+        if html_response:
             return RedirectResponse("/admin/login", status_code=303)
         return JSONResponse({"detail": "admin authentication required"}, status_code=401)
 

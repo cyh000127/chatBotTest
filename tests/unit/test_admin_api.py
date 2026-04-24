@@ -108,6 +108,49 @@ def test_admin_api_access_token_blocks_admin_api_without_credentials():
     assert health.status_code == 200
 
 
+def test_admin_api_access_denial_writes_audit_event_without_token(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        audit_repository = SqliteAdminAuditRepository(sqlite_runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                admin_audit_repository=audit_repository,
+                admin_access_token="secret-token",
+            )
+        )
+
+        response = client.get("/admin/follow-ups", headers={"X-Admin-Token": "wrong-token"})
+        events = audit_repository.list_events()
+
+        assert response.status_code == 401
+        assert len(events) == 1
+        event = events[0]
+        assert event.action_code == "admin.access.denied"
+        assert event.result_code == RESULT_FAILURE
+        assert event.source_code == "admin.access.token_gate"
+        assert event.actor_type_code == "unknown"
+        assert event.actor_id == "unknown"
+        assert event.target_type_code == "admin_route"
+        assert event.request_path == "/admin/follow-ups"
+        assert event.detail == {
+            "html_response": False,
+            "method": "GET",
+            "role": "operator",
+            "token_present": True,
+        }
+        assert "wrong-token" not in str(event.detail)
+        assert "secret-token" not in str(event.detail)
+    finally:
+        sqlite_runtime.close()
+
+
 def test_admin_api_access_token_allows_header_credentials():
     runtime = InMemoryAdminRuntime()
     runtime.create_follow_up(
@@ -350,6 +393,43 @@ def test_admin_page_access_token_redirects_to_login_and_sets_cookie():
     assert "지원 이관 요청 목록" in allowed.text
 
 
+def test_admin_page_access_denial_writes_audit_event_without_token(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        audit_repository = SqliteAdminAuditRepository(sqlite_runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                admin_audit_repository=audit_repository,
+                admin_access_token="secret-token",
+            )
+        )
+
+        response = client.get("/admin/pages/follow-ups", follow_redirects=False)
+        events = audit_repository.list_events()
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/login"
+        assert len(events) == 1
+        event = events[0]
+        assert event.action_code == "admin.access.denied"
+        assert event.request_path == "/admin/pages/follow-ups"
+        assert event.detail == {
+            "html_response": True,
+            "method": "GET",
+            "role": "operator",
+            "token_present": False,
+        }
+    finally:
+        sqlite_runtime.close()
+
+
 def test_admin_page_logout_clears_cookie_and_blocks_next_request(tmp_path):
     runtime = bootstrap_sqlite_runtime(
         SqliteSettings(
@@ -372,7 +452,9 @@ def test_admin_page_logout_clears_cookie_and_blocks_next_request(tmp_path):
         allowed = client.get("/admin/pages/follow-ups")
         logout = client.post("/admin/logout", follow_redirects=False)
         blocked = client.get("/admin/pages/follow-ups", follow_redirects=False)
-        event = audit_repository.list_events()[0]
+        events = audit_repository.list_events()
+        logout_event = next(event for event in events if event.action_code == "admin.logout")
+        denied_event = next(event for event in events if event.action_code == "admin.access.denied")
 
         assert login.status_code == 303
         assert allowed.status_code == 200
@@ -382,8 +464,8 @@ def test_admin_page_logout_clears_cookie_and_blocks_next_request(tmp_path):
         assert "Max-Age=0" in logout.headers["set-cookie"]
         assert blocked.status_code == 303
         assert blocked.headers["location"] == "/admin/login"
-        assert event.action_code == "admin.logout"
-        assert event.detail == {"role": "operator", "token_slot": "current"}
+        assert logout_event.detail == {"role": "operator", "token_slot": "current"}
+        assert denied_event.request_path == "/admin/pages/follow-ups"
     finally:
         runtime.close()
 

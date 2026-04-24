@@ -128,6 +128,7 @@ python -m PROJECT.main
 `ADMIN_API_ACCESS_ROLE`은 로컬 관리자 권한을 제한한다. `viewer`는 조회만 가능하고, `operator`는 초대 코드 생성, 온보딩 승인/반려, follow-up 응답 같은 쓰기 작업을 수행할 수 있다.
 
 보안 상태 화면과 `GET /admin/security-status`는 토큰 값을 표시하지 않고 로컬 access token gate, 이전 토큰 활성 여부, 운영 IDP 미연결 상태, 남은 production hardening 항목만 노출한다.
+감사 로그는 로그인 성공/실패, 미인증 관리자 route 접근, 권한 부족으로 차단된 쓰기 요청, 관리자 쓰기 작업을 기록하되 access token과 사용자 입력 본문은 남기지 않는다.
 
 ## JSON API
 
