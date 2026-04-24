@@ -35,6 +35,8 @@
   SQLite 영속 저장소가 추가되는 환경의 기본 설정, 실행 전제, 데이터 보존 기준을 정의한다.
 - `SQLITE_SCHEMA_PLAN.md`
   SQLite migration으로 구현할 테이블, 상태 코드, 인덱스, 레퍼런스 정렬 기준을 정의한다.
+- `SQLITE_IMPLEMENTATION_RUNBOOK.md`
+  SQLite 적용 후 실행 흐름, Admin API 검증 절차, 커밋 단위 구현 순서를 정의한다.
 
 현재 기준 핵심 요약:
 
