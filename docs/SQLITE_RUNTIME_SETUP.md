@@ -174,7 +174,21 @@ The local admin surface should not introduce product behavior that is absent fro
 
 The admin surface should not bypass bot-mediated delivery. Admin replies must be written to the outbox and delivered by the bot delivery loop.
 
-## 10. Farmer Flow Boundary
+## 10. Outbox Retry Policy
+
+Outbox delivery is bot-mediated and retryable.
+
+Current local runtime rules:
+
+- newly created outbox messages start as `pending`.
+- delivery claim moves an item to `sending`.
+- successful Telegram delivery marks the item `sent`.
+- failed Telegram delivery marks the item `failed` and increments `retry_count`.
+- failed messages are not retried immediately.
+- retry eligibility uses a fixed local backoff window based on `retry_count`.
+- messages at or above the configured maximum retry count remain `failed` for manual review.
+
+## 11. Farmer Flow Boundary
 
 The farmer flow should be aligned to the reference onboarding contract:
 
@@ -194,7 +208,7 @@ Allowed phone country codes for the current MVP baseline are:
 
 The existing local profile sample must not be treated as product onboarding. It may remain only as a structured-input UX sample until replaced or hidden from the main product flow.
 
-## 11. Operational Checks
+## 12. Operational Checks
 
 Before considering the SQLite runtime ready, verify:
 
@@ -207,11 +221,12 @@ Before considering the SQLite runtime ready, verify:
 - approved participants can enter the main farmer menu
 - admin follow-up queue items survive restart
 - pending outbox messages survive restart and are delivered after restart
+- failed outbox messages wait for the retry backoff before being claimed again
 
 Current verification coverage:
 
 - repository tests verify invitation, onboarding, approval, follow-up, and outbox persistence.
 - Admin API tests verify invitation creation, onboarding approval and rejection, follow-up reply, close, and browser page behavior.
-- delivery tests verify pending outbox claim, successful delivery, failed delivery, and persisted delivery state.
+- delivery tests verify pending outbox claim, successful delivery, failed delivery, retry backoff, and persisted delivery state.
 - end-to-end tests verify invitation to approval after restart and support handoff to admin reply delivery after restart.
 - model credentials are optional; when missing, the runtime remains in rules-only mode.

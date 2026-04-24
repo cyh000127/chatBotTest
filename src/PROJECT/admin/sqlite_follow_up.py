@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from threading import RLock
 from uuid import uuid4
 
 from PROJECT.admin.follow_up import (
+    DEFAULT_OUTBOX_MAX_RETRY_COUNT,
+    DEFAULT_OUTBOX_RETRY_BACKOFF_SECONDS,
     FOLLOW_UP_CLOSED_NOTICE,
     FollowUpItem,
     FollowUpStatus,
@@ -350,16 +352,7 @@ class SqliteAdminRuntime:
 
     def claim_pending_outbox(self, *, limit: int = 10) -> list[OutboxMessage]:
         with self._lock:
-            rows = self._connection.execute(
-                """
-                SELECT *
-                FROM outbox_messages
-                WHERE delivery_state_code IN (?, ?)
-                ORDER BY created_at ASC
-                LIMIT ?
-                """,
-                (OutboxStatus.PENDING.value, OutboxStatus.FAILED.value, limit),
-            ).fetchall()
+            rows = self._claimable_outbox_rows(limit=limit)
             now = _now_text()
             for row in rows:
                 self._connection.execute(
@@ -374,6 +367,60 @@ class SqliteAdminRuntime:
                 )
             self._connection.commit()
             return [self._row_to_outbox({**dict(row), "delivery_state_code": OutboxStatus.SENDING.value, "updated_at": now}) for row in rows]
+
+    def _claimable_outbox_rows(self, *, limit: int) -> list[sqlite3.Row]:
+        pending_rows = self._connection.execute(
+            """
+            SELECT *
+            FROM outbox_messages
+            WHERE delivery_state_code = ?
+            ORDER BY created_at ASC
+            LIMIT ?
+            """,
+            (OutboxStatus.PENDING.value, limit),
+        ).fetchall()
+        if len(pending_rows) >= limit:
+            return list(pending_rows)
+
+        remaining = limit - len(pending_rows)
+        failed_rows = self._connection.execute(
+            """
+            SELECT *
+            FROM outbox_messages
+            WHERE delivery_state_code = ?
+              AND retry_count < ?
+            ORDER BY created_at ASC
+            """,
+            (OutboxStatus.FAILED.value, DEFAULT_OUTBOX_MAX_RETRY_COUNT),
+        ).fetchall()
+        now = _now()
+        eligible_failed_rows = [
+            row
+            for row in failed_rows
+            if self._failed_outbox_retry_due(row, now=now)
+        ][:remaining]
+        return sorted(
+            [*pending_rows, *eligible_failed_rows],
+            key=lambda row: str(row["created_at"]),
+        )
+
+    def _failed_outbox_retry_due(self, row: sqlite3.Row, *, now: datetime) -> bool:
+        retry_count = int(row["retry_count"] or 0)
+        if retry_count >= DEFAULT_OUTBOX_MAX_RETRY_COUNT:
+            return False
+        updated_at = _parse_datetime(str(row["updated_at"]))
+        backoff_seconds = DEFAULT_OUTBOX_RETRY_BACKOFF_SECONDS * max(retry_count, 1)
+        return updated_at + timedelta(seconds=backoff_seconds) <= now
+
+    def _increment_outbox_retry_count(self, outbox_id: str) -> None:
+        self._connection.execute(
+            """
+            UPDATE outbox_messages
+            SET retry_count = retry_count + 1
+            WHERE id = ?
+            """,
+            (outbox_id,),
+        )
 
     def mark_outbox_sent(self, outbox_id: str) -> OutboxMessage | None:
         return self._replace_outbox_status(outbox_id, OutboxStatus.SENT, error_message=None)
@@ -396,6 +443,8 @@ class SqliteAdminRuntime:
             if existing is None:
                 return None
             now = _now_text()
+            if status == OutboxStatus.FAILED:
+                self._increment_outbox_retry_count(outbox_id)
             self._connection.execute(
                 """
                 UPDATE outbox_messages
@@ -562,4 +611,5 @@ class SqliteAdminRuntime:
             created_at=created_at,
             updated_at=updated_at,
             error_message=payload.get("error_message"),
+            retry_count=int(payload.get("retry_count") or 0),
         )

@@ -368,14 +368,15 @@ Scope:
 
 - load pending outbox messages from SQLite
 - mark sending, sent, and failed states
-- retry failed messages according to current retry policy
+- retry failed messages according to the current retry backoff policy
 - keep Telegram delivery inside bot delivery loop
 
 Tests:
 
 - pending outbox survives restart
 - successful delivery marks sent
-- failed delivery remains retryable
+- failed delivery increments retry count
+- failed delivery waits for retry backoff before being claimed again
 - Admin API never calls Telegram directly
 
 ### Commit 10: End-To-End Verification

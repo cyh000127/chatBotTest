@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from threading import RLock
 from uuid import uuid4
@@ -34,6 +34,9 @@ FOLLOW_UP_CLOSED_NOTICE = (
     "필요하면 이 대화창에서 다시 도움을 요청할 수 있습니다.\n"
     "처음부터 다시 진행하려면 /start 를 입력해주세요."
 )
+
+DEFAULT_OUTBOX_RETRY_BACKOFF_SECONDS = 30
+DEFAULT_OUTBOX_MAX_RETRY_COUNT = 5
 
 
 @dataclass(frozen=True)
@@ -82,6 +85,7 @@ class OutboxMessage:
     created_at: datetime
     updated_at: datetime
     error_message: str | None = None
+    retry_count: int = 0
 
 
 def _now() -> datetime:
@@ -323,14 +327,15 @@ class InMemoryAdminRuntime:
 
     def claim_pending_outbox(self, *, limit: int = 10) -> list[OutboxMessage]:
         with self._lock:
+            now = _now()
             pending = [
                 message
                 for message in sorted(self._outbox.values(), key=lambda item: item.created_at)
-                if message.status in {OutboxStatus.PENDING, OutboxStatus.FAILED}
+                if _outbox_claimable(message, now=now)
             ][:limit]
             claimed: list[OutboxMessage] = []
             for message in pending:
-                updated = replace(message, status=OutboxStatus.SENDING, error_message=None, updated_at=_now())
+                updated = replace(message, status=OutboxStatus.SENDING, error_message=None, updated_at=now)
                 self._outbox[message.outbox_id] = updated
                 claimed.append(updated)
             return claimed
@@ -352,9 +357,27 @@ class InMemoryAdminRuntime:
             message = self._outbox.get(outbox_id)
             if message is None:
                 return None
-            updated = replace(message, status=status, error_message=error_message, updated_at=_now())
+            retry_count = message.retry_count + 1 if status == OutboxStatus.FAILED else message.retry_count
+            updated = replace(
+                message,
+                status=status,
+                error_message=error_message,
+                updated_at=_now(),
+                retry_count=retry_count,
+            )
             self._outbox[outbox_id] = updated
             return updated
+
+
+def _outbox_claimable(message: OutboxMessage, *, now: datetime) -> bool:
+    if message.status == OutboxStatus.PENDING:
+        return True
+    if message.status != OutboxStatus.FAILED:
+        return False
+    if message.retry_count >= DEFAULT_OUTBOX_MAX_RETRY_COUNT:
+        return False
+    backoff_seconds = DEFAULT_OUTBOX_RETRY_BACKOFF_SECONDS * max(message.retry_count, 1)
+    return message.updated_at + timedelta(seconds=backoff_seconds) <= now
 
 
 admin_runtime = InMemoryAdminRuntime()
