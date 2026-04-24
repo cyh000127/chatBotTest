@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import asyncio
 
-from PROJECT.admin.follow_up import InMemoryAdminRuntime, admin_runtime
+from PROJECT.admin.follow_up import InMemoryAdminRuntime, OutboxStatus, admin_runtime
 from PROJECT.telemetry.event_logger import log_event
-from PROJECT.telemetry.events import OUTBOX_MESSAGE_FAILED, OUTBOX_MESSAGE_SENT
+from PROJECT.telemetry.events import OUTBOX_MESSAGE_FAILED, OUTBOX_MESSAGE_MANUAL_REVIEW, OUTBOX_MESSAGE_SENT
 
 
 async def deliver_pending_outbox(bot, *, runtime: InMemoryAdminRuntime = admin_runtime, limit: int = 10) -> int:
@@ -13,7 +13,7 @@ async def deliver_pending_outbox(bot, *, runtime: InMemoryAdminRuntime = admin_r
         try:
             await bot.send_message(chat_id=message.chat_id, text=message.text)
         except Exception as exc:  # pragma: no cover - exception type depends on Telegram transport
-            runtime.mark_outbox_failed(message.outbox_id, str(exc))
+            failed_message = runtime.mark_outbox_failed(message.outbox_id, str(exc))
             log_event(
                 OUTBOX_MESSAGE_FAILED,
                 source="admin.outbox.delivery",
@@ -22,6 +22,15 @@ async def deliver_pending_outbox(bot, *, runtime: InMemoryAdminRuntime = admin_r
                 chat_id=message.chat_id,
                 error_type=type(exc).__name__,
             )
+            if failed_message is not None and failed_message.status == OutboxStatus.MANUAL_REVIEW:
+                log_event(
+                    OUTBOX_MESSAGE_MANUAL_REVIEW,
+                    source="admin.outbox.delivery",
+                    outbox_id=message.outbox_id,
+                    follow_up_id=message.follow_up_id,
+                    chat_id=message.chat_id,
+                    retry_count=failed_message.retry_count,
+                )
             continue
         runtime.mark_outbox_sent(message.outbox_id)
         log_event(

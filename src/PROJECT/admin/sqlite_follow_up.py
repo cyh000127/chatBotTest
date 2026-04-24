@@ -412,16 +412,6 @@ class SqliteAdminRuntime:
         backoff_seconds = DEFAULT_OUTBOX_RETRY_BACKOFF_SECONDS * max(retry_count, 1)
         return updated_at + timedelta(seconds=backoff_seconds) <= now
 
-    def _increment_outbox_retry_count(self, outbox_id: str) -> None:
-        self._connection.execute(
-            """
-            UPDATE outbox_messages
-            SET retry_count = retry_count + 1
-            WHERE id = ?
-            """,
-            (outbox_id,),
-        )
-
     def mark_outbox_sent(self, outbox_id: str) -> OutboxMessage | None:
         return self._replace_outbox_status(outbox_id, OutboxStatus.SENT, error_message=None)
 
@@ -443,27 +433,34 @@ class SqliteAdminRuntime:
             if existing is None:
                 return None
             now = _now_text()
+            retry_count = int(existing["retry_count"] or 0)
+            resolved_status = status
             if status == OutboxStatus.FAILED:
-                self._increment_outbox_retry_count(outbox_id)
+                retry_count += 1
+                if retry_count >= DEFAULT_OUTBOX_MAX_RETRY_COUNT:
+                    resolved_status = OutboxStatus.MANUAL_REVIEW
             self._connection.execute(
                 """
                 UPDATE outbox_messages
                 SET delivery_state_code = ?,
+                    retry_count = ?,
                     error_message = ?,
                     updated_at = ?,
                     sent_at = CASE WHEN ? = ? THEN ? ELSE sent_at END,
-                    failed_at = CASE WHEN ? = ? THEN ? ELSE failed_at END
+                    failed_at = CASE WHEN ? IN (?, ?) THEN ? ELSE failed_at END
                 WHERE id = ?
                 """,
                 (
-                    status.value,
+                    resolved_status.value,
+                    retry_count,
                     error_message,
                     now,
-                    status.value,
+                    resolved_status.value,
                     OutboxStatus.SENT.value,
                     now,
-                    status.value,
+                    resolved_status.value,
                     OutboxStatus.FAILED.value,
+                    OutboxStatus.MANUAL_REVIEW.value,
                     now,
                     outbox_id,
                 ),

@@ -207,10 +207,11 @@ Current local runtime rules:
 - newly created outbox messages start as `pending`.
 - delivery claim moves an item to `sending`.
 - successful Telegram delivery marks the item `sent`.
-- failed Telegram delivery marks the item `failed` and increments `retry_count`.
+- failed Telegram delivery marks the item `failed` and increments `retry_count` while retry attempts remain.
 - failed messages are not retried immediately.
 - retry eligibility uses a fixed local backoff window based on `retry_count`.
-- messages at or above the configured maximum retry count remain `failed` for manual review.
+- messages at or above the configured maximum retry count move to `manual_review`.
+- `manual_review` messages are no longer claimed by the delivery loop and must be reviewed by an operator.
 
 ## 11. Farmer Flow Boundary
 
@@ -251,6 +252,6 @@ Current verification coverage:
 
 - repository tests verify invitation, onboarding, approval, follow-up, and outbox persistence.
 - Admin API tests verify invitation creation, onboarding approval and rejection, follow-up reply, close, and browser page behavior.
-- delivery tests verify pending outbox claim, successful delivery, failed delivery, retry backoff, and persisted delivery state.
+- delivery tests verify pending outbox claim, successful delivery, failed delivery, retry backoff, manual review transition, and persisted delivery state.
 - end-to-end tests verify invitation to approval after restart and support handoff to admin reply delivery after restart.
 - model credentials are optional; when missing, the runtime remains in rules-only mode.

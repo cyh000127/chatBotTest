@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from PROJECT.admin.follow_up import InMemoryAdminRuntime, admin_runtime
+from PROJECT.admin.follow_up import InMemoryAdminRuntime, OutboxStatus, admin_runtime
 from PROJECT.storage.invitations import (
     DEFAULT_INVITATION_CHANNEL,
     DEFAULT_INVITATION_ROLE,
@@ -97,6 +97,15 @@ def _require_onboarding_admin_repository(
     if onboarding_admin_repository is None:
         raise HTTPException(status_code=503, detail="onboarding admin repository unavailable")
     return onboarding_admin_repository
+
+
+def _parse_outbox_status(status: str | None) -> OutboxStatus | None:
+    if not status:
+        return None
+    try:
+        return OutboxStatus(status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="unknown outbox status") from exc
 
 
 def _page(title: str, body: str) -> HTMLResponse:
@@ -408,8 +417,15 @@ def create_admin_api_app(
         return _page("온보딩 승인", _topbar("온보딩 승인") + items)
 
     @app.get("/admin/pages/outbox", response_class=HTMLResponse)
-    def outbox_page() -> HTMLResponse:
-        messages = runtime.list_outbox()
+    def outbox_page(status: str | None = None) -> HTMLResponse:
+        selected_status = _parse_outbox_status(status)
+        messages = runtime.list_outbox(status=selected_status)
+        filter_links = """<section class="card">
+  <a href="/admin/pages/outbox">전체</a>
+  <a href="/admin/pages/outbox?status=pending">대기</a>
+  <a href="/admin/pages/outbox?status=failed">재시도 실패</a>
+  <a href="/admin/pages/outbox?status=manual_review">운영 검토</a>
+</section>"""
         if messages:
             items = "\n".join(
                 f"""<section class="card">
@@ -426,7 +442,7 @@ def create_admin_api_app(
             )
         else:
             items = '<section class="card"><p class="muted">발송 대기 또는 발송 이력 메시지가 없습니다.</p></section>'
-        return _page("발송 대기", _topbar("발송 대기") + items)
+        return _page("발송 대기", _topbar("발송 대기") + filter_links + items)
 
     @app.get("/admin/pages/audit-events", response_class=HTMLResponse)
     def audit_event_page(limit: int = 100) -> HTMLResponse:
@@ -699,8 +715,8 @@ def create_admin_api_app(
         return {"follow_up": _serialize(follow_up), "reason": payload.reason}
 
     @app.get("/admin/outbox")
-    def list_outbox() -> dict:
-        return {"items": [_serialize(item) for item in runtime.list_outbox()]}
+    def list_outbox(status: str | None = None) -> dict:
+        return {"items": [_serialize(item) for item in runtime.list_outbox(status=_parse_outbox_status(status))]}
 
     @app.get("/admin/audit-events")
     def list_audit_events(limit: int = 100) -> dict:

@@ -27,6 +27,7 @@ class OutboxStatus(StrEnum):
     SENDING = "sending"
     SENT = "sent"
     FAILED = "failed"
+    MANUAL_REVIEW = "manual_review"
 
 
 FOLLOW_UP_CLOSED_NOTICE = (
@@ -358,9 +359,12 @@ class InMemoryAdminRuntime:
             if message is None:
                 return None
             retry_count = message.retry_count + 1 if status == OutboxStatus.FAILED else message.retry_count
+            resolved_status = status
+            if status == OutboxStatus.FAILED and retry_count >= DEFAULT_OUTBOX_MAX_RETRY_COUNT:
+                resolved_status = OutboxStatus.MANUAL_REVIEW
             updated = replace(
                 message,
-                status=status,
+                status=resolved_status,
                 error_message=error_message,
                 updated_at=_now(),
                 retry_count=retry_count,

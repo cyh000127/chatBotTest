@@ -130,6 +130,8 @@ python -m PROJECT.main
 - `GET /admin/outbox`
 - `GET /admin/audit-events`
 
+`GET /admin/outbox?status=manual_review`로 재시도 한도를 초과해 운영자 확인이 필요한 발송 실패만 조회할 수 있다.
+
 PowerShell에서 JSON API로 한글 응답을 직접 보낼 때는 `charset=utf-8`을 명시해야 한다.
 
 ```powershell

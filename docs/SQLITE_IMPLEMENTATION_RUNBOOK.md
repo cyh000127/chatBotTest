@@ -102,6 +102,12 @@ http://127.0.0.1:8000/admin/pages/outbox
 http://127.0.0.1:8000/admin/pages/audit-events
 ```
 
+Manual-review outbox filter:
+
+```text
+http://127.0.0.1:8000/admin/pages/outbox?status=manual_review
+```
+
 If `ADMIN_API_ACCESS_TOKEN` is configured, browser requests are redirected to `/admin/login` before accessing admin pages.
 
 ## 4. Startup Sequence
@@ -404,6 +410,8 @@ Scope:
 - load pending outbox messages from SQLite
 - mark sending, sent, and failed states
 - retry failed messages according to the current retry backoff policy
+- move messages at the retry limit to `manual_review`
+- expose outbox status filtering for operational review
 - keep Telegram delivery inside bot delivery loop
 
 Tests:
@@ -412,6 +420,7 @@ Tests:
 - successful delivery marks sent
 - failed delivery increments retry count
 - failed delivery waits for retry backoff before being claimed again
+- retry-limit exhaustion moves outbox messages to `manual_review`
 - Admin API never calls Telegram directly
 
 ### Commit 10: End-To-End Verification
@@ -495,6 +504,7 @@ Implemented local hardening:
 - header-based access for JSON API clients
 - local `viewer` and `operator` role gate
 - local admin action audit trail for write-oriented admin operations
+- outbox retry exhaustion to `manual_review`
 
 Remaining production hardening:
 

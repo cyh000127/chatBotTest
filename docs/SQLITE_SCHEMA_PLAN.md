@@ -501,13 +501,15 @@ Outbox delivery state vocabulary:
 - `sending`
 - `sent`
 - `failed`
+- `manual_review`
 
 Outbox rules:
 
 - Admin replies must be written to `outbox_messages`.
 - The Telegram delivery loop is responsible for sending outbox messages.
 - Admin pages and Admin API must not send Telegram messages directly.
-- Failed messages remain retryable unless the retry policy later marks them terminal.
+- Failed messages remain retryable while below the retry limit.
+- Messages that reach the retry limit move to `manual_review` and are not claimed again by the delivery loop.
 
 ## 11. Admin Audit Event Table
 

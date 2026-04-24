@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from PROJECT.admin.follow_up import FOLLOW_UP_CLOSED_NOTICE, InMemoryAdminRuntime, OutboxStatus
+from PROJECT.admin.follow_up import DEFAULT_OUTBOX_MAX_RETRY_COUNT, FOLLOW_UP_CLOSED_NOTICE, InMemoryAdminRuntime, OutboxStatus
 from PROJECT.admin_api.app import create_admin_api_app
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.admin_audit import RESULT_FAILURE, RESULT_SUCCESS, SqliteAdminAuditRepository
@@ -350,10 +350,36 @@ def test_admin_pages_show_outbox_messages():
     assert response.status_code == 200
     assert "발송 대기" in response.text
     assert "입력 내용을 확인했습니다." in response.text
+    assert "/admin/pages/outbox?status=manual_review" in response.text
     assert "/admin/pages/follow-ups" in response.text
     assert "/admin/pages/invitations" in response.text
     assert "/admin/pages/onboarding/submissions" in response.text
     assert "/admin/pages/audit-events" in response.text
+
+
+def test_admin_outbox_api_can_filter_manual_review_messages():
+    runtime = InMemoryAdminRuntime()
+    follow_up = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+    _, outbox_message = runtime.create_admin_reply(follow_up.follow_up_id, "입력 내용을 확인했습니다.")
+    for _ in range(DEFAULT_OUTBOX_MAX_RETRY_COUNT):
+        runtime.mark_outbox_failed(outbox_message.outbox_id, "transport down")
+    client = TestClient(create_admin_api_app(runtime))
+
+    manual_review = client.get("/admin/outbox?status=manual_review")
+    failed = client.get("/admin/outbox?status=failed")
+    invalid = client.get("/admin/outbox?status=unknown")
+
+    assert manual_review.status_code == 200
+    assert manual_review.json()["items"][0]["status"] == OutboxStatus.MANUAL_REVIEW.value
+    assert failed.status_code == 200
+    assert failed.json()["items"] == []
+    assert invalid.status_code == 400
 
 
 def test_admin_pages_share_navigation_links():

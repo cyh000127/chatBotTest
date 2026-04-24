@@ -2,7 +2,12 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 
 from PROJECT.admin.delivery import deliver_pending_outbox
-from PROJECT.admin.follow_up import DEFAULT_OUTBOX_RETRY_BACKOFF_SECONDS, InMemoryAdminRuntime, OutboxStatus
+from PROJECT.admin.follow_up import (
+    DEFAULT_OUTBOX_MAX_RETRY_COUNT,
+    DEFAULT_OUTBOX_RETRY_BACKOFF_SECONDS,
+    InMemoryAdminRuntime,
+    OutboxStatus,
+)
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.sqlite import bootstrap_sqlite_runtime, open_sqlite_connection
@@ -54,6 +59,21 @@ def test_deliver_pending_outbox_marks_failed_when_send_fails():
     assert runtime.list_outbox()[0].outbox_id == outbox_id
     assert runtime.list_outbox()[0].status == OutboxStatus.FAILED
     assert runtime.list_outbox()[0].retry_count == 1
+
+
+def test_deliver_pending_outbox_moves_to_manual_review_after_retry_limit():
+    runtime, outbox_id = _runtime_with_pending_outbox()
+
+    for _ in range(DEFAULT_OUTBOX_MAX_RETRY_COUNT):
+        runtime.claim_pending_outbox(limit=1)
+        failed = runtime.mark_outbox_failed(outbox_id, "transport down")
+
+    delivered = asyncio.run(deliver_pending_outbox(FakeBot(), runtime=runtime))
+
+    assert delivered == 0
+    assert failed is not None
+    assert failed.status == OutboxStatus.MANUAL_REVIEW
+    assert failed.retry_count == DEFAULT_OUTBOX_MAX_RETRY_COUNT
 
 
 def test_deliver_pending_outbox_does_not_immediately_retry_failed_message():
@@ -130,6 +150,41 @@ def test_deliver_pending_outbox_marks_sqlite_message_failed(tmp_path):
         assert runtime.list_outbox()[0].status == OutboxStatus.FAILED
         assert runtime.list_outbox()[0].error_message == "transport down"
         assert runtime.list_outbox()[0].retry_count == 1
+    finally:
+        sqlite_runtime.close()
+
+
+def test_deliver_pending_outbox_moves_sqlite_message_to_manual_review_after_retry_limit(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        runtime = SqliteAdminRuntime(sqlite_runtime.connection)
+        follow_up = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+        )
+        _, outbox_message = runtime.create_admin_reply(follow_up.follow_up_id, "사진을 다시 보내주세요.")
+
+        for _ in range(DEFAULT_OUTBOX_MAX_RETRY_COUNT):
+            runtime.claim_pending_outbox(limit=1)
+            failed = runtime.mark_outbox_failed(outbox_message.outbox_id, "transport down")
+
+        delivered = asyncio.run(deliver_pending_outbox(FakeBot(), runtime=runtime))
+        loaded = runtime.list_outbox()[0]
+
+        assert delivered == 0
+        assert failed is not None
+        assert failed.status == OutboxStatus.MANUAL_REVIEW
+        assert loaded.status == OutboxStatus.MANUAL_REVIEW
+        assert loaded.retry_count == DEFAULT_OUTBOX_MAX_RETRY_COUNT
     finally:
         sqlite_runtime.close()
 
