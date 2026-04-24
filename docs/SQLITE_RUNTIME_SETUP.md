@@ -208,3 +208,10 @@ Before considering the SQLite runtime ready, verify:
 - admin follow-up queue items survive restart
 - pending outbox messages survive restart and are delivered after restart
 
+Current verification coverage:
+
+- repository tests verify invitation, onboarding, approval, follow-up, and outbox persistence.
+- Admin API tests verify invitation creation, onboarding approval and rejection, follow-up reply, close, and browser page behavior.
+- delivery tests verify pending outbox claim, successful delivery, failed delivery, and persisted delivery state.
+- end-to-end tests verify invitation to approval after restart and support handoff to admin reply delivery after restart.
+- model credentials are optional; when missing, the runtime remains in rules-only mode.

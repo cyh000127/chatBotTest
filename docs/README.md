@@ -36,7 +36,7 @@
 - `SQLITE_SCHEMA_PLAN.md`
   SQLite migration으로 구현할 테이블, 상태 코드, 인덱스, 레퍼런스 정렬 기준을 정의한다.
 - `SQLITE_IMPLEMENTATION_RUNBOOK.md`
-  SQLite 적용 후 실행 흐름, Admin API 검증 절차, 커밋 단위 구현 순서를 정의한다.
+  SQLite 적용 후 실행 흐름, Admin API 검증 절차, 구현 완료 상태, 운영 검증 기준을 정의한다.
 - `REFERENCE_ALIGNMENT_REVIEW.md`
   SQLite/Admin/온보딩 계획이 상위 참고 기준을 해치지 않는지 검증하고 조건부 승인 기준을 정의한다.
 

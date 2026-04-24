@@ -4,20 +4,16 @@
 
 This document defines how to run, implement, and verify the SQLite-backed messenger runtime.
 
-It is a runbook for the next implementation phase. It does not claim that all SQLite-backed behavior already exists in code.
+It now describes the implemented local SQLite runtime and the verification steps used to keep it aligned with the reference behavior.
 
 Current state:
 
-- the bot runtime and local Admin API can run in one process
-- admin follow-up queue and outbox behavior are available for local verification
-- admin follow-up state is still process-local unless SQLite persistence is implemented
-
-Target state:
-
-- onboarding, invitation, follow-up queue, admin reply, and outbox state survive process restart
-- the Admin API reads and writes through repositories backed by SQLite
-- admin replies are still delivered through the bot-mediated outbox
-- the farmer-facing flow remains rule-first and guided
+- the bot runtime and local Admin API can run in one process.
+- invitation, onboarding, follow-up queue, admin reply, and outbox state can be persisted in SQLite.
+- the Admin API reads and writes through SQLite-backed repositories when SQLite is configured.
+- admin replies are delivered through the bot-mediated outbox, not directly by the Admin API.
+- the farmer-facing flow remains rule-first and guided.
+- missing model credentials keep the runtime in rules-only mode.
 
 ## 2. Required Runtime Setup
 
@@ -46,12 +42,12 @@ Rules:
 - local database, journal, WAL, SHM, and backup files must stay outside version control.
 - missing model credentials must not block the rules-only runtime.
 
-## 3. Current Execution Flow
+## 3. Execution Flow
 
-Before SQLite persistence is implemented, the local runtime is started with the existing package entrypoint.
+The local runtime is started with the package entrypoint.
 
 ```powershell
-python -m pip install -e "C:\absolute\path\to\runtime-workspace[dev]"
+python -m pip install -e "ABSOLUTE_PROJECT_PATH[dev]"
 python -m PROJECT.main
 ```
 
@@ -81,22 +77,18 @@ Invoke-RestMethod -Method Post `
   -Body $body
 ```
 
-Important current limitation:
+Admin browser pages:
 
-- restarting the process clears in-memory admin follow-up state
-- old follow-up ids may return `open follow-up not found`
-- this limitation is exactly what the SQLite implementation must remove
-
-## 4. Target Execution Flow After SQLite
-
-After SQLite is implemented, the same process start should be enough.
-
-```powershell
-python -m pip install -e "C:\absolute\path\to\runtime-workspace[dev]"
-python -m PROJECT.main
+```text
+http://127.0.0.1:8000/admin/pages/follow-ups
+http://127.0.0.1:8000/admin/pages/invitations
+http://127.0.0.1:8000/admin/pages/onboarding/submissions
+http://127.0.0.1:8000/admin/pages/outbox
 ```
 
-Startup order must be:
+## 4. Startup Sequence
+
+Startup order is:
 
 1. load settings
 2. validate SQLite path when SQLite is enabled
@@ -105,13 +97,14 @@ Startup order must be:
 5. apply pending migrations
 6. construct repositories
 7. start Admin API when enabled
-8. start Telegram polling
+8. register Telegram handlers
+9. start Telegram polling
 
 The runtime must fail fast if migration fails. It must not accept Telegram updates or Admin API writes against a partially initialized database.
 
-## 5. Target Farmer Onboarding Flow
+## 5. Farmer Onboarding Flow
 
-The SQLite-backed onboarding flow should align to the reference onboarding contract.
+The SQLite-backed onboarding flow aligns to the reference onboarding contract.
 
 1. Admin creates an invitation code.
 2. Farmer sends `/start <invite_code>`.
@@ -121,7 +114,7 @@ The SQLite-backed onboarding flow should align to the reference onboarding contr
 6. Farmer enters phone number.
 7. Runtime normalizes the phone number.
 8. Farmer confirms the onboarding draft.
-9. Runtime creates a pending enrollment.
+9. Runtime submits the onboarding draft for pending approval.
 10. Admin approves or rejects the enrollment.
 11. Approved farmer can access the main farmer menu.
 
@@ -132,7 +125,7 @@ Allowed MVP phone country codes:
 
 Invalid or unsupported phone numbers must not create active enrollment.
 
-## 6. Target Admin Flow
+## 6. Admin Flow
 
 Admin features remain limited to runtime-safe actions.
 
@@ -166,9 +159,11 @@ Admin API and admin pages must not send Telegram messages directly.
 
 ## 7. Implementation Commits
 
-The SQLite implementation should be split into small commits.
+The SQLite implementation was split into small commits. Each item below is implemented and covered by tests.
 
 ### Commit 1: SQLite Settings And Connection
+
+Status: implemented.
 
 Commit message:
 
@@ -193,6 +188,8 @@ Tests:
 
 ### Commit 2: Migration Runner
 
+Status: implemented.
+
 Commit message:
 
 ```text
@@ -214,6 +211,8 @@ Tests:
 
 ### Commit 3: Initial DDL Migration
 
+Status: implemented.
+
 Commit message:
 
 ```text
@@ -233,6 +232,8 @@ Tests:
 - seeded project/admin can be used by repository tests
 
 ### Commit 4: Invitation Repository And Admin API
+
+Status: implemented.
 
 Commit message:
 
@@ -256,6 +257,8 @@ Tests:
 
 ### Commit 5: Start Command Invitation Parsing
 
+Status: implemented.
+
 Commit message:
 
 ```text
@@ -278,6 +281,8 @@ Tests:
 - non-approved user cannot access protected features
 
 ### Commit 6: Farmer Onboarding Steps
+
+Status: implemented.
 
 Commit message:
 
@@ -303,6 +308,8 @@ Tests:
 
 ### Commit 7: Admin Approval Flow
 
+Status: implemented.
+
 Commit message:
 
 ```text
@@ -326,6 +333,8 @@ Tests:
 
 ### Commit 8: Follow-Up Queue Persistence
 
+Status: implemented.
+
 Commit message:
 
 ```text
@@ -346,6 +355,8 @@ Tests:
 - admin reply creates persisted admin message and outbox row
 
 ### Commit 9: Outbox Delivery Persistence
+
+Status: implemented.
 
 Commit message:
 
@@ -368,6 +379,8 @@ Tests:
 - Admin API never calls Telegram directly
 
 ### Commit 10: End-To-End Verification
+
+Status: implemented.
 
 Commit message:
 
@@ -406,6 +419,11 @@ git diff --check
 git status --short
 ```
 
+Current verification snapshot:
+
+- the full unit suite passes with disposable SQLite databases.
+- the end-to-end SQLite tests cover invitation to approval, support handoff to admin reply delivery, restart persistence, and rules-only runtime without model credentials.
+
 ## 9. Rollback And Recovery
 
 Local rollback rule:
@@ -431,3 +449,5 @@ The SQLite implementation is complete when:
 - all persistence tests use temporary databases
 - the runtime still works with model credentials missing
 - no demo-only profile, weather, or date flow becomes part of product onboarding
+
+Current status: complete for the local SQLite runtime baseline. Future production hardening is tracked separately from this local runtime baseline.
