@@ -39,6 +39,7 @@ Tables included in the first SQLite migration:
 Tables intentionally not included in the first SQLite migration:
 
 - `ai_follow_up_attempts`
+- `participant_identity_link_reviews`
 - `participant_reachability_states`
 - `reminder_deliveries`
 - `escalations`
@@ -113,6 +114,8 @@ These tables exist to support invitation issuance and admin actions in the local
 
 The first implementation may seed a single default project and a single local admin user. This seed is local runtime scaffolding and must not be treated as a production authorization model.
 
+`invite_code` is the human-operable value used in messenger onboarding. `invite_token_hash` is reserved for bearer-style invitation token handling and should be populated when the implementation issues a secret token rather than a short operator-managed code.
+
 ## 6. Invitation And Onboarding Tables
 
 ```sql
@@ -121,6 +124,7 @@ CREATE TABLE project_invitations (
   project_id TEXT NOT NULL,
   channel_code TEXT NOT NULL DEFAULT 'telegram',
   invite_code TEXT NOT NULL UNIQUE,
+  invite_token_hash TEXT,
   invite_status_code TEXT NOT NULL,
   target_contact_type_code TEXT,
   target_contact_normalized TEXT,
@@ -310,12 +314,16 @@ CREATE TABLE channel_messages (
   channel_code TEXT NOT NULL DEFAULT 'telegram',
   direction_code TEXT NOT NULL,
   provider_message_id TEXT,
+  participant_identity_id TEXT,
+  project_id TEXT,
   provider_user_id TEXT,
   chat_id INTEGER NOT NULL,
   canonical_intent_code TEXT,
   message_type_code TEXT NOT NULL,
   payload_json TEXT NOT NULL DEFAULT '{}',
-  occurred_at TEXT NOT NULL
+  occurred_at TEXT NOT NULL,
+  FOREIGN KEY (participant_identity_id) REFERENCES participant_identities(id),
+  FOREIGN KEY (project_id) REFERENCES projects(id)
 );
 ```
 
@@ -359,6 +367,11 @@ CREATE TABLE admin_follow_up_queue (
   id TEXT PRIMARY KEY,
   project_id TEXT,
   participant_id TEXT,
+  field_id TEXT,
+  field_season_id TEXT,
+  seasonal_event_id TEXT,
+  evidence_request_event_id TEXT,
+  input_resolution_session_id TEXT,
   onboarding_session_id TEXT,
   issue_type_code TEXT NOT NULL,
   follow_up_status_code TEXT NOT NULL,
@@ -548,7 +561,7 @@ The SQLite schema intentionally defers these reference areas:
 - reminder scheduling
 - reachability projection
 - escalation issue tracking
+- identity conflict review workflow
 - production-grade admin authorization
 
 Deferring these areas keeps the local runtime aligned with the reference flow without pretending to implement the full product.
-

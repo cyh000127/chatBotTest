@@ -245,6 +245,7 @@ Scope:
 - create invitation repository
 - add Admin API endpoint to create invitation codes
 - add Admin API endpoint to list invitations
+- store a token hash when an invitation uses bearer-style token semantics
 - add minimal admin page action if useful for local verification
 
 Tests:
