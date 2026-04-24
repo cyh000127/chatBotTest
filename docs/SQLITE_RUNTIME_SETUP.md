@@ -198,6 +198,7 @@ SQLite-backed admin features should remain limited to runtime-safe operations:
 - view admin follow-up queue
 - reply to farmer through bot-mediated outbox
 - close follow-up with an outcome
+- close follow-up from the admin page without sending a free-form reply
 - view local admin audit events
 
 The local admin surface should not introduce product behavior that is absent from the reference documents.

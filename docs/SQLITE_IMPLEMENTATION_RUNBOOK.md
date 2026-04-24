@@ -193,6 +193,7 @@ Follow-up flow:
 6. Bot delivery loop sends the outbox message to the existing chat.
 7. Delivery result updates message and outbox state.
 8. If delivery exhausts retries, Admin can requeue the `manual_review` message back to `pending` for bot-mediated retry.
+9. Admin can close a follow-up without writing a reply; the close notice is still bot-mediated through outbox.
 
 Admin API and admin pages must not send Telegram messages directly.
 

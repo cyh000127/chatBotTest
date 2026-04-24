@@ -626,6 +626,50 @@ def test_admin_pages_show_follow_up_conversation():
     assert "입력이 안 됩니다" in response.text
     assert "사진 업로드도 안 됩니다" in response.text
     assert "확인 후 다시 안내드리겠습니다." in response.text
+    assert "요청 종료" in response.text
+    assert f"/admin/pages/follow-ups/{follow_up.follow_up_id}/close" in response.text
+
+
+def test_admin_follow_up_detail_page_can_close_without_reply(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        runtime = InMemoryAdminRuntime()
+        follow_up = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+            user_message="확인해주세요",
+        )
+        audit_repository = SqliteAdminAuditRepository(sqlite_runtime.connection)
+        client = TestClient(create_admin_api_app(runtime, admin_audit_repository=audit_repository))
+
+        response = client.post(
+            f"/admin/pages/follow-ups/{follow_up.follow_up_id}/close",
+            data={"reason": "duplicate_request"},
+            follow_redirects=False,
+        )
+        closed_page = client.get(f"/admin/pages/follow-ups/{follow_up.follow_up_id}")
+        events = audit_repository.list_events()
+
+        assert response.status_code == 303
+        assert response.headers["location"] == f"/admin/pages/follow-ups/{follow_up.follow_up_id}"
+        assert runtime.get_follow_up(follow_up.follow_up_id).closed is True
+        assert runtime.list_outbox(status=OutboxStatus.PENDING)[0].text == FOLLOW_UP_CLOSED_NOTICE
+        assert closed_page.status_code == 200
+        assert "이미 종료된 요청입니다." in closed_page.text
+        assert events[0].action_code == "admin.follow_up.close"
+        assert events[0].source_code == "admin.web.close"
+        assert events[0].detail == {"reason": "duplicate_request"}
+    finally:
+        sqlite_runtime.close()
 
 
 def test_admin_reply_page_accepts_utf8_reply_and_creates_outbox():

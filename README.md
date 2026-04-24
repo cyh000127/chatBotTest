@@ -117,7 +117,7 @@ python -m PROJECT.main
 - 감사 로그: `http://127.0.0.1:8000/admin/pages/audit-events`
 
 대시보드는 지원 이관, 초대 코드, 온보딩 승인, outbox, 감사 로그 화면으로 이동하는 로컬 운영 홈이다.
-이 화면에서 응답을 보내면 admin reply가 follow-up 항목에 기록되고 outbox에 메시지가 생성된다.
+이 화면에서 응답을 보내면 admin reply가 follow-up 항목에 기록되고 outbox에 메시지가 생성된다. 상세 화면에서는 답변 없이 요청을 종료할 수 있으며, 종료 안내도 outbox를 통해 봇 delivery loop가 전송한다.
 
 `ADMIN_API_ACCESS_TOKEN`이 설정되어 있으면 관리자 화면은 `/admin/login`에서 access token을 입력한 뒤 접근할 수 있다. 이 값은 실제 환경 파일에만 두고 코드나 문서 예시에 실제 토큰을 남기지 않는다.
 

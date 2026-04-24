@@ -210,6 +210,17 @@ def _outbox_requeue_form(outbox_id: str, status: OutboxStatus) -> str:
   </form>"""
 
 
+def _follow_up_close_form(follow_up_id: str, *, closed: bool) -> str:
+    if closed:
+        return '<p class="muted">이미 종료된 요청입니다.</p>'
+    return f"""<form method="post" action="/admin/pages/follow-ups/{escape(follow_up_id)}/close" accept-charset="utf-8">
+    <label for="reason">종료 사유 코드</label>
+    <input id="reason" name="reason" value="admin_resolved" required>
+    <p class="muted">종료 안내는 outbox에 기록되며, 실제 전송은 봇 delivery loop가 처리합니다.</p>
+    <button type="submit">요청 종료</button>
+  </form>"""
+
+
 def _latest_user_message(item) -> str:
     if item.user_messages:
         return item.user_messages[-1]
@@ -702,6 +713,10 @@ def create_admin_api_app(
 <section class="card">
   <h2>운영자 응답</h2>
   {_conversation_messages(follow_up.admin_messages, empty_text="아직 운영자 응답이 없습니다.")}
+</section>
+<section class="card">
+  <h2>요청 종료</h2>
+  {_follow_up_close_form(follow_up.follow_up_id, closed=follow_up.closed)}
 </section>"""
         return _page("사용자 대화 내용", body)
 
@@ -763,6 +778,24 @@ def create_admin_api_app(
                 target_id=follow_up_id,
                 detail={"reason": "close_after_send"},
             )
+        return RedirectResponse(f"/admin/pages/follow-ups/{follow_up_id}", status_code=303)
+
+    @app.post("/admin/pages/follow-ups/{follow_up_id}/close")
+    async def submit_follow_up_close_page(follow_up_id: str, request: Request):
+        raw_body = await request.body()
+        form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+        reason = (form.get("reason") or ["admin_resolved"])[0].strip() or "admin_resolved"
+        follow_up = runtime.close_follow_up(follow_up_id, source="admin.web.close", notify_user=True)
+        if follow_up is None:
+            raise HTTPException(status_code=404, detail="follow-up not found")
+        record_admin_audit(
+            request,
+            action_code="admin.follow_up.close",
+            source_code="admin.web.close",
+            target_type_code="admin_follow_up_queue",
+            target_id=follow_up_id,
+            detail={"reason": reason},
+        )
         return RedirectResponse(f"/admin/pages/follow-ups/{follow_up_id}", status_code=303)
 
     @app.get("/admin/follow-ups")
