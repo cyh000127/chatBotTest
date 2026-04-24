@@ -155,4 +155,4 @@ def test_admin_can_close_support_handoff(monkeypatch):
     assert closed is True
     assert handoff is not None
     assert handoff.closed is True
-    assert any("지원 이관을 종료" in text for text in sent_messages)
+    assert any("지원 이관이 종료" in text for text in sent_messages)

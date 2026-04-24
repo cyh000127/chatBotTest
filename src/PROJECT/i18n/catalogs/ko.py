@@ -48,10 +48,10 @@ BUTTON_FERTILIZER_KIND_LIQUID = "액비"
 LANGUAGE_NAME = "한국어"
 LANGUAGE_MENU_MESSAGE = "언어를 선택하세요."
 LANGUAGE_CHANGED_MESSAGE = "언어가 한국어로 변경되었습니다."
-AUTH_START_PROMPT = "아이디를 입력해주세요.\n예: /start okccc5 또는 okccc5"
-AUTH_REQUIRED_MESSAGE = "먼저 인증이 필요해요.\n/start 를 누르고 아이디를 입력해주세요."
-AUTH_INVALID_MESSAGE = "아이디가 맞지 않아요. 다시 입력해주세요."
-AUTH_RETRY_LIMIT_MESSAGE = "인증을 두 번 틀렸어요.\n처음부터 다시 시작해요. /start 를 눌러주세요."
+AUTH_START_PROMPT = "아이디를 입력하세요.\n/start"
+AUTH_REQUIRED_MESSAGE = "인증이 필요합니다.\n/start 입력 후 아이디를 입력하세요."
+AUTH_INVALID_MESSAGE = "아이디가 맞지 않습니다.\n다시 입력하세요."
+AUTH_RETRY_LIMIT_MESSAGE = "인증에 두 번 실패했습니다.\n/start 입력 후 처음부터 진행하세요."
 AUTH_WELCOME_MESSAGE = "어서오세요 {user_name}님!"
 AUTH_ALREADY_LOGGED_IN_MESSAGE = "어서오세요 {user_name}님!"
 
@@ -62,28 +62,28 @@ CITY_BUTTON_TO_KEY = {
     "제주": "제주",
 }
 
-START_MESSAGE = "시작해요.\n아래에서 할 일을 골라주세요."
-MAIN_MENU_MESSAGE = "메인 메뉴예요.\n아래에서 할 일을 골라주세요."
-WEATHER_MENU_MESSAGE = "날씨를 볼 도시를 골라주세요."
+START_MESSAGE = "시작되었습니다.\n작업을 선택하세요."
+MAIN_MENU_MESSAGE = "메인 메뉴입니다.\n작업을 선택하세요."
+WEATHER_MENU_MESSAGE = "날씨를 볼 도시를 선택하세요."
 PROFILE_ENTRY_MESSAGE = (
-    "프로필 입력을 시작해요.\n"
-    "이름부터 차례대로 넣어주세요."
+    "프로필 입력을 시작합니다.\n"
+    "이름부터 입력하세요."
 )
-CANCEL_MESSAGE = "지금 흐름을 멈췄어요.\n'처음부터' 또는 /start 로 다시 시작할 수 있어요."
-BACK_LIMIT_MESSAGE = "더는 이전 단계가 없어요.\n메인 메뉴에서 다시 골라주세요."
-BACK_TO_MAIN_MESSAGE = "이전 단계로 돌아왔어요.\n아래에서 다시 골라주세요."
-BACK_TO_WEATHER_MESSAGE = "날씨 선택으로 돌아왔어요.\n도시를 다시 골라주세요."
-BACK_GENERIC_MESSAGE = "이전 상태로 돌아왔어요."
-WEATHER_ERROR_MESSAGE = "날씨를 가져오지 못했어요.\n잠시 뒤 다시 해주세요."
-UNKNOWN_COMMAND_MESSAGE = "지원하지 않는 명령어예요.\n아래 관련 항목을 고르거나 /help 를 눌러주세요."
-MYFIELDS_ENTRY_MESSAGE = "자기 조회 화면이에요.\n지금은 안내와 다시 들어오기만 연결되어 있어요.\n아래 항목에서 다른 일을 고르거나 /start 로 다시 시작할 수 있어요."
-INPUT_RESOLVE_ENTRY_MESSAGE = "입력 해석 화면이에요.\n지금은 어떤 값을 정할지 먼저 모으고 있어요.\n후보 만들기와 운영 검토 연결은 따로 진행해요."
-SUPPORT_ESCALATION_MESSAGE = "지원 요청을 남겼어요.\n새 채팅방은 만들지 않아요. 이 대화창에서 다음 안내를 이어갈 수 있어요.\n필요하면 /help, /menu, /start 로 다시 이동하세요."
-SUPPORT_HANDOFF_MESSAGE_RECORDED = "추가 내용을 지원 이관 이력에 남겼어요.\n새 채팅방은 만들지 않아요. 이 대화창에서 다음 안내를 이어갈 수 있어요.\n처음부터 다시 하려면 /start 를 눌러주세요."
-SUPPORT_HANDOFF_CLOSED_MESSAGE = "지원 이관을 종료했어요.\n필요하면 이 대화창에서 다시 도움을 요청할 수 있어요."
+CANCEL_MESSAGE = "현재 흐름이 종료되었습니다.\n'처음부터' 또는 /start 로 다시 시작할 수 있습니다."
+BACK_LIMIT_MESSAGE = "이전 단계가 없습니다.\n메인 메뉴에서 다시 선택하세요."
+BACK_TO_MAIN_MESSAGE = "이전 단계로 돌아왔습니다.\n다시 선택하세요."
+BACK_TO_WEATHER_MESSAGE = "날씨 선택으로 돌아왔습니다.\n도시를 다시 선택하세요."
+BACK_GENERIC_MESSAGE = "이전 단계로 돌아왔습니다."
+WEATHER_ERROR_MESSAGE = "날씨 정보를 가져오지 못했습니다.\n잠시 뒤 다시 시도하세요."
+UNKNOWN_COMMAND_MESSAGE = "지원하지 않는 명령어입니다.\n아래 관련 항목을 선택하거나 /help 를 입력하세요."
+MYFIELDS_ENTRY_MESSAGE = "자기 조회 화면입니다.\n현재는 안내와 다시 들어오기만 연결되어 있습니다.\n아래 항목에서 다른 작업을 선택하거나 /start 로 다시 시작하세요."
+INPUT_RESOLVE_ENTRY_MESSAGE = "입력 해석 화면입니다.\n현재는 정할 값을 먼저 모으는 단계입니다.\n후보 만들기와 운영 검토 연결은 별도 단계에서 진행됩니다."
+SUPPORT_ESCALATION_MESSAGE = "지원 요청이 접수되었습니다.\n새 채팅방은 만들지 않습니다. 이 대화창에서 후속 안내를 받을 수 있습니다.\n필요하면 /help, /menu, /start 로 이동하세요."
+SUPPORT_HANDOFF_MESSAGE_RECORDED = "추가 내용이 지원 이관 이력에 저장되었습니다.\n새 채팅방은 만들지 않습니다. 이 대화창에서 후속 안내를 받을 수 있습니다.\n처음부터 다시 진행하려면 /start 를 입력하세요."
+SUPPORT_HANDOFF_CLOSED_MESSAGE = "지원 이관이 종료되었습니다.\n필요하면 이 대화창에서 다시 도움을 요청할 수 있습니다."
 
 HELP_MESSAGE = (
-    "사용할 수 있는 명령어예요.\n"
+    "사용할 수 있는 명령어입니다.\n"
     "- /start : 처음으로 가기\n"
     "- /help : 도움말 보기\n"
     "- /menu : 메인 메뉴 열기\n"
@@ -99,74 +99,74 @@ HELP_MESSAGE = (
 )
 
 FALLBACK_MESSAGES = {
-    "default": "바로 이해하지 못했어요.\n아래 항목에서 하나를 골라주세요.",
-    "weather": "바로 이해하지 못했어요.\n아래에서 도시를 고르거나 뒤로가기를 눌러주세요.",
-    "cancelled": "지금 흐름은 멈춘 상태예요.\n아래 항목에서 다시 시작할 일을 골라주세요.",
-    "profile_input": "프로필 입력을 바로 처리하지 못했어요.\n아래 항목에서 이어서 입력할 것을 골라주세요.",
-    "profile_followup": "추가 확인이 필요해요.\n아래 항목에서 하나를 골라주세요.",
-    "profile_confirm": "프로필 확인 단계예요.\n아래 항목에서 확인하거나 수정할 것을 골라주세요.",
-    "fertilizer_input": "비료 입력을 바로 처리하지 못했어요.\n아래 항목에서 이어서 입력할 것을 골라주세요.",
-    "fertilizer_confirm": "비료 확인 단계예요.\n아래 항목에서 확인하거나 수정할 것을 골라주세요.",
-    "yield_input": "수확량 입력을 바로 처리하지 못했어요.\n아래 항목에서 이어서 입력할 것을 골라주세요.",
-    "yield_confirm": "수확량 확인 단계예요.\n아래 항목에서 확인하거나 뒤로가기를 눌러주세요.",
+    "default": "입력을 처리하지 못했습니다.\n아래 항목에서 하나를 선택하세요.",
+    "weather": "입력을 처리하지 못했습니다.\n도시를 선택하거나 뒤로가기를 누르세요.",
+    "cancelled": "현재 흐름은 종료된 상태입니다.\n아래 항목에서 다시 시작할 작업을 선택하세요.",
+    "profile_input": "프로필 입력을 처리하지 못했습니다.\n아래 항목에서 이어서 입력할 내용을 선택하세요.",
+    "profile_followup": "추가 확인이 필요합니다.\n아래 항목에서 하나를 선택하세요.",
+    "profile_confirm": "프로필 확인 단계입니다.\n확인하거나 수정할 항목을 선택하세요.",
+    "fertilizer_input": "비료 입력을 처리하지 못했습니다.\n아래 항목에서 이어서 입력할 내용을 선택하세요.",
+    "fertilizer_confirm": "비료 확인 단계입니다.\n확인하거나 수정할 항목을 선택하세요.",
+    "yield_input": "수확량 입력을 처리하지 못했습니다.\n아래 항목에서 이어서 입력할 내용을 선택하세요.",
+    "yield_confirm": "수확량 확인 단계입니다.\n확인하거나 뒤로가기를 누르세요.",
 }
-RECOVERY_GUIDANCE_SOFT = "이 단계에 필요한 입력을 다시 알려드릴게요."
-RECOVERY_GUIDANCE_GUIDED = "지금 흐름을 이어가려면 아래 안내를 따라주세요."
-RECOVERY_GUIDANCE_ESCALATION_READY = "계속 어렵다면 아래 항목으로 안전하게 이동할 수 있어요."
-RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "여러 후보 값을 찾았어요.\n아래 초안을 보고 계속할지 골라주세요."
-RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "후보 값을 여러 개 반영했어요. 아래 내용을 확인해주세요."
+RECOVERY_GUIDANCE_SOFT = "이 단계에 필요한 입력입니다."
+RECOVERY_GUIDANCE_GUIDED = "계속 진행하려면 아래 안내를 따르세요."
+RECOVERY_GUIDANCE_ESCALATION_READY = "계속 진행하기 어렵다면 아래 항목으로 이동할 수 있습니다."
+RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "여러 후보 값이 확인되었습니다.\n아래 초안을 확인한 뒤 진행하세요."
+RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "후보 값이 초안에 반영되었습니다. 내용을 확인하세요."
 CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE = (
-    "상담이나 도움 요청으로 이해했어요.\n"
-    "지원 이관으로 남기고, 다음 안내는 이 대화창에서 이어갈게요.\n"
-    "아래 항목을 골라 이어가거나 /help 를 눌러주세요."
+    "지원 요청으로 확인되었습니다.\n"
+    "지원 이관 이력에 저장되며, 후속 안내는 이 대화창에서 이어집니다.\n"
+    "아래 항목을 선택하거나 /help 를 입력하세요."
 )
 CHEAP_GATE_ADMIN_FOLLOWUP_MESSAGE = (
-    "이 요청은 운영 후속 확인이 필요한 것 같아요.\n"
-    "확인할 항목으로 남기고, 필요한 안내는 이 대화창에서 이어갈게요.\n"
-    "아래 항목을 골라 다시 진행해주세요."
+    "운영 후속 확인이 필요한 요청입니다.\n"
+    "확인 항목으로 저장되며, 필요한 안내는 이 대화창에서 이어집니다.\n"
+    "아래 항목을 선택해 다시 진행하세요."
 )
 CHEAP_GATE_MANUAL_RESOLUTION_MESSAGE = (
-    "입력을 여러 번 확인했지만 지금은 자동으로 처리하기 어려워요.\n"
-    "수동 해결이 필요한 상태예요. 운영 검토로 넘길게요.\n"
-    "아래 항목을 고르거나 /menu 또는 /start 로 다시 시작해주세요."
+    "입력을 여러 번 확인했지만 자동 처리할 수 없습니다.\n"
+    "수동 해결이 필요한 상태입니다. 운영 검토로 전달됩니다.\n"
+    "아래 항목을 선택하거나 /menu 또는 /start 로 다시 시작하세요."
 )
 
-PROFILE_CONFIRMED_MESSAGE = "입력을 확인했어요.\n이 세션에 저장했어요."
-PROFILE_EDIT_MESSAGE = "수정할 항목을 골라주세요."
-PROFILE_EDIT_SELECTION_CONFIRMATION_MESSAGE = "프로필에서 다시 고를 항목을 말한 거죠?\n[{edit_button}]을 누르면 항목 선택 화면을 열어요."
-PROFILE_NOT_FOUND_MESSAGE = "아직 저장된 프로필이 없어요.\n먼저 프로필 입력을 끝내주세요."
-PROFILE_NAME_PROMPT = "이름을 적어주세요."
-PROFILE_RESIDENCE_PROMPT = "거주지를 적어주세요."
-PROFILE_CITY_PROMPT = "시/도를 적어주세요.\n예: 서울특별시, 경기도"
-PROFILE_DISTRICT_PROMPT = "구/군/시를 적어주세요.\n예: 강남구, 분당구"
-PROFILE_BIRTH_YEAR_PROMPT = "출생 연도를 버튼으로 골라주세요."
-PROFILE_BIRTH_MONTH_PROMPT = "출생 월을 버튼으로 골라주세요."
-PROFILE_BIRTH_DAY_PROMPT = "출생 일을 버튼으로 골라주세요."
-PROFILE_NAME_FALLBACK = "이름을 다시 적어주세요."
-PROFILE_RESIDENCE_FALLBACK = "거주지를 다시 적어주세요."
-PROFILE_CITY_FALLBACK = "시/도를 다시 적어주세요.\n예: 서울특별시, 경기도"
-PROFILE_DISTRICT_FALLBACK = "구/군/시를 다시 적어주세요.\n예: 강남구, 분당구"
-PROFILE_BIRTH_YEAR_FALLBACK = "출생 연도 버튼을 골라주세요."
-PROFILE_BIRTH_MONTH_FALLBACK = "출생 월 버튼을 골라주세요."
-PROFILE_BIRTH_DAY_FALLBACK = "출생 일 버튼을 골라주세요."
-PROFILE_CONFIRM_FALLBACK = "[확인] 또는 [수정]을 선택해주세요."
-PROFILE_EDIT_SELECT_FALLBACK = "수정할 항목 버튼을 골라주세요."
-PROFILE_REPAIR_NAME_MESSAGE = "이름을 다시 적어주세요."
-PROFILE_REPAIR_RESIDENCE_MESSAGE = "거주지를 다시 적어주세요."
-PROFILE_REPAIR_CITY_MESSAGE = "시/도를 다시 적어주세요."
-PROFILE_REPAIR_DISTRICT_MESSAGE = "구/군/시를 다시 적어주세요."
-PROFILE_REPAIR_BIRTH_MESSAGE = "생년월일을 다시 적어주세요.\n출생 연도부터 골라주세요."
-PROFILE_DIRECT_UPDATE_MESSAGE = "말한 내용을 반영했어요. 확인 후 [확인]을 눌러주세요."
-LLM_REPAIR_CANDIDATE_HINT = "\"{candidate_value}\"로 바꾸려는 뜻으로 이해했어요.\n맞다면 수정 시작을 눌러주세요."
-LLM_REPAIR_UNSUPPORTED_MESSAGE = "수정할 항목을 바로 고르지 못했어요.\n아래 항목에서 직접 골라주세요."
-LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "수정할 항목을 확실히 알지 못했어요.\n아래 항목에서 직접 골라주세요."
+PROFILE_CONFIRMED_MESSAGE = "입력이 저장되었습니다.\n현재 세션에 보관됩니다."
+PROFILE_EDIT_MESSAGE = "수정할 항목을 선택하세요."
+PROFILE_EDIT_SELECTION_CONFIRMATION_MESSAGE = "프로필 항목을 다시 선택합니다.\n[{edit_button}]을 누르면 항목 선택 화면이 열립니다."
+PROFILE_NOT_FOUND_MESSAGE = "저장된 프로필이 없습니다.\n먼저 프로필 입력을 완료하세요."
+PROFILE_NAME_PROMPT = "이름을 입력하세요."
+PROFILE_RESIDENCE_PROMPT = "거주지를 입력하세요."
+PROFILE_CITY_PROMPT = "시/도를 입력하세요.\n예: 서울특별시, 경기도"
+PROFILE_DISTRICT_PROMPT = "구/군/시를 입력하세요.\n예: 강남구, 분당구"
+PROFILE_BIRTH_YEAR_PROMPT = "출생 연도를 선택하세요."
+PROFILE_BIRTH_MONTH_PROMPT = "출생 월을 선택하세요."
+PROFILE_BIRTH_DAY_PROMPT = "출생 일을 선택하세요."
+PROFILE_NAME_FALLBACK = "이름을 다시 입력하세요."
+PROFILE_RESIDENCE_FALLBACK = "거주지를 다시 입력하세요."
+PROFILE_CITY_FALLBACK = "시/도를 다시 입력하세요.\n예: 서울특별시, 경기도"
+PROFILE_DISTRICT_FALLBACK = "구/군/시를 다시 입력하세요.\n예: 강남구, 분당구"
+PROFILE_BIRTH_YEAR_FALLBACK = "출생 연도 버튼을 선택하세요."
+PROFILE_BIRTH_MONTH_FALLBACK = "출생 월 버튼을 선택하세요."
+PROFILE_BIRTH_DAY_FALLBACK = "출생 일 버튼을 선택하세요."
+PROFILE_CONFIRM_FALLBACK = "[확인] 또는 [수정]을 선택하세요."
+PROFILE_EDIT_SELECT_FALLBACK = "수정할 항목 버튼을 선택하세요."
+PROFILE_REPAIR_NAME_MESSAGE = "이름을 다시 입력하세요."
+PROFILE_REPAIR_RESIDENCE_MESSAGE = "거주지를 다시 입력하세요."
+PROFILE_REPAIR_CITY_MESSAGE = "시/도를 다시 입력하세요."
+PROFILE_REPAIR_DISTRICT_MESSAGE = "구/군/시를 다시 입력하세요."
+PROFILE_REPAIR_BIRTH_MESSAGE = "생년월일을 다시 입력하세요.\n출생 연도부터 선택하세요."
+PROFILE_DIRECT_UPDATE_MESSAGE = "변경 내용이 반영되었습니다. 확인 후 [확인]을 누르세요."
+LLM_REPAIR_CANDIDATE_HINT = "\"{candidate_value}\"로 바꾸는 요청으로 확인되었습니다.\n맞으면 수정 시작을 누르세요."
+LLM_REPAIR_UNSUPPORTED_MESSAGE = "수정할 항목을 확인하지 못했습니다.\n아래 항목에서 직접 선택하세요."
+LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "수정할 항목을 확정하지 못했습니다.\n아래 항목에서 직접 선택하세요."
 LLM_REPAIR_HUMAN_REVIEW_MESSAGE = (
-    "이 요청은 한 항목으로 바로 좁히기 어려워요.\n"
-    "운영 검토가 필요할 수 있으니 아래 항목에서 직접 골라주세요."
+    "이 요청은 한 항목으로 좁히기 어렵습니다.\n"
+    "운영 검토가 필요할 수 있습니다. 아래 항목에서 직접 선택하세요."
 )
 LLM_REPAIR_RUNTIME_FAILURE_MESSAGE = (
-    "자동 해석을 시도했지만 지금은 안정적으로 처리할 수 없어요.\n"
-    "아래 항목에서 직접 선택해서 진행해주세요."
+    "자동 해석을 안정적으로 처리할 수 없습니다.\n"
+    "아래 항목에서 직접 선택해 진행하세요."
 )
 
 FERTILIZER_KIND_LABELS = {
@@ -178,45 +178,45 @@ FERTILIZER_KIND_LABELS = {
 FERTILIZER_USED_LABEL_YES = "사용함"
 FERTILIZER_USED_LABEL_NO = "사용 안 함"
 FERTILIZER_USED_PROMPT = "이번 작업에서 비료를 사용했나요?"
-FERTILIZER_KIND_PROMPT = "비료 유형을 골라주세요."
-FERTILIZER_PRODUCT_PROMPT = "제품명을 적어주세요.\n예: 한아름 복합비료"
-FERTILIZER_AMOUNT_PROMPT = "사용량을 입력해주세요.\n예: 20kg, 한 포"
-FERTILIZER_DATE_PROMPT = "사용일을 적어주세요.\n예: 2026-04-21, 오늘, 어제"
-FERTILIZER_CONFIRM_PROMPT = "비료 입력 내용을 확인해주세요."
-FERTILIZER_USED_FALLBACK = "예 또는 아니오를 골라주세요."
-FERTILIZER_KIND_FALLBACK = "비료 유형 버튼을 골라주세요."
-FERTILIZER_PRODUCT_FALLBACK = "제품명을 다시 적어주세요."
-FERTILIZER_AMOUNT_FALLBACK = "사용량을 다시 적어주세요.\n예: 20kg, 한 포"
-FERTILIZER_DATE_FALLBACK = "사용일을 다시 적어주세요.\n예: 2026-04-21, 오늘, 어제"
-FERTILIZER_CONFIRM_FALLBACK = "[확인]을 누르거나 뒤로가기로 수정해주세요."
-FERTILIZER_CONFIRMED_MESSAGE = "비료 입력을 확인했어요.\n이 세션에 보관했어요."
-FERTILIZER_EDIT_MESSAGE = "수정할 비료 항목을 골라주세요."
-FERTILIZER_EDIT_SELECTION_CONFIRMATION_MESSAGE = "비료 입력에서 다시 고를 항목을 말한 거죠?\n[{edit_button}]을 누르면 항목 선택 화면을 열어요."
-FERTILIZER_NOT_FOUND_MESSAGE = "아직 저장된 비료 입력이 없어요.\n먼저 비료 입력을 끝내주세요."
-FERTILIZER_REPAIR_USED_MESSAGE = "비료 사용 여부부터 다시 적어주세요."
-FERTILIZER_REPAIR_KIND_MESSAGE = "비료 유형을 다시 적어주세요."
-FERTILIZER_REPAIR_PRODUCT_MESSAGE = "비료 제품명을 다시 적어주세요."
-FERTILIZER_REPAIR_AMOUNT_MESSAGE = "비료 사용량을 다시 적어주세요."
-FERTILIZER_REPAIR_DATE_MESSAGE = "비료 사용일을 다시 적어주세요."
-FERTILIZER_DIRECT_UPDATE_MESSAGE = "말한 내용을 반영했어요. 확인 후 [확인]을 눌러주세요."
+FERTILIZER_KIND_PROMPT = "비료 유형을 선택하세요."
+FERTILIZER_PRODUCT_PROMPT = "제품명을 입력하세요.\n예: 한아름 복합비료"
+FERTILIZER_AMOUNT_PROMPT = "사용량을 입력하세요.\n예: 20kg, 한 포"
+FERTILIZER_DATE_PROMPT = "사용일을 입력하세요.\n예: 2026-04-21, 오늘, 어제"
+FERTILIZER_CONFIRM_PROMPT = "비료 입력 내용을 확인하세요."
+FERTILIZER_USED_FALLBACK = "예 또는 아니오를 선택하세요."
+FERTILIZER_KIND_FALLBACK = "비료 유형 버튼을 선택하세요."
+FERTILIZER_PRODUCT_FALLBACK = "제품명을 다시 입력하세요."
+FERTILIZER_AMOUNT_FALLBACK = "사용량을 다시 입력하세요.\n예: 20kg, 한 포"
+FERTILIZER_DATE_FALLBACK = "사용일을 다시 입력하세요.\n예: 2026-04-21, 오늘, 어제"
+FERTILIZER_CONFIRM_FALLBACK = "[확인]을 누르거나 뒤로가기로 수정하세요."
+FERTILIZER_CONFIRMED_MESSAGE = "비료 입력이 저장되었습니다.\n현재 세션에 보관됩니다."
+FERTILIZER_EDIT_MESSAGE = "수정할 비료 항목을 선택하세요."
+FERTILIZER_EDIT_SELECTION_CONFIRMATION_MESSAGE = "비료 입력 항목을 다시 선택합니다.\n[{edit_button}]을 누르면 항목 선택 화면이 열립니다."
+FERTILIZER_NOT_FOUND_MESSAGE = "저장된 비료 입력이 없습니다.\n먼저 비료 입력을 완료하세요."
+FERTILIZER_REPAIR_USED_MESSAGE = "비료 사용 여부를 다시 입력하세요."
+FERTILIZER_REPAIR_KIND_MESSAGE = "비료 유형을 다시 입력하세요."
+FERTILIZER_REPAIR_PRODUCT_MESSAGE = "비료 제품명을 다시 입력하세요."
+FERTILIZER_REPAIR_AMOUNT_MESSAGE = "비료 사용량을 다시 입력하세요."
+FERTILIZER_REPAIR_DATE_MESSAGE = "비료 사용일을 다시 입력하세요."
+FERTILIZER_DIRECT_UPDATE_MESSAGE = "변경 내용이 반영되었습니다. 확인 후 [확인]을 누르세요."
 YIELD_READY_PROMPT = "수확 준비가 되었나요?"
-YIELD_FIELD_PROMPT = "수확한 농지를 골라주거나 적어주세요."
-YIELD_AMOUNT_PROMPT = "수확량을 입력해주세요.\n예: 320kg"
-YIELD_DATE_PROMPT = "수확일을 적어주세요.\n예: 2026-04-21, 오늘, 어제"
-YIELD_CONFIRM_PROMPT = "수확 입력 내용을 확인해주세요."
-YIELD_READY_FALLBACK = "예 또는 아니오를 골라주세요."
-YIELD_FIELD_FALLBACK = "수확한 농지를 다시 적어주세요."
-YIELD_AMOUNT_FALLBACK = "수확량을 다시 적어주세요.\n예: 320kg"
-YIELD_DATE_FALLBACK = "수확일을 다시 적어주세요.\n예: 2026-04-21, 오늘, 어제"
-YIELD_CONFIRM_FALLBACK = "[확인]을 누르거나 뒤로가기로 수정해주세요."
-YIELD_EDIT_MESSAGE = "수정할 수확량 항목을 골라주세요."
-YIELD_EDIT_SELECT_FALLBACK = "수정할 항목을 골라주세요. [수정 시작], 뒤로가기, 처음부터 중 하나를 누를 수 있어요."
-YIELD_CONFIRMED_MESSAGE = "수확량 입력을 확인했어요.\n이 세션에 보관했어요."
-INPUT_RESOLVE_TARGET_PROMPT = "정할 값을 골라주세요."
-INPUT_RESOLVE_METHOD_PROMPT = "입력 방식을 골라주세요.\n글로 쓰기, OCR 사진, 다시 시도 중 하나로 진행해요."
-INPUT_RESOLVE_RAW_INPUT_PROMPT = "정할 원문을 적거나 제출해주세요."
-INPUT_RESOLVE_CANDIDATES_PROMPT = "후보를 확인하고 1~3번 중 고르거나 다시 입력해주세요."
-INPUT_RESOLVE_DECISION_PROMPT = "후보 확정, 다시 시도, 운영 검토 중 하나를 골라주세요."
+YIELD_FIELD_PROMPT = "수확한 농지를 선택하거나 입력하세요."
+YIELD_AMOUNT_PROMPT = "수확량을 입력하세요.\n예: 320kg"
+YIELD_DATE_PROMPT = "수확일을 입력하세요.\n예: 2026-04-21, 오늘, 어제"
+YIELD_CONFIRM_PROMPT = "수확 입력 내용을 확인하세요."
+YIELD_READY_FALLBACK = "예 또는 아니오를 선택하세요."
+YIELD_FIELD_FALLBACK = "수확한 농지를 다시 입력하세요."
+YIELD_AMOUNT_FALLBACK = "수확량을 다시 입력하세요.\n예: 320kg"
+YIELD_DATE_FALLBACK = "수확일을 다시 입력하세요.\n예: 2026-04-21, 오늘, 어제"
+YIELD_CONFIRM_FALLBACK = "[확인]을 누르거나 뒤로가기로 수정하세요."
+YIELD_EDIT_MESSAGE = "수정할 수확량 항목을 선택하세요."
+YIELD_EDIT_SELECT_FALLBACK = "수정할 항목을 선택하세요. [수정 시작], 뒤로가기, 처음부터 중 하나를 누를 수 있습니다."
+YIELD_CONFIRMED_MESSAGE = "수확량 입력이 저장되었습니다.\n현재 세션에 보관됩니다."
+INPUT_RESOLVE_TARGET_PROMPT = "정할 값을 선택하세요."
+INPUT_RESOLVE_METHOD_PROMPT = "입력 방식을 선택하세요.\n글로 쓰기, OCR 사진, 다시 시도 중 하나로 진행합니다."
+INPUT_RESOLVE_RAW_INPUT_PROMPT = "정할 원문을 입력하거나 제출하세요."
+INPUT_RESOLVE_CANDIDATES_PROMPT = "후보를 확인하고 1~3번 중 선택하거나 다시 입력하세요."
+INPUT_RESOLVE_DECISION_PROMPT = "후보 확정, 다시 시도, 운영 검토 중 하나를 선택하세요."
 
 
 def format_profile_confirmation(
@@ -228,26 +228,26 @@ def format_profile_confirmation(
     residence: str,
 ) -> str:
     return (
-        "확인했어요.\n"
+        "입력 내용을 확인하세요.\n"
         f"- 이름: {name}\n"
         f"- 거주지: {residence}\n"
         f"- 시/도: {city}\n"
         f"- 구/군/시: {district}\n"
         f"- 생년월일: {birth_date}\n"
-        "\n맞으면 [확인], 수정하려면 [수정]을 눌러주세요."
+        "\n맞으면 [확인], 바꾸려면 [수정]을 누르세요."
     )
 
 
 def format_repair_confirmation(*, field_label: str, edit_button: str) -> str:
     return (
-        f"{field_label} 항목을 수정하시려는 거죠?\n"
-        f"[{edit_button}]을 누르면 해당 항목을 다시 입력받을게요."
+        f"{field_label} 항목을 수정합니다.\n"
+        f"[{edit_button}]을 누르면 해당 항목을 다시 입력합니다."
     )
 
 
 def format_change_preview(*, field_label: str, before_value: str, after_value: str) -> str:
     return (
-        f"{field_label} 변경 내용을 확인해주세요.\n"
+        f"{field_label} 변경 내용을 확인하세요.\n"
         f"- 이전: {before_value}\n"
         f"- 변경: {after_value}"
     )
@@ -281,18 +281,18 @@ def format_fertilizer_confirmation(
 ) -> str:
     if used is False:
         return (
-            "비료 입력을 확인했어요.\n"
+            "비료 입력 내용을 확인하세요.\n"
             "- 비료 사용 여부: 사용 안 함\n\n"
-            "맞으면 [확인]을 눌러주세요."
+            "맞으면 [확인]을 누르세요."
         )
     return (
-        "비료 입력을 확인했어요.\n"
+        "비료 입력 내용을 확인하세요.\n"
         f"- 비료 사용 여부: {'사용함' if used else '-'}\n"
         f"- 비료 유형: {kind_label}\n"
         f"- 제품명: {product_name}\n"
         f"- 사용량: {amount_text}\n"
         f"- 사용일: {applied_date}\n\n"
-        "맞으면 [확인]을 눌러주세요."
+        "맞으면 [확인]을 누르세요."
     )
 
 
@@ -327,12 +327,12 @@ def format_yield_confirmation(
     harvest_date: str,
 ) -> str:
     return (
-        "수확 입력을 확인했어요.\n"
+        "수확 입력 내용을 확인하세요.\n"
         f"- 수확 준비 여부: {'준비됨' if ready else '미준비' if ready is False else '-'}\n"
         f"- 농지: {field_name}\n"
         f"- 수확량: {amount_text}\n"
         f"- 수확일: {harvest_date}\n\n"
-        "맞으면 [확인]을 눌러주세요."
+        "맞으면 [확인]을 누르세요."
     )
 
 
@@ -340,7 +340,7 @@ def format_support_admin_reply(*, admin_message: str) -> str:
     return (
         "운영자 답변입니다.\n"
         f"{admin_message}\n\n"
-        "추가로 전달할 내용이 있으면 이 대화창에 이어서 입력해주세요."
+        "추가로 전달할 내용이 있으면 이 대화창에 이어서 입력하세요."
     )
 
 

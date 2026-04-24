@@ -70,11 +70,11 @@ BACK_TO_MAIN_MESSAGE = "You are back.\nChoose again below."
 BACK_TO_WEATHER_MESSAGE = "You are back at city selection.\nChoose a city again."
 BACK_GENERIC_MESSAGE = "You are back at the previous step."
 WEATHER_ERROR_MESSAGE = "Could not get the weather.\nTry again soon."
-UNKNOWN_COMMAND_MESSAGE = "I do not understand that.\nChoose one below or use /help."
+UNKNOWN_COMMAND_MESSAGE = "This command is not supported.\nChoose one below or use /help."
 MYFIELDS_ENTRY_MESSAGE = "This is the my fields entry.\nFor now, it shows the guide and the way back.\nChoose another item below or start over with /start."
 INPUT_RESOLVE_ENTRY_MESSAGE = "This is the input resolve entry.\nFor now, the runtime starts with the main value flow.\nCandidate matching and manual review are in a separate scope."
 SUPPORT_ESCALATION_MESSAGE = "Your support request was sent.\nNo new chat will open. We will keep replying here.\nUse /help, /menu, or /start to go back."
-SUPPORT_HANDOFF_MESSAGE_RECORDED = "I added the extra note to the support thread.\nWe will reply in this same chat.\nUse /start to start over."
+SUPPORT_HANDOFF_MESSAGE_RECORDED = "The extra note was saved to the support thread.\nReplies will stay in this chat.\nUse /start to start over."
 SUPPORT_HANDOFF_CLOSED_MESSAGE = "The support thread is closed.\nYou can ask for help again in this chat."
 
 HELP_MESSAGE = (
@@ -94,35 +94,35 @@ HELP_MESSAGE = (
 )
 
 FALLBACK_MESSAGES = {
-    "default": "I could not understand that right away.\nChoose one below.",
-    "weather": "I could not understand that right away.\nChoose a city below or press Back.",
+    "default": "The input could not be processed.\nChoose one below.",
+    "weather": "The input could not be processed.\nChoose a city below or press Back.",
     "cancelled": "This task has ended.\nChoose one below to continue.",
-    "profile_input": "I could not process profile input right away.\nChoose which profile item to keep going with or change.",
+    "profile_input": "Profile input could not be processed.\nChoose which profile item to continue or change.",
     "profile_followup": "We need one more check.\nChoose one below.",
     "profile_confirm": "You are at the profile check step.\nChoose Confirm or Back below.",
-    "fertilizer_input": "I could not process fertilizer input right away.\nChoose which fertilizer item to keep going with or change.",
+    "fertilizer_input": "Fertilizer input could not be processed.\nChoose which fertilizer item to continue or change.",
     "fertilizer_confirm": "You are at the fertilizer check step.\nChoose Confirm or Back below.",
-    "yield_input": "I could not process yield input right away.\nChoose the step below to keep going.",
+    "yield_input": "Yield input could not be processed.\nChoose the step below to continue.",
     "yield_confirm": "You are at the yield check step.\nChoose Confirm or Back below.",
 }
 RECOVERY_GUIDANCE_SOFT = "Here is what this step needs."
 RECOVERY_GUIDANCE_GUIDED = "Use the guide below to continue."
 RECOVERY_GUIDANCE_ESCALATION_READY = "If this keeps failing, use one of the related actions below."
-RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "I found several candidate values in one message. Review this draft before continuing."
-RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "I applied several candidate values to the current draft. Review the content below."
+RECOVERY_MULTI_SLOT_CANDIDATE_HINT = "Several candidate values were found in one message. Review this draft before continuing."
+RECOVERY_MULTI_SLOT_APPLIED_MESSAGE = "Several candidate values were added to the current draft. Review the content below."
 CHEAP_GATE_SUPPORT_ESCALATE_MESSAGE = (
-    "This looks like a support request.\n"
-    "I will keep it as a support handoff, and we will reply here.\n"
+    "This is a support request.\n"
+    "It will be saved as a support handoff, and replies will stay here.\n"
     "Choose one below or use /help."
 )
 CHEAP_GATE_ADMIN_FOLLOWUP_MESSAGE = (
-    "This looks like a case for operator review.\n"
-    "I will keep it for follow-up, and any needed guidance can continue here.\n"
+    "This needs operator review.\n"
+    "It will be saved for follow-up, and any needed guidance can continue here.\n"
     "Choose one below to continue."
 )
 CHEAP_GATE_MANUAL_RESOLUTION_MESSAGE = (
-    "I checked this several times, but it is hard to solve automatically.\n"
-    "I will keep it for manual review.\n"
+    "This was checked several times, but it cannot be solved automatically.\n"
+    "It will be saved for manual review.\n"
     "Choose one below, or start over with /menu or /start."
 )
 
@@ -151,16 +151,16 @@ PROFILE_REPAIR_RESIDENCE_MESSAGE = "Enter the residence again."
 PROFILE_REPAIR_CITY_MESSAGE = "Enter the city or province again."
 PROFILE_REPAIR_DISTRICT_MESSAGE = "Enter the district, county, or city again."
 PROFILE_REPAIR_BIRTH_MESSAGE = "Enter the birth date again.\nChoose the birth year first."
-PROFILE_DIRECT_UPDATE_MESSAGE = "I applied the change.\nReview it and press [Confirm]."
-LLM_REPAIR_CANDIDATE_HINT = "I think you mean \"{candidate_value}\".\nIf that is right, press Start edit."
-LLM_REPAIR_UNSUPPORTED_MESSAGE = "I could not tell which field you want to edit.\nChoose it directly from the related items below."
-LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "I am not sure which field you want to edit.\nChoose it directly from the related items below."
+PROFILE_DIRECT_UPDATE_MESSAGE = "The change was applied.\nReview it and press [Confirm]."
+LLM_REPAIR_CANDIDATE_HINT = "\"{candidate_value}\" was detected as the requested change.\nIf that is right, press Start edit."
+LLM_REPAIR_UNSUPPORTED_MESSAGE = "The field to edit could not be identified.\nChoose it directly from the related items below."
+LLM_REPAIR_LOW_CONFIDENCE_MESSAGE = "The field to edit could not be confirmed.\nChoose it directly from the related items below."
 LLM_REPAIR_HUMAN_REVIEW_MESSAGE = (
     "This request is hard to narrow down to one field automatically.\n"
     "It may need manual review, so choose directly from the related items below."
 )
 LLM_REPAIR_RUNTIME_FAILURE_MESSAGE = (
-    "I tried automatic reading, but it is not stable right now.\n"
+    "Automatic reading is not stable right now.\n"
     "Continue by choosing directly from the related items below."
 )
 
@@ -193,7 +193,7 @@ FERTILIZER_REPAIR_KIND_MESSAGE = "Enter the fertilizer type again."
 FERTILIZER_REPAIR_PRODUCT_MESSAGE = "Enter the fertilizer product name again."
 FERTILIZER_REPAIR_AMOUNT_MESSAGE = "Enter the fertilizer amount again."
 FERTILIZER_REPAIR_DATE_MESSAGE = "Enter the fertilizer date again."
-FERTILIZER_DIRECT_UPDATE_MESSAGE = "I applied the change.\nReview it and press [Confirm]."
+FERTILIZER_DIRECT_UPDATE_MESSAGE = "The change was applied.\nReview it and press [Confirm]."
 YIELD_READY_PROMPT = "Is the harvest ready?"
 YIELD_FIELD_PROMPT = "Choose or enter the harvested field."
 YIELD_AMOUNT_PROMPT = "Enter the harvest amount.\nExample: 320kg"

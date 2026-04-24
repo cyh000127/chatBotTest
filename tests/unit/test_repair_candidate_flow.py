@@ -237,7 +237,7 @@ def test_repair_candidate_preview_text_uses_confirmed_scope_snapshot():
         use_confirmed=True,
     )
 
-    assert "제품명 변경 내용을 확인해주세요." in text
+    assert "제품명 변경 내용을 확인하세요." in text
     assert "- 이전: 기존 비료" in text
     assert "- 변경: 새 비료" in text
 
@@ -286,5 +286,5 @@ def test_repair_candidate_preview_text_switches_to_multi_slot_summary():
         use_confirmed=True,
     )
 
-    assert "여러 후보 값을 찾았어요" in text
+    assert "여러 후보 값이 확인되었습니다." in text
     assert "현재 저장된 비료 입력입니다." in text

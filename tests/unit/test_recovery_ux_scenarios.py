@@ -44,7 +44,7 @@ def test_cancelled_repeated_failure_recovery_scenario_shows_escalation_guidance(
     assert "수동 해결" in text
     assert "운영 검토" in text
     assert catalog.RECOVERY_GUIDANCE_ESCALATION_READY in text
-    assert "지금 흐름을 멈췄어요." in text
+    assert "현재 흐름이 종료되었습니다." in text
 
 
 def test_profile_input_fallback_scenario_keeps_current_step_navigation():
@@ -58,7 +58,7 @@ def test_profile_input_fallback_scenario_keeps_current_step_navigation():
 
     assert layout[0][0]["text"] == catalog.BUTTON_BACK
     assert layout[1][0]["text"] == catalog.BUTTON_RESTART
-    assert "프로필 입력을 바로 처리하지 못했어요." in text
+    assert "프로필 입력을 처리하지 못했습니다." in text
 
 
 def test_fertilizer_confirm_fallback_scenario_exposes_direct_edit_fast_path():
@@ -97,6 +97,6 @@ def test_fertilizer_confirm_multi_slot_recovery_scenario_builds_summary_candidat
 
     assert changes is not None
     assert logical_slot_count(changes) >= 3
-    assert "여러 후보 값을 찾았어요" in text
+    assert "여러 후보 값이 확인되었습니다." in text
     assert "현재 저장된 비료 입력입니다." in text
     assert "액비" in text

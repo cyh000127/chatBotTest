@@ -29,7 +29,7 @@ def test_render_fallback_message_appends_current_step_guidance():
 
     assert catalog.FALLBACK_MESSAGES["cancelled"] in text
     assert catalog.RECOVERY_GUIDANCE_GUIDED in text
-    assert "지금 흐름을 멈췄어요." in text
+    assert "현재 흐름이 종료되었습니다." in text
 
 
 def test_render_cheap_gate_message_uses_escalation_guidance_when_context_exists():
@@ -65,4 +65,4 @@ def test_render_cheap_gate_message_uses_escalation_guidance_when_context_exists(
     assert "지원 이관" in text
     assert "이 대화창" in text
     assert catalog.RECOVERY_GUIDANCE_ESCALATION_READY in text
-    assert "지금 흐름을 멈췄어요." in text
+    assert "현재 흐름이 종료되었습니다." in text

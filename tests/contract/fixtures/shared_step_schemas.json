@@ -12,7 +12,7 @@
       ],
       "locale": "ko",
       "expected_prompt_contains": [
-        "사용량을 입력해주세요",
+        "사용량을 입력하세요",
         "20kg"
       ]
     },
@@ -28,7 +28,7 @@
       ],
       "locale": "ko",
       "expected_prompt_contains": [
-        "수확량을 입력해주세요",
+        "수확량을 입력하세요",
         "320kg"
       ]
     },
@@ -45,7 +45,7 @@
       "locale": "ko",
       "expected_prompt_contains": [
         "후보를 확인하고",
-        "다시 입력해주세요"
+        "다시 입력하세요"
       ]
     },
     {

@@ -119,4 +119,4 @@ def test_assemble_recovery_context_for_yield_step_uses_shared_schema():
     assert context.metadata["recovery_task_hint"] == "generic_recovery"
     assert context.metadata["recovery_resume_action"] == "offer_related_actions"
     assert "yield_amount_requires_supported_unit_or_default_kg" in context.hard_constraints
-    assert "수확량을 입력해주세요" in context.current_question
+    assert "수확량을 입력하세요" in context.current_question
