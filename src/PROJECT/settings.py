@@ -17,6 +17,8 @@ TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
 DEFAULT_ADMIN_API_HOST = "127.0.0.1"
 DEFAULT_ADMIN_API_PORT = 8000
 DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS = 1.0
+DEFAULT_ADMIN_API_ACCESS_ROLE = "operator"
+ADMIN_API_ACCESS_ROLES = {"viewer", "operator"}
 DEFAULT_SQLITE_BUSY_TIMEOUT_MS = 5000
 
 
@@ -35,10 +37,15 @@ class AdminApiSettings:
     port: int = DEFAULT_ADMIN_API_PORT
     outbox_poll_interval_seconds: float = DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS
     access_token: str = ""
+    access_role: str = DEFAULT_ADMIN_API_ACCESS_ROLE
 
     @property
     def access_control_enabled(self) -> bool:
         return bool(self.access_token)
+
+    @property
+    def write_access_enabled(self) -> bool:
+        return self.access_role == "operator"
 
 
 @dataclass(frozen=True)
@@ -123,6 +130,13 @@ def parse_int_env(name: str, default: int) -> int:
     return value
 
 
+def parse_admin_api_access_role(raw: str) -> str:
+    role = raw.strip().lower()
+    if role in ADMIN_API_ACCESS_ROLES:
+        return role
+    return DEFAULT_ADMIN_API_ACCESS_ROLE
+
+
 def load_sqlite_settings() -> SqliteSettings:
     database_path = os.getenv("SQLITE_DATABASE_PATH", "").strip()
     if database_path and not Path(database_path).is_absolute():
@@ -187,6 +201,9 @@ def load_settings() -> Settings:
             port=admin_api_port,
             outbox_poll_interval_seconds=admin_outbox_poll_interval_seconds,
             access_token=os.getenv("ADMIN_API_ACCESS_TOKEN", "").strip(),
+            access_role=parse_admin_api_access_role(
+                os.getenv("ADMIN_API_ACCESS_ROLE", DEFAULT_ADMIN_API_ACCESS_ROLE)
+            ),
         ),
         sqlite=load_sqlite_settings(),
     )

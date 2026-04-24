@@ -100,6 +100,7 @@ $env:ADMIN_API_ENABLED = "true"
 $env:ADMIN_API_HOST = "127.0.0.1"
 $env:ADMIN_API_PORT = "8000"
 $env:ADMIN_API_ACCESS_TOKEN = "replace_with_local_admin_token"
+$env:ADMIN_API_ACCESS_ROLE = "operator"
 python -m PROJECT.main
 ```
 
@@ -115,6 +116,8 @@ python -m PROJECT.main
 이 화면에서 응답을 보내면 admin reply가 follow-up 항목에 기록되고 outbox에 메시지가 생성된다.
 
 `ADMIN_API_ACCESS_TOKEN`이 설정되어 있으면 관리자 화면은 `/admin/login`에서 access token을 입력한 뒤 접근할 수 있다. 이 값은 실제 환경 파일에만 두고 코드나 문서 예시에 실제 토큰을 남기지 않는다.
+
+`ADMIN_API_ACCESS_ROLE`은 로컬 관리자 권한을 제한한다. `viewer`는 조회만 가능하고, `operator`는 초대 코드 생성, 온보딩 승인/반려, follow-up 응답 같은 쓰기 작업을 수행할 수 있다.
 
 ## JSON API
 

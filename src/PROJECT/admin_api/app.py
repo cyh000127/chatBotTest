@@ -49,6 +49,11 @@ class OnboardingRejectionRequest(BaseModel):
     message: str = "온보딩 신청이 반려되었습니다. 필요한 경우 지원을 요청해주세요."
 
 
+ADMIN_ACCESS_ROLE_VIEWER = "viewer"
+ADMIN_ACCESS_ROLE_OPERATOR = "operator"
+ADMIN_WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
 def _serialize(item) -> dict:
     payload = asdict(item)
     for key, value in list(payload.items()):
@@ -180,6 +185,17 @@ def _latest_user_message(item) -> str:
     return item.user_message or "사용자 원문 없음"
 
 
+def _normalize_admin_access_role(role: str) -> str:
+    normalized = role.strip().lower()
+    if normalized in {ADMIN_ACCESS_ROLE_VIEWER, ADMIN_ACCESS_ROLE_OPERATOR}:
+        return normalized
+    return ADMIN_ACCESS_ROLE_OPERATOR
+
+
+def _admin_role_can_write(role: str) -> bool:
+    return _normalize_admin_access_role(role) == ADMIN_ACCESS_ROLE_OPERATOR
+
+
 def create_admin_api_app(
     runtime: InMemoryAdminRuntime = admin_runtime,
     *,
@@ -187,8 +203,10 @@ def create_admin_api_app(
     onboarding_admin_repository: SqliteOnboardingAdminRepository | None = None,
     admin_audit_repository: SqliteAdminAuditRepository | None = None,
     admin_access_token: str = "",
+    admin_access_role: str = ADMIN_ACCESS_ROLE_OPERATOR,
 ) -> FastAPI:
     app = FastAPI(title="PROJECT Admin Follow-up API")
+    resolved_admin_access_role = _normalize_admin_access_role(admin_access_role)
 
     def admin_actor_id(request: Request, *, fallback: str = DEFAULT_LOCAL_ADMIN_USER_ID) -> str:
         return request.headers.get("x-admin-user-id") or fallback
@@ -236,12 +254,40 @@ def create_admin_api_app(
         accept = request.headers.get("accept", "")
         return "text/html" in accept or request.url.path.startswith("/admin/pages") or request.url.path in {"/admin", "/admin/login"}
 
+    def admin_write_request_blocked(request: Request) -> bool:
+        if request.url.path == "/admin/login":
+            return False
+        return request.method.upper() in ADMIN_WRITE_METHODS and not _admin_role_can_write(resolved_admin_access_role)
+
+    def admin_role_denied_response(request: Request):
+        record_admin_audit(
+            request,
+            action_code="admin.rbac.denied",
+            source_code="admin.access.role_gate",
+            result_code=RESULT_FAILURE,
+            detail={
+                "method": request.method.upper(),
+                "role": resolved_admin_access_role,
+            },
+        )
+        if wants_html(request):
+            response = _page(
+                "권한 없음",
+                _topbar("권한 없음")
+                + '<section class="card"><p class="error">현재 관리자 역할은 쓰기 작업을 수행할 수 없습니다.</p></section>',
+            )
+            response.status_code = 403
+            return response
+        return JSONResponse({"detail": "admin write access required"}, status_code=403)
+
     @app.middleware("http")
     async def require_admin_access(request: Request, call_next):
         path = request.url.path
         if not path.startswith("/admin") or path == "/admin/login":
             return await call_next(request)
         if admin_request_authorized(request):
+            if admin_write_request_blocked(request):
+                return admin_role_denied_response(request)
             return await call_next(request)
         if wants_html(request):
             return RedirectResponse("/admin/login", status_code=303)
@@ -280,6 +326,7 @@ def create_admin_api_app(
             source_code="admin.web.login",
             target_type_code="admin_session",
             result_code=RESULT_SUCCESS,
+            detail={"role": resolved_admin_access_role},
         )
         response = RedirectResponse("/admin", status_code=303)
         response.set_cookie(

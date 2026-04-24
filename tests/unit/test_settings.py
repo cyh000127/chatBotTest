@@ -2,12 +2,14 @@ from PROJECT.policy import LocalAiGate
 from PROJECT.settings import (
     DEFAULT_ADMIN_API_HOST,
     DEFAULT_ADMIN_API_PORT,
+    DEFAULT_ADMIN_API_ACCESS_ROLE,
     DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS,
     DEFAULT_SQLITE_BUSY_TIMEOUT_MS,
     GeminiSettings,
     Settings,
     SqliteSettings,
     load_settings,
+    parse_admin_api_access_role,
     parse_bool_env,
     parse_int_env,
 )
@@ -22,7 +24,9 @@ def test_settings_defaults_include_gemini_configuration():
     assert settings.admin_api.port == DEFAULT_ADMIN_API_PORT
     assert settings.admin_api.outbox_poll_interval_seconds == DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS
     assert settings.admin_api.access_token == ""
+    assert settings.admin_api.access_role == DEFAULT_ADMIN_API_ACCESS_ROLE
     assert settings.admin_api.access_control_enabled is False
+    assert settings.admin_api.write_access_enabled is True
     assert settings.sqlite == SqliteSettings()
     assert settings.sqlite.enabled is False
     assert settings.sqlite.busy_timeout_ms == DEFAULT_SQLITE_BUSY_TIMEOUT_MS
@@ -106,6 +110,12 @@ def test_parse_int_env_accepts_non_negative_integer(monkeypatch):
     assert parse_int_env("SQLITE_BUSY_TIMEOUT_MS", default=5000) == 2500
 
 
+def test_parse_admin_api_access_role_accepts_known_roles():
+    assert parse_admin_api_access_role("viewer") == "viewer"
+    assert parse_admin_api_access_role(" operator ") == "operator"
+    assert parse_admin_api_access_role("unknown") == DEFAULT_ADMIN_API_ACCESS_ROLE
+
+
 def test_load_settings_reads_local_ai_gate_from_ai_mode_env(monkeypatch):
     monkeypatch.setenv("BOT_TOKEN", "test-token")
     monkeypatch.setenv("AI_MODE", "recovery_assist_only")
@@ -137,6 +147,7 @@ def test_load_settings_reads_admin_api_env(monkeypatch):
     monkeypatch.setenv("ADMIN_API_PORT", "9000")
     monkeypatch.setenv("ADMIN_OUTBOX_POLL_INTERVAL_SECONDS", "2.5")
     monkeypatch.setenv("ADMIN_API_ACCESS_TOKEN", "test-admin-token")
+    monkeypatch.setenv("ADMIN_API_ACCESS_ROLE", "viewer")
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
     settings = load_settings()
@@ -146,7 +157,9 @@ def test_load_settings_reads_admin_api_env(monkeypatch):
     assert settings.admin_api.port == 9000
     assert settings.admin_api.outbox_poll_interval_seconds == 2.5
     assert settings.admin_api.access_token == "test-admin-token"
+    assert settings.admin_api.access_role == "viewer"
     assert settings.admin_api.access_control_enabled is True
+    assert settings.admin_api.write_access_enabled is False
 
 
 def test_load_settings_reads_sqlite_env(monkeypatch, tmp_path):

@@ -125,6 +125,84 @@ def test_admin_api_access_token_allows_header_credentials():
     assert len(response.json()["items"]) == 1
 
 
+def test_admin_api_viewer_role_allows_reads_and_blocks_writes(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        runtime = InMemoryAdminRuntime()
+        follow_up = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+        )
+        audit_repository = SqliteAdminAuditRepository(sqlite_runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                runtime,
+                admin_audit_repository=audit_repository,
+                admin_access_token="secret-token",
+                admin_access_role="viewer",
+            )
+        )
+
+        listed = client.get("/admin/follow-ups", headers={"X-Admin-Token": "secret-token"})
+        blocked = client.post(
+            f"/admin/follow-ups/{follow_up.follow_up_id}/reply",
+            json={"message": "확인했습니다."},
+            headers={"X-Admin-Token": "secret-token", "X-Admin-User-Id": "viewer_admin"},
+        )
+        events = audit_repository.list_events()
+
+        assert listed.status_code == 200
+        assert blocked.status_code == 403
+        assert blocked.json()["detail"] == "admin write access required"
+        assert runtime.get_follow_up(follow_up.follow_up_id).admin_messages == ()
+        assert events[0].action_code == "admin.rbac.denied"
+        assert events[0].actor_id == "viewer_admin"
+        assert events[0].detail == {"method": "POST", "role": "viewer"}
+    finally:
+        sqlite_runtime.close()
+
+
+def test_admin_page_viewer_role_blocks_write_forms(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        invitation_repository = SqliteInvitationRepository(sqlite_runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                invitation_repository=invitation_repository,
+                admin_access_token="secret-token",
+                admin_access_role="viewer",
+            )
+        )
+
+        login = client.post("/admin/login", data={"access_token": "secret-token"}, follow_redirects=False)
+        page = client.get("/admin/pages/invitations")
+        blocked = client.post("/admin/pages/invitations", data={}, follow_redirects=False)
+
+        assert login.status_code == 303
+        assert page.status_code == 200
+        assert blocked.status_code == 403
+        assert "쓰기 작업을 수행할 수 없습니다" in blocked.text
+        assert invitation_repository.list_invitations() == ()
+    finally:
+        sqlite_runtime.close()
+
+
 def test_admin_page_access_token_redirects_to_login_and_sets_cookie():
     runtime = InMemoryAdminRuntime()
     client = TestClient(create_admin_api_app(runtime, admin_access_token="secret-token"))

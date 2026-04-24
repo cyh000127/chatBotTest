@@ -26,6 +26,7 @@ ADMIN_API_HOST=127.0.0.1
 ADMIN_API_PORT=8000
 ADMIN_OUTBOX_POLL_INTERVAL_SECONDS=1
 ADMIN_API_ACCESS_TOKEN=replace_with_local_admin_token
+ADMIN_API_ACCESS_ROLE=operator
 ```
 
 The SQLite-backed runtime additionally requires a database path and migration settings.
@@ -43,6 +44,8 @@ Rules:
 - local database, journal, WAL, SHM, and backup files must stay outside version control.
 - `ADMIN_API_ACCESS_TOKEN` should be set when the local admin API is exposed beyond a disposable local shell.
 - admin tokens must be sent through the login form, `Authorization: Bearer`, or `X-Admin-Token`; tokens must not be sent in URLs.
+- `ADMIN_API_ACCESS_ROLE=viewer` makes the local admin surface read-only.
+- `ADMIN_API_ACCESS_ROLE=operator` allows local admin write actions.
 - missing model credentials must not block the rules-only runtime.
 
 ## 3. Execution Flow
@@ -180,6 +183,14 @@ Audit flow:
 2. Runtime records an `admin_audit_events` row with action, actor, target, result, source, and request path.
 3. Runtime excludes access tokens, message body, phone numbers, and other sensitive user input from audit detail.
 4. Admin can inspect local audit events through `GET /admin/audit-events` or `/admin/pages/audit-events`.
+
+Local role flow:
+
+1. Runtime reads `ADMIN_API_ACCESS_ROLE`.
+2. `viewer` can inspect queues, submissions, outbox, invitations, and audit events.
+3. `viewer` cannot create invitations, approve or reject onboarding, reply to follow-ups, or close follow-ups.
+4. Denied write attempts return `403` and append an `admin.rbac.denied` audit event when the audit repository is configured.
+5. `operator` keeps the existing local write behavior.
 
 ## 7. Implementation Commits
 
@@ -482,10 +493,10 @@ Implemented local hardening:
 - optional `ADMIN_API_ACCESS_TOKEN` gate for Admin API and admin pages
 - browser login cookie for local admin pages
 - header-based access for JSON API clients
+- local `viewer` and `operator` role gate
 - local admin action audit trail for write-oriented admin operations
 
 Remaining production hardening:
 
 - real admin identity provider
-- role-based access control
 - token rotation policy
