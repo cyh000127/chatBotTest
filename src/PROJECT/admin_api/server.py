@@ -7,15 +7,23 @@ import uvicorn
 from PROJECT.admin.follow_up import InMemoryAdminRuntime, admin_runtime
 from PROJECT.admin_api.app import create_admin_api_app
 from PROJECT.settings import Settings
+from PROJECT.storage.invitations import SqliteInvitationRepository
+from PROJECT.storage.sqlite import SqliteRuntime
 
 
 def start_admin_api_server(
     settings: Settings,
     *,
     runtime: InMemoryAdminRuntime = admin_runtime,
+    sqlite_runtime: SqliteRuntime | None = None,
 ) -> tuple[uvicorn.Server, Thread]:
+    invitation_repository = (
+        SqliteInvitationRepository(sqlite_runtime.connection)
+        if sqlite_runtime is not None
+        else None
+    )
     config = uvicorn.Config(
-        create_admin_api_app(runtime),
+        create_admin_api_app(runtime, invitation_repository=invitation_repository),
         host=settings.admin_api.host,
         port=settings.admin_api.port,
         log_level="warning",

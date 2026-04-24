@@ -190,7 +190,7 @@ def test_main_logs_bot_started_with_runtime_snapshot(monkeypatch):
 
 
 def test_main_starts_admin_api_server_when_enabled(monkeypatch):
-    started: list[Settings] = []
+    started: list[tuple[Settings, object | None]] = []
     application = SimpleNamespace(run_polling=lambda: None)
     settings = Settings(
         bot_token="test-token",
@@ -200,12 +200,42 @@ def test_main_starts_admin_api_server_when_enabled(monkeypatch):
     monkeypatch.setattr(project_main, "configure_logging", lambda: None)
     monkeypatch.setattr(project_main, "load_settings", lambda: settings)
     monkeypatch.setattr(project_main, "create_application", lambda loaded_settings: application)
-    monkeypatch.setattr(project_main, "start_admin_api_server", lambda loaded_settings: started.append(loaded_settings))
+    monkeypatch.setattr(
+        project_main,
+        "start_admin_api_server",
+        lambda loaded_settings, *, sqlite_runtime=None: started.append((loaded_settings, sqlite_runtime)),
+    )
     monkeypatch.setattr(project_main, "log_event", lambda event, **fields: None)
 
     project_main.main()
 
-    assert started == [settings]
+    assert started == [(settings, None)]
+
+
+def test_main_passes_sqlite_runtime_to_admin_api_server(monkeypatch, tmp_path):
+    started = []
+    application = SimpleNamespace(run_polling=lambda: None)
+    settings = Settings(
+        bot_token="test-token",
+        admin_api=AdminApiSettings(enabled=True, host="127.0.0.1", port=8000),
+        sqlite=SqliteSettings(database_path=str(tmp_path / "runtime.sqlite3")),
+    )
+    sqlite_runtime = SimpleNamespace(close=lambda: None)
+
+    monkeypatch.setattr(project_main, "configure_logging", lambda: None)
+    monkeypatch.setattr(project_main, "load_settings", lambda: settings)
+    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings: application)
+    monkeypatch.setattr(project_main, "bootstrap_sqlite_runtime", lambda sqlite_settings: sqlite_runtime)
+    monkeypatch.setattr(
+        project_main,
+        "start_admin_api_server",
+        lambda loaded_settings, *, sqlite_runtime=None: started.append((loaded_settings, sqlite_runtime)),
+    )
+    monkeypatch.setattr(project_main, "log_event", lambda event, **fields: None)
+
+    project_main.main()
+
+    assert started == [(settings, sqlite_runtime)]
 
 
 def test_main_bootstraps_and_closes_sqlite_runtime_when_enabled(monkeypatch, tmp_path):

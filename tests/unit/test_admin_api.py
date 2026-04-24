@@ -2,6 +2,9 @@ from fastapi.testclient import TestClient
 
 from PROJECT.admin.follow_up import FOLLOW_UP_CLOSED_NOTICE, InMemoryAdminRuntime, OutboxStatus
 from PROJECT.admin_api.app import create_admin_api_app
+from PROJECT.settings import SqliteSettings
+from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED, SqliteInvitationRepository
+from PROJECT.storage.sqlite import bootstrap_sqlite_runtime
 
 
 def test_admin_api_lists_follow_ups_and_accepts_reply():
@@ -198,3 +201,60 @@ def test_admin_reply_page_rejects_closed_follow_up():
     )
 
     assert response.status_code == 404
+
+
+def test_admin_api_returns_503_when_invitation_repository_is_unavailable():
+    client = TestClient(create_admin_api_app(InMemoryAdminRuntime()))
+
+    response = client.post("/admin/invitations", json={})
+
+    assert response.status_code == 503
+
+
+def test_admin_api_creates_and_lists_invitations(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        repository = SqliteInvitationRepository(runtime.connection)
+        client = TestClient(create_admin_api_app(InMemoryAdminRuntime(), invitation_repository=repository))
+
+        created = client.post("/admin/invitations", json={})
+        listed = client.get("/admin/invitations")
+
+        assert created.status_code == 201
+        invitation = created.json()["invitation"]
+        assert invitation["invite_status_code"] == INVITATION_STATUS_ISSUED
+        assert invitation["start_command"] == f"/start {invitation['invite_code']}"
+        assert listed.status_code == 200
+        assert listed.json()["items"] == [invitation]
+    finally:
+        runtime.close()
+
+
+def test_admin_invitation_page_creates_invitation(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        repository = SqliteInvitationRepository(runtime.connection)
+        client = TestClient(create_admin_api_app(InMemoryAdminRuntime(), invitation_repository=repository))
+
+        create_response = client.post("/admin/pages/invitations", data={}, follow_redirects=False)
+        page_response = client.get("/admin/pages/invitations")
+
+        assert create_response.status_code == 303
+        assert create_response.headers["location"] == "/admin/pages/invitations"
+        assert page_response.status_code == 200
+        assert "초대 코드" in page_response.text
+        assert "/start INV-" in page_response.text
+    finally:
+        runtime.close()

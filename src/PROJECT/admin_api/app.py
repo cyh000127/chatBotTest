@@ -7,6 +7,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from PROJECT.admin.follow_up import InMemoryAdminRuntime, admin_runtime
+from PROJECT.storage.invitations import (
+    DEFAULT_INVITATION_CHANNEL,
+    DEFAULT_INVITATION_ROLE,
+    DEFAULT_LOCAL_ADMIN_USER_ID,
+    DEFAULT_LOCAL_PROJECT_ID,
+    SqliteInvitationRepository,
+)
 
 
 class AdminReplyRequest(BaseModel):
@@ -18,12 +25,35 @@ class CloseFollowUpRequest(BaseModel):
     reason: str = "admin_resolved"
 
 
+class CreateInvitationRequest(BaseModel):
+    project_id: str = DEFAULT_LOCAL_PROJECT_ID
+    invited_by_admin_user_id: str = DEFAULT_LOCAL_ADMIN_USER_ID
+    channel_code: str = DEFAULT_INVITATION_CHANNEL
+    target_contact_type_code: str | None = None
+    target_contact_normalized: str | None = None
+    target_contact_raw: str | None = None
+    target_participant_role_code: str = DEFAULT_INVITATION_ROLE
+    expires_at: str | None = None
+
+
 def _serialize(item) -> dict:
     payload = asdict(item)
     for key, value in list(payload.items()):
         if hasattr(value, "value"):
             payload[key] = value.value
     return payload
+
+
+def _serialize_invitation(invitation) -> dict:
+    payload = _serialize(invitation)
+    payload["start_command"] = invitation.start_command
+    return payload
+
+
+def _require_invitation_repository(invitation_repository: SqliteInvitationRepository | None) -> SqliteInvitationRepository:
+    if invitation_repository is None:
+        raise HTTPException(status_code=503, detail="invitation repository unavailable")
+    return invitation_repository
 
 
 def _page(title: str, body: str) -> HTMLResponse:
@@ -69,7 +99,10 @@ def _page(title: str, body: str) -> HTMLResponse:
 def _topbar(title: str) -> str:
     return f"""<div class="topbar">
   <h1>{escape(title)}</h1>
-  <a href="/admin/pages/follow-ups">요청 목록</a>
+  <div>
+    <a href="/admin/pages/follow-ups">요청 목록</a>
+    <a href="/admin/pages/invitations">초대 코드</a>
+  </div>
 </div>"""
 
 
@@ -85,7 +118,11 @@ def _latest_user_message(item) -> str:
     return item.user_message or "사용자 원문 없음"
 
 
-def create_admin_api_app(runtime: InMemoryAdminRuntime = admin_runtime) -> FastAPI:
+def create_admin_api_app(
+    runtime: InMemoryAdminRuntime = admin_runtime,
+    *,
+    invitation_repository: SqliteInvitationRepository | None = None,
+) -> FastAPI:
     app = FastAPI(title="PROJECT Admin Follow-up API")
 
     @app.get("/healthz")
@@ -95,6 +132,53 @@ def create_admin_api_app(runtime: InMemoryAdminRuntime = admin_runtime) -> FastA
     @app.get("/admin", response_class=HTMLResponse)
     def admin_home() -> RedirectResponse:
         return RedirectResponse("/admin/pages/follow-ups", status_code=303)
+
+    @app.get("/admin/pages/invitations", response_class=HTMLResponse)
+    def invitation_page() -> HTMLResponse:
+        if invitation_repository is None:
+            return _page(
+                "초대 코드",
+                _topbar("초대 코드")
+                + '<section class="card"><p class="error">SQLite 저장소가 켜져 있지 않아 초대 코드를 생성할 수 없습니다.</p></section>',
+            )
+        invitations = invitation_repository.list_invitations()
+        if invitations:
+            items = "\n".join(
+                f"""<section class="card">
+  <div>
+    <span class="badge">{escape(invitation.invite_status_code)}</span>
+    <span class="muted"> {escape(invitation.issued_at)}</span>
+  </div>
+  <h2>{escape(invitation.invite_code)}</h2>
+  <p class="message">{escape(invitation.start_command)}</p>
+  <p class="muted">프로젝트: {escape(invitation.project_id)} / 채널: {escape(invitation.channel_code)} / 역할: {escape(invitation.target_participant_role_code)}</p>
+</section>"""
+                for invitation in invitations
+            )
+        else:
+            items = '<section class="card"><p class="muted">생성된 초대 코드가 없습니다.</p></section>'
+        form = """<section class="card">
+  <h2>새 초대 코드 생성</h2>
+  <form method="post" accept-charset="utf-8">
+    <button type="submit">초대 코드 생성</button>
+  </form>
+</section>"""
+        return _page("초대 코드", _topbar("초대 코드") + form + items)
+
+    @app.post("/admin/pages/invitations")
+    async def submit_invitation_page(request: Request):
+        repository = _require_invitation_repository(invitation_repository)
+        raw_body = await request.body()
+        form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+        repository.create_invitation(
+            project_id=(form.get("project_id") or [DEFAULT_LOCAL_PROJECT_ID])[0] or DEFAULT_LOCAL_PROJECT_ID,
+            invited_by_admin_user_id=(form.get("invited_by_admin_user_id") or [DEFAULT_LOCAL_ADMIN_USER_ID])[0]
+            or DEFAULT_LOCAL_ADMIN_USER_ID,
+            channel_code=(form.get("channel_code") or [DEFAULT_INVITATION_CHANNEL])[0] or DEFAULT_INVITATION_CHANNEL,
+            target_participant_role_code=(form.get("target_participant_role_code") or [DEFAULT_INVITATION_ROLE])[0]
+            or DEFAULT_INVITATION_ROLE,
+        )
+        return RedirectResponse("/admin/pages/invitations", status_code=303)
 
     @app.get("/admin/pages/follow-ups", response_class=HTMLResponse)
     def follow_up_request_page(include_closed: bool = True) -> HTMLResponse:
@@ -224,5 +308,30 @@ def create_admin_api_app(runtime: InMemoryAdminRuntime = admin_runtime) -> FastA
     @app.get("/admin/outbox")
     def list_outbox() -> dict:
         return {"items": [_serialize(item) for item in runtime.list_outbox()]}
+
+    @app.post("/admin/invitations", status_code=201)
+    def create_invitation(request: CreateInvitationRequest) -> dict:
+        repository = _require_invitation_repository(invitation_repository)
+        invitation = repository.create_invitation(
+            project_id=request.project_id,
+            invited_by_admin_user_id=request.invited_by_admin_user_id,
+            channel_code=request.channel_code,
+            target_contact_type_code=request.target_contact_type_code,
+            target_contact_normalized=request.target_contact_normalized,
+            target_contact_raw=request.target_contact_raw,
+            target_participant_role_code=request.target_participant_role_code,
+            expires_at=request.expires_at,
+        )
+        return {"invitation": _serialize_invitation(invitation)}
+
+    @app.get("/admin/invitations")
+    def list_invitations(status: str | None = None) -> dict:
+        repository = _require_invitation_repository(invitation_repository)
+        return {
+            "items": [
+                _serialize_invitation(invitation)
+                for invitation in repository.list_invitations(status=status)
+            ],
+        }
 
     return app

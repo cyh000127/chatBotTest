@@ -26,7 +26,7 @@ def main() -> None:
     try:
         application = create_application(settings)
         if settings.admin_api.enabled:
-            start_admin_api_server(settings)
+            start_admin_api_server(settings, sqlite_runtime=sqlite_runtime)
         log_event(BOT_STARTED, **startup_log_fields(settings))
         application.run_polling()
     finally:
