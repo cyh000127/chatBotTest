@@ -133,6 +133,8 @@ def _page(title: str, body: str) -> HTMLResponse:
     .topbar {{ display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 24px; }}
     .admin-nav {{ display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }}
     .admin-nav a {{ display: inline-block; padding: 8px 12px; border-radius: 999px; background: #e8f2df; color: #2f5f26; }}
+    .dashboard {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }}
+    .dashboard .card {{ margin: 0; }}
     .card {{ background: #fffdf7; border: 1px solid #ded6c5; border-radius: 18px; padding: 18px; margin: 14px 0; box-shadow: 0 8px 24px rgba(64, 50, 26, 0.08); }}
     .muted {{ color: #6d675c; font-size: 14px; }}
     .badge {{ display: inline-block; padding: 4px 10px; border-radius: 999px; background: #e8f2df; color: #2f5f26; font-size: 13px; font-weight: 700; }}
@@ -184,6 +186,14 @@ def _topbar(title: str) -> str:
     <a href="/admin/pages/audit-events">감사 로그</a>
   </nav>
 </div>"""
+
+
+def _dashboard_card(title: str, value: str | int, href: str, description: str) -> str:
+    return f"""<section class="card">
+  <h2><a href="{escape(href)}">{escape(title)}</a></h2>
+  <p class="badge">{escape(str(value))}</p>
+  <p class="muted">{escape(description)}</p>
+</section>"""
 
 
 def _conversation_messages(messages: tuple[str, ...], *, empty_text: str) -> str:
@@ -390,8 +400,40 @@ def create_admin_api_app(
         return response
 
     @app.get("/admin", response_class=HTMLResponse)
-    def admin_home() -> RedirectResponse:
-        return RedirectResponse("/admin/pages/follow-ups", status_code=303)
+    def admin_home() -> HTMLResponse:
+        follow_ups = runtime.list_follow_ups(include_closed=True)
+        open_follow_up_count = sum(1 for item in follow_ups if not item.closed)
+        waiting_follow_up_count = sum(1 for item in follow_ups if item.awaiting_admin_reply and not item.closed)
+
+        pending_outbox_count = len(runtime.list_outbox(status=OutboxStatus.PENDING))
+        failed_outbox_count = len(runtime.list_outbox(status=OutboxStatus.FAILED))
+        manual_review_outbox_count = len(runtime.list_outbox(status=OutboxStatus.MANUAL_REVIEW))
+
+        invitation_count: str | int = "비활성"
+        if invitation_repository is not None:
+            invitation_count = len(invitation_repository.list_invitations())
+
+        pending_onboarding_count: str | int = "비활성"
+        if onboarding_admin_repository is not None:
+            pending_onboarding_count = len(onboarding_admin_repository.list_pending_submissions())
+
+        audit_count: str | int = "비활성"
+        if admin_audit_repository is not None:
+            audit_count = len(admin_audit_repository.list_events(limit=20))
+
+        body = _topbar("Admin Dashboard") + f"""<section class="card">
+  <p>로컬 관리자 기능의 현재 상태를 확인하고 필요한 작업 화면으로 이동합니다.</p>
+  <p class="muted">이 화면은 운영 검증용 요약이며, 관리자 답변은 outbox를 거쳐 기존 챗봇 대화창으로 중계됩니다.</p>
+</section>
+<section class="dashboard" aria-label="Admin dashboard summary">
+  {_dashboard_card("지원 이관", f"{open_follow_up_count} open / {waiting_follow_up_count} waiting", "/admin/pages/follow-ups", "사용자 지원 이관 요청과 대화 내역을 확인합니다.")}
+  {_dashboard_card("초대 코드", invitation_count, "/admin/pages/invitations", "사용자가 /start 코드로 진입할 수 있는 초대 코드를 관리합니다.")}
+  {_dashboard_card("온보딩 승인", pending_onboarding_count, "/admin/pages/onboarding/submissions", "제출된 온보딩 신청을 승인하거나 반려합니다.")}
+  {_dashboard_card("발송 대기", f"{pending_outbox_count} pending / {failed_outbox_count} failed", "/admin/pages/outbox", "봇 전송 계층으로 전달될 메시지 상태를 확인합니다.")}
+  {_dashboard_card("운영 검토", manual_review_outbox_count, "/admin/pages/outbox?status=manual_review", "재시도 한도를 초과한 outbox 메시지를 점검합니다.")}
+  {_dashboard_card("감사 로그", audit_count, "/admin/pages/audit-events", "관리자 쓰기 작업과 접근 제어 이벤트를 확인합니다.")}
+</section>"""
+        return _page("Admin Dashboard", body)
 
     @app.get("/admin/pages/invitations", response_class=HTMLResponse)
     def invitation_page() -> HTMLResponse:

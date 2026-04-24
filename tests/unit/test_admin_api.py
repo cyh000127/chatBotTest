@@ -480,6 +480,69 @@ def test_admin_pages_share_navigation_links():
         assert "/admin/pages/audit-events" in response.text
 
 
+def test_admin_home_dashboard_shows_summary_and_links(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        invitation_repository = SqliteInvitationRepository(sqlite_runtime.connection)
+        onboarding_admin_repository = SqliteOnboardingAdminRepository(sqlite_runtime.connection)
+        audit_repository = SqliteAdminAuditRepository(sqlite_runtime.connection)
+        invitation_repository.create_invitation()
+        create_pending_onboarding_submission(sqlite_runtime)
+        audit_repository.record_event(action_code="admin.test", source_code="test")
+
+        runtime = InMemoryAdminRuntime()
+        runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+        )
+        reply_target = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=21,
+            user_id=11,
+            current_step="main_menu",
+        )
+        _, outbox_message = runtime.create_admin_reply(reply_target.follow_up_id, "입력 내용을 확인했습니다.")
+        for _ in range(DEFAULT_OUTBOX_MAX_RETRY_COUNT):
+            runtime.mark_outbox_failed(outbox_message.outbox_id, "transport down")
+
+        client = TestClient(
+            create_admin_api_app(
+                runtime,
+                invitation_repository=invitation_repository,
+                onboarding_admin_repository=onboarding_admin_repository,
+                admin_audit_repository=audit_repository,
+            )
+        )
+
+        response = client.get("/admin")
+
+        assert response.status_code == 200
+        assert "Admin Dashboard" in response.text
+        assert "지원 이관" in response.text
+        assert "초대 코드" in response.text
+        assert "온보딩 승인" in response.text
+        assert "발송 대기" in response.text
+        assert "운영 검토" in response.text
+        assert "감사 로그" in response.text
+        assert "/admin/pages/follow-ups" in response.text
+        assert "/admin/pages/invitations" in response.text
+        assert "/admin/pages/onboarding/submissions" in response.text
+        assert "/admin/pages/outbox?status=manual_review" in response.text
+        assert "/admin/pages/audit-events" in response.text
+    finally:
+        sqlite_runtime.close()
+
+
 def test_admin_pages_show_follow_up_conversation():
     runtime = InMemoryAdminRuntime()
     follow_up = runtime.create_follow_up(

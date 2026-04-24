@@ -99,12 +99,17 @@ Invoke-RestMethod -Method Post `
 Admin browser pages:
 
 ```text
+http://127.0.0.1:8000/admin
 http://127.0.0.1:8000/admin/pages/follow-ups
 http://127.0.0.1:8000/admin/pages/invitations
 http://127.0.0.1:8000/admin/pages/onboarding/submissions
 http://127.0.0.1:8000/admin/pages/outbox
 http://127.0.0.1:8000/admin/pages/audit-events
 ```
+
+`/admin` is the local admin dashboard. It summarizes queue, invitation,
+onboarding, outbox, manual-review, and audit-log entry points without exposing
+secret values.
 
 Manual-review outbox filter:
 
