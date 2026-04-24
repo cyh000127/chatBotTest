@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.invitations import SqliteInvitationRepository
 from PROJECT.storage.onboarding import (
@@ -75,5 +77,23 @@ def test_onboarding_repository_resumes_existing_open_session(tmp_path):
         assert second.id == first.id
         assert second.provider_handle == "updated_handle"
         assert len(events) == 1
+    finally:
+        runtime.close()
+
+
+def test_onboarding_repository_rejects_revoked_invitation(tmp_path):
+    runtime, invitation_repository, onboarding_repository = bootstrap_repositories(tmp_path)
+
+    try:
+        invitation = invitation_repository.create_invitation()
+        revoked = invitation_repository.revoke_invitation(invitation.id)
+        assert revoked is not None
+
+        with pytest.raises(ValueError, match="사용할 수 없는 초대 코드"):
+            onboarding_repository.create_or_resume_from_invitation(
+                invitation=revoked,
+                provider_user_id="12345",
+                provider_handle="farmer_user",
+            )
     finally:
         runtime.close()

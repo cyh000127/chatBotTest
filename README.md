@@ -134,6 +134,9 @@ python -m PROJECT.main
 - `GET /admin/follow-ups/{follow_up_id}`
 - `POST /admin/follow-ups/{follow_up_id}/reply`
 - `POST /admin/follow-ups/{follow_up_id}/close`
+- `GET /admin/invitations`
+- `POST /admin/invitations`
+- `POST /admin/invitations/{invitation_id}/revoke`
 - `GET /admin/outbox`
 - `POST /admin/outbox/{outbox_id}/requeue`
 - `GET /admin/audit-events`

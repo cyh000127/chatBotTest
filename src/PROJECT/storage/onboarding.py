@@ -3,11 +3,12 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from threading import RLock
 from uuid import uuid4
 
 from PROJECT.i18n.translator import DEFAULT_LOCALE
-from PROJECT.storage.invitations import AdminInvitation, utc_now_text
+from PROJECT.storage.invitations import AdminInvitation, INVITATION_STATUS_ISSUED, utc_now_text
 
 
 DEFAULT_CHANNEL_CODE = "telegram"
@@ -79,6 +80,8 @@ class SqliteOnboardingRepository:
         preferred_locale_code: str = DEFAULT_LOCALE,
         chat_id: int | None = None,
     ) -> OnboardingSession:
+        if not _invitation_can_start_onboarding(invitation):
+            raise ValueError("사용할 수 없는 초대 코드입니다.")
         with self._lock:
             existing = self._find_open_session(
                 project_invitation_id=invitation.id,
@@ -422,3 +425,19 @@ def _draft_from_json(payload_json: str) -> dict:
     if not isinstance(payload, dict):
         return {}
     return payload
+
+
+def _invitation_can_start_onboarding(invitation: AdminInvitation) -> bool:
+    if invitation.invite_status_code != INVITATION_STATUS_ISSUED:
+        return False
+    if invitation.revoked_at:
+        return False
+    if invitation.expires_at is None:
+        return True
+    try:
+        expires_at = datetime.fromisoformat(invitation.expires_at)
+    except ValueError:
+        return False
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+    return expires_at > datetime.now(UTC)

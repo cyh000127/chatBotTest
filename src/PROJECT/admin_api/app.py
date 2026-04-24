@@ -13,6 +13,7 @@ from PROJECT.storage.invitations import (
     DEFAULT_INVITATION_ROLE,
     DEFAULT_LOCAL_ADMIN_USER_ID,
     DEFAULT_LOCAL_PROJECT_ID,
+    INVITATION_STATUS_ISSUED,
     SqliteInvitationRepository,
 )
 from PROJECT.storage.admin_audit import RESULT_FAILURE, RESULT_SUCCESS, SqliteAdminAuditRepository
@@ -223,6 +224,14 @@ def _follow_up_close_form(follow_up_id: str, *, closed: bool) -> str:
     <input id="reason" name="reason" value="admin_resolved" required>
     <p class="muted">종료 안내는 outbox에 기록되며, 실제 전송은 봇 delivery loop가 처리합니다.</p>
     <button type="submit">요청 종료</button>
+  </form>"""
+
+
+def _invitation_revoke_form(invitation_id: str, status: str) -> str:
+    if status != INVITATION_STATUS_ISSUED:
+        return ""
+    return f"""<form method="post" action="/admin/pages/invitations/{escape(invitation_id)}/revoke" accept-charset="utf-8">
+    <button type="submit">초대 코드 회수</button>
   </form>"""
 
 
@@ -501,6 +510,7 @@ def create_admin_api_app(
   <h2>{escape(invitation.invite_code)}</h2>
   <p class="message">{escape(invitation.start_command)}</p>
   <p class="muted">프로젝트: {escape(invitation.project_id)} / 채널: {escape(invitation.channel_code)} / 역할: {escape(invitation.target_participant_role_code)}</p>
+  {_invitation_revoke_form(invitation.id, invitation.invite_status_code)}
 </section>"""
                 for invitation in invitations
             )
@@ -693,6 +703,23 @@ def create_admin_api_app(
                 "channel_code": invitation.channel_code,
                 "target_participant_role_code": invitation.target_participant_role_code,
             },
+        )
+        return RedirectResponse("/admin/pages/invitations", status_code=303)
+
+    @app.post("/admin/pages/invitations/{invitation_id}/revoke")
+    def submit_invitation_revoke_page(invitation_id: str, request: Request):
+        repository = _require_invitation_repository(invitation_repository)
+        invitation = repository.revoke_invitation(invitation_id)
+        if invitation is None:
+            raise HTTPException(status_code=404, detail="issued invitation not found")
+        record_admin_audit(
+            request,
+            action_code="admin.invitation.revoke",
+            source_code="admin.web.invitation.revoke",
+            target_type_code="project_invitation",
+            target_id=invitation.id,
+            actor_id=admin_actor_id(request),
+            detail={"invite_status_code": invitation.invite_status_code},
         )
         return RedirectResponse("/admin/pages/invitations", status_code=303)
 
@@ -944,6 +971,23 @@ def create_admin_api_app(
                 for invitation in repository.list_invitations(status=status)
             ],
         }
+
+    @app.post("/admin/invitations/{invitation_id}/revoke")
+    def revoke_invitation(invitation_id: str, request: Request) -> dict:
+        repository = _require_invitation_repository(invitation_repository)
+        invitation = repository.revoke_invitation(invitation_id)
+        if invitation is None:
+            raise HTTPException(status_code=404, detail="issued invitation not found")
+        record_admin_audit(
+            request,
+            action_code="admin.invitation.revoke",
+            source_code="admin.api.invitation.revoke",
+            target_type_code="project_invitation",
+            target_id=invitation.id,
+            actor_id=admin_actor_id(request),
+            detail={"invite_status_code": invitation.invite_status_code},
+        )
+        return {"invitation": _serialize_invitation(invitation)}
 
     @app.get("/admin/onboarding/submissions")
     def list_onboarding_submissions() -> dict:

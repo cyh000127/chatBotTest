@@ -4,7 +4,7 @@ from PROJECT.admin.follow_up import DEFAULT_OUTBOX_MAX_RETRY_COUNT, FOLLOW_UP_CL
 from PROJECT.admin_api.app import create_admin_api_app
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.admin_audit import RESULT_FAILURE, RESULT_SUCCESS, SqliteAdminAuditRepository
-from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED, SqliteInvitationRepository
+from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED, INVITATION_STATUS_REVOKED, SqliteInvitationRepository
 from PROJECT.storage.onboarding import ONBOARDING_STATUS_APPROVED, ONBOARDING_STATUS_REJECTED, SqliteOnboardingRepository
 from PROJECT.storage.onboarding_admin import OUTBOX_STATUS_PENDING, SqliteOnboardingAdminRepository
 from PROJECT.storage.sqlite import bootstrap_sqlite_runtime
@@ -848,6 +848,43 @@ def test_admin_api_creates_and_lists_invitations(tmp_path):
         runtime.close()
 
 
+def test_admin_api_revokes_invitation_and_writes_audit_event(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        repository = SqliteInvitationRepository(runtime.connection)
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        invitation = repository.create_invitation()
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                invitation_repository=repository,
+                admin_audit_repository=audit_repository,
+            )
+        )
+
+        response = client.post(f"/admin/invitations/{invitation.id}/revoke")
+        issued = client.get(f"/admin/invitations?status={INVITATION_STATUS_ISSUED}")
+        revoked = client.get(f"/admin/invitations?status={INVITATION_STATUS_REVOKED}")
+        audit_event = audit_repository.list_events()[0]
+
+        assert response.status_code == 200
+        assert response.json()["invitation"]["invite_status_code"] == INVITATION_STATUS_REVOKED
+        assert response.json()["invitation"]["revoked_at"] is not None
+        assert issued.json()["items"] == []
+        assert revoked.json()["items"][0]["id"] == invitation.id
+        assert audit_event.action_code == "admin.invitation.revoke"
+        assert audit_event.target_id == invitation.id
+        assert audit_event.detail == {"invite_status_code": INVITATION_STATUS_REVOKED}
+    finally:
+        runtime.close()
+
+
 def test_admin_invitation_page_creates_invitation(tmp_path):
     runtime = bootstrap_sqlite_runtime(
         SqliteSettings(
@@ -868,6 +905,39 @@ def test_admin_invitation_page_creates_invitation(tmp_path):
         assert page_response.status_code == 200
         assert "초대 코드" in page_response.text
         assert "/start INV-" in page_response.text
+    finally:
+        runtime.close()
+
+
+def test_admin_invitation_page_revokes_invitation(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        repository = SqliteInvitationRepository(runtime.connection)
+        invitation = repository.create_invitation()
+        client = TestClient(create_admin_api_app(InMemoryAdminRuntime(), invitation_repository=repository))
+
+        page = client.get("/admin/pages/invitations")
+        response = client.post(
+            f"/admin/pages/invitations/{invitation.id}/revoke",
+            follow_redirects=False,
+        )
+        updated_page = client.get("/admin/pages/invitations")
+        revoked = repository.get_by_id(invitation.id)
+
+        assert page.status_code == 200
+        assert "초대 코드 회수" in page.text
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/pages/invitations"
+        assert revoked is not None
+        assert revoked.invite_status_code == INVITATION_STATUS_REVOKED
+        assert "revoked" in updated_page.text
+        assert "초대 코드 회수" not in updated_page.text
     finally:
         runtime.close()
 

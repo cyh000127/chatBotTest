@@ -118,6 +118,16 @@ The first implementation may seed a single default project and a single local ad
 
 `invite_code` is the human-operable value used in messenger onboarding. `invite_token_hash` is reserved for bearer-style invitation token handling and should be populated when the implementation issues a secret token rather than a short operator-managed code.
 
+Invitation status vocabulary:
+
+- `issued`
+- `used`
+- `revoked`
+
+Only `issued` invitations can start onboarding. Revoked invitations must remain
+queryable for audit and operations, but they must not create new onboarding
+sessions.
+
 ## 6. Invitation And Onboarding Tables
 
 ```sql

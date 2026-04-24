@@ -8,6 +8,7 @@ from PROJECT.storage.invitations import (
     DEFAULT_LOCAL_ADMIN_USER_ID,
     DEFAULT_LOCAL_PROJECT_ID,
     INVITATION_STATUS_ISSUED,
+    INVITATION_STATUS_REVOKED,
     SqliteInvitationRepository,
     generate_invite_code,
 )
@@ -45,6 +46,24 @@ def test_invitation_repository_creates_and_lists_invitation(tmp_path):
         assert repository.list_invitations() == (invitation,)
         assert repository.list_invitations(status=INVITATION_STATUS_ISSUED) == (invitation,)
         assert repository.list_invitations(status="used") == ()
+    finally:
+        runtime.close()
+
+
+def test_invitation_repository_revokes_issued_invitation(tmp_path):
+    runtime, repository = bootstrap_repository(tmp_path)
+
+    try:
+        invitation = repository.create_invitation()
+
+        revoked = repository.revoke_invitation(invitation.id)
+
+        assert revoked is not None
+        assert revoked.invite_status_code == INVITATION_STATUS_REVOKED
+        assert revoked.revoked_at is not None
+        assert repository.get_by_code(invitation.invite_code) == revoked
+        assert repository.list_invitations(status=INVITATION_STATUS_ISSUED) == ()
+        assert repository.list_invitations(status=INVITATION_STATUS_REVOKED) == (revoked,)
     finally:
         runtime.close()
 

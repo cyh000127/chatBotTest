@@ -14,6 +14,7 @@ DEFAULT_LOCAL_PROJECT_ID = "project_local_default"
 DEFAULT_INVITATION_CHANNEL = "telegram"
 DEFAULT_INVITATION_ROLE = "farmer"
 INVITATION_STATUS_ISSUED = "issued"
+INVITATION_STATUS_REVOKED = "revoked"
 INVITATION_STATUS_USED = "used"
 INVITE_CODE_PREFIX = "INV"
 INVITE_CODE_ALPHABET = "".join(ch for ch in string.ascii_uppercase + string.digits if ch not in {"0", "O", "1", "I"})
@@ -118,6 +119,47 @@ class SqliteInvitationRepository:
             if row is None:
                 return None
             return row_to_invitation(row)
+
+    def get_by_id(self, invitation_id: str) -> AdminInvitation | None:
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT * FROM project_invitations WHERE id = ?",
+                (invitation_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            return row_to_invitation(row)
+
+    def revoke_invitation(self, invitation_id: str) -> AdminInvitation | None:
+        with self._lock:
+            invitation = self.get_by_id(invitation_id)
+            if invitation is None:
+                return None
+            if invitation.invite_status_code == INVITATION_STATUS_REVOKED:
+                return invitation
+            if invitation.invite_status_code != INVITATION_STATUS_ISSUED:
+                return None
+            now = utc_now_text()
+            self._connection.execute(
+                """
+                UPDATE project_invitations
+                SET invite_status_code = ?,
+                    revoked_at = ?,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    INVITATION_STATUS_REVOKED,
+                    now,
+                    now,
+                    invitation_id,
+                ),
+            )
+            self._connection.commit()
+            revoked = self.get_by_id(invitation_id)
+            if revoked is None:
+                raise RuntimeError("회수한 초대 코드를 다시 읽을 수 없습니다.")
+            return revoked
 
     def _insert_invitation(
         self,

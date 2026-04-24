@@ -176,6 +176,7 @@ Invitation flow:
 3. Admin shares the code outside the bot.
 4. Farmer uses `/start <invite_code>`.
 5. Runtime marks the invitation as used only when onboarding progresses to the accepted state defined by implementation rules.
+6. Admin can revoke an unused issued invitation; revoked invitations cannot start onboarding.
 
 Approval flow:
 
@@ -535,6 +536,7 @@ Implemented local hardening:
 - local admin action audit trail for write-oriented admin operations
 - outbox retry exhaustion to `manual_review`
 - admin requeue from `manual_review` back to bot-mediated `pending`
+- admin revoke for unused issued invitation codes
 
 Remaining production hardening:
 
