@@ -34,6 +34,11 @@ class AdminApiSettings:
     host: str = DEFAULT_ADMIN_API_HOST
     port: int = DEFAULT_ADMIN_API_PORT
     outbox_poll_interval_seconds: float = DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS
+    access_token: str = ""
+
+    @property
+    def access_control_enabled(self) -> bool:
+        return bool(self.access_token)
 
 
 @dataclass(frozen=True)
@@ -181,6 +186,7 @@ def load_settings() -> Settings:
             host=admin_api_host,
             port=admin_api_port,
             outbox_poll_interval_seconds=admin_outbox_poll_interval_seconds,
+            access_token=os.getenv("ADMIN_API_ACCESS_TOKEN", "").strip(),
         ),
         sqlite=load_sqlite_settings(),
     )

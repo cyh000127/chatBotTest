@@ -44,6 +44,7 @@ def start_admin_api_server(
             api_runtime,
             invitation_repository=invitation_repository,
             onboarding_admin_repository=onboarding_admin_repository,
+            admin_access_token=settings.admin_api.access_token,
         ),
         host=settings.admin_api.host,
         port=settings.admin_api.port,

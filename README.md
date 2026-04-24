@@ -99,6 +99,7 @@ python -m PROJECT.main
 $env:ADMIN_API_ENABLED = "true"
 $env:ADMIN_API_HOST = "127.0.0.1"
 $env:ADMIN_API_PORT = "8000"
+$env:ADMIN_API_ACCESS_TOKEN = "replace_with_local_admin_token"
 python -m PROJECT.main
 ```
 
@@ -111,6 +112,8 @@ python -m PROJECT.main
 - 사용자 응답 작성: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}/reply`
 
 이 화면에서 응답을 보내면 admin reply가 follow-up 항목에 기록되고 outbox에 메시지가 생성된다.
+
+`ADMIN_API_ACCESS_TOKEN`이 설정되어 있으면 관리자 화면은 `/admin/login`에서 access token을 입력한 뒤 접근할 수 있다. 이 값은 실제 환경 파일에만 두고 코드나 문서 예시에 실제 토큰을 남기지 않는다.
 
 ## JSON API
 
@@ -127,6 +130,7 @@ PowerShell에서 JSON API로 한글 응답을 직접 보낼 때는 `charset=utf-
 ```powershell
 Invoke-RestMethod -Method Post `
   -Uri "http://127.0.0.1:8000/admin/follow-ups/{follow_up_id}/reply" `
+  -Headers @{ "X-Admin-Token" = $env:ADMIN_API_ACCESS_TOKEN } `
   -ContentType "application/json; charset=utf-8" `
   -Body '{"message":"입력 내용을 확인했습니다. 아래 메뉴에서 다시 선택해주세요."}'
 ```
@@ -139,6 +143,7 @@ $body = [System.Text.Encoding]::UTF8.GetBytes($json)
 
 Invoke-RestMethod -Method Post `
   -Uri "http://127.0.0.1:8000/admin/follow-ups/{follow_up_id}/reply" `
+  -Headers @{ "X-Admin-Token" = $env:ADMIN_API_ACCESS_TOKEN } `
   -ContentType "application/json; charset=utf-8" `
   -Body $body
 ```

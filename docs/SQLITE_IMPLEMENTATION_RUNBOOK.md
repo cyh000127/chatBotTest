@@ -25,6 +25,7 @@ ADMIN_API_ENABLED=true
 ADMIN_API_HOST=127.0.0.1
 ADMIN_API_PORT=8000
 ADMIN_OUTBOX_POLL_INTERVAL_SECONDS=1
+ADMIN_API_ACCESS_TOKEN=replace_with_local_admin_token
 ```
 
 The SQLite-backed runtime additionally requires a database path and migration settings.
@@ -40,6 +41,8 @@ Rules:
 - `SQLITE_DATABASE_PATH` must be absolute.
 - the database file must not be committed.
 - local database, journal, WAL, SHM, and backup files must stay outside version control.
+- `ADMIN_API_ACCESS_TOKEN` should be set when the local admin API is exposed beyond a disposable local shell.
+- admin tokens must be sent through the login form, `Authorization: Bearer`, or `X-Admin-Token`; tokens must not be sent in URLs.
 - missing model credentials must not block the rules-only runtime.
 
 ## 3. Execution Flow
@@ -65,6 +68,14 @@ Admin follow-up list:
 Invoke-RestMethod -Method Get -Uri "http://127.0.0.1:8000/admin/follow-ups"
 ```
 
+Admin follow-up list with access token:
+
+```powershell
+Invoke-RestMethod -Method Get `
+  -Uri "http://127.0.0.1:8000/admin/follow-ups" `
+  -Headers @{ "X-Admin-Token" = $env:ADMIN_API_ACCESS_TOKEN }
+```
+
 Admin reply example:
 
 ```powershell
@@ -73,6 +84,7 @@ $body = [System.Text.Encoding]::UTF8.GetBytes($json)
 
 Invoke-RestMethod -Method Post `
   -Uri "http://127.0.0.1:8000/admin/follow-ups/{follow_up_id}/reply" `
+  -Headers @{ "X-Admin-Token" = $env:ADMIN_API_ACCESS_TOKEN } `
   -ContentType "application/json; charset=utf-8" `
   -Body $body
 ```
@@ -85,6 +97,8 @@ http://127.0.0.1:8000/admin/pages/invitations
 http://127.0.0.1:8000/admin/pages/onboarding/submissions
 http://127.0.0.1:8000/admin/pages/outbox
 ```
+
+If `ADMIN_API_ACCESS_TOKEN` is configured, browser requests are redirected to `/admin/login` before accessing admin pages.
 
 ## 4. Startup Sequence
 
@@ -156,6 +170,8 @@ Follow-up flow:
 7. Delivery result updates message and outbox state.
 
 Admin API and admin pages must not send Telegram messages directly.
+
+If the local admin access-token gate is enabled, all admin JSON and browser routes require authentication before queue, invitation, onboarding, or outbox data is exposed.
 
 ## 7. Implementation Commits
 
@@ -452,3 +468,16 @@ The SQLite implementation is complete when:
 - no demo-only profile, weather, or date flow becomes part of product onboarding
 
 Current status: complete for the local SQLite runtime baseline. Future production hardening is tracked separately from this local runtime baseline.
+
+Implemented local hardening:
+
+- optional `ADMIN_API_ACCESS_TOKEN` gate for Admin API and admin pages
+- browser login cookie for local admin pages
+- header-based access for JSON API clients
+
+Remaining production hardening:
+
+- real admin identity provider
+- role-based access control
+- request audit trail
+- token rotation policy

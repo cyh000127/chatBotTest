@@ -55,6 +55,55 @@ def test_admin_api_lists_follow_ups_and_accepts_reply():
     assert runtime.list_outbox(status=OutboxStatus.PENDING)[0].text == "사진을 다시 보내주세요."
 
 
+def test_admin_api_access_token_blocks_admin_api_without_credentials():
+    runtime = InMemoryAdminRuntime()
+    client = TestClient(create_admin_api_app(runtime, admin_access_token="secret-token"))
+
+    response = client.get("/admin/follow-ups")
+    health = client.get("/healthz")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "admin authentication required"
+    assert health.status_code == 200
+
+
+def test_admin_api_access_token_allows_header_credentials():
+    runtime = InMemoryAdminRuntime()
+    runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+    client = TestClient(create_admin_api_app(runtime, admin_access_token="secret-token"))
+
+    response = client.get("/admin/follow-ups", headers={"X-Admin-Token": "secret-token"})
+
+    assert response.status_code == 200
+    assert len(response.json()["items"]) == 1
+
+
+def test_admin_page_access_token_redirects_to_login_and_sets_cookie():
+    runtime = InMemoryAdminRuntime()
+    client = TestClient(create_admin_api_app(runtime, admin_access_token="secret-token"))
+
+    blocked = client.get("/admin/pages/follow-ups", follow_redirects=False)
+    failed_login = client.post("/admin/login", data={"access_token": "wrong"})
+    login = client.post("/admin/login", data={"access_token": "secret-token"}, follow_redirects=False)
+    allowed = client.get("/admin/pages/follow-ups")
+
+    assert blocked.status_code == 303
+    assert blocked.headers["location"] == "/admin/login"
+    assert failed_login.status_code == 401
+    assert "올바르지 않습니다" in failed_login.text
+    assert login.status_code == 303
+    assert login.headers["location"] == "/admin"
+    assert "admin_access_token" in login.headers["set-cookie"]
+    assert allowed.status_code == 200
+    assert "지원 이관 요청 목록" in allowed.text
+
+
 def test_admin_api_returns_404_for_missing_follow_up_reply():
     client = TestClient(create_admin_api_app(InMemoryAdminRuntime()))
 

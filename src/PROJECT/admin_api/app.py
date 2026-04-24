@@ -3,7 +3,7 @@ from html import escape
 from urllib.parse import parse_qs
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from PROJECT.admin.follow_up import InMemoryAdminRuntime, admin_runtime
@@ -103,7 +103,8 @@ def _page(title: str, body: str) -> HTMLResponse:
     .closed {{ background: #eee9df; color: #6a6154; }}
     .message {{ white-space: pre-wrap; border-left: 4px solid #d7c49b; padding: 10px 12px; margin: 8px 0; background: #fbf7ed; border-radius: 10px; }}
     label {{ display: block; font-weight: 700; margin-bottom: 8px; }}
-    textarea {{ box-sizing: border-box; width: 100%; min-height: 150px; padding: 12px; border: 1px solid #cfc4b2; border-radius: 12px; font: inherit; background: #fffdf9; }}
+    input, textarea {{ box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid #cfc4b2; border-radius: 12px; font: inherit; background: #fffdf9; }}
+    textarea {{ min-height: 150px; }}
     button {{ margin-top: 12px; padding: 11px 16px; border: 0; border-radius: 999px; background: #286a46; color: white; font-weight: 800; cursor: pointer; }}
     button:hover {{ background: #1f5438; }}
     .error {{ color: #9d2f1f; font-weight: 700; }}
@@ -115,6 +116,23 @@ def _page(title: str, body: str) -> HTMLResponse:
 </main>
 </body>
 </html>"""
+    )
+
+
+def _login_page(*, error: str = "") -> HTMLResponse:
+    error_block = f'<p class="error">{escape(error)}</p>' if error else ""
+    return _page(
+        "Admin Login",
+        f"""<section class="card">
+  <h1>Admin Login</h1>
+  <p class="muted">관리자 access token을 입력하세요.</p>
+  {error_block}
+  <form method="post" action="/admin/login" accept-charset="utf-8">
+    <label for="access_token">Access token</label>
+    <input id="access_token" name="access_token" type="password" required>
+    <button type="submit">로그인</button>
+  </form>
+</section>""",
     )
 
 
@@ -148,12 +166,65 @@ def create_admin_api_app(
     *,
     invitation_repository: SqliteInvitationRepository | None = None,
     onboarding_admin_repository: SqliteOnboardingAdminRepository | None = None,
+    admin_access_token: str = "",
 ) -> FastAPI:
     app = FastAPI(title="PROJECT Admin Follow-up API")
+
+    def admin_request_authorized(request: Request) -> bool:
+        if not admin_access_token:
+            return True
+        authorization = request.headers.get("authorization", "")
+        bearer_prefix = "Bearer "
+        if authorization.startswith(bearer_prefix) and authorization[len(bearer_prefix):] == admin_access_token:
+            return True
+        if request.headers.get("x-admin-token") == admin_access_token:
+            return True
+        if request.cookies.get("admin_access_token") == admin_access_token:
+            return True
+        return False
+
+    def wants_html(request: Request) -> bool:
+        accept = request.headers.get("accept", "")
+        return "text/html" in accept or request.url.path.startswith("/admin/pages") or request.url.path in {"/admin", "/admin/login"}
+
+    @app.middleware("http")
+    async def require_admin_access(request: Request, call_next):
+        path = request.url.path
+        if not path.startswith("/admin") or path == "/admin/login":
+            return await call_next(request)
+        if admin_request_authorized(request):
+            return await call_next(request)
+        if wants_html(request):
+            return RedirectResponse("/admin/login", status_code=303)
+        return JSONResponse({"detail": "admin authentication required"}, status_code=401)
 
     @app.get("/healthz")
     def healthz() -> dict:
         return {"status": "ok"}
+
+    @app.get("/admin/login", response_class=HTMLResponse)
+    def admin_login_page() -> HTMLResponse:
+        return _login_page()
+
+    @app.post("/admin/login")
+    async def submit_admin_login(request: Request):
+        if not admin_access_token:
+            return RedirectResponse("/admin", status_code=303)
+        raw_body = await request.body()
+        form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+        access_token = (form.get("access_token") or [""])[0]
+        if access_token != admin_access_token:
+            response = _login_page(error="Access token이 올바르지 않습니다.")
+            response.status_code = 401
+            return response
+        response = RedirectResponse("/admin", status_code=303)
+        response.set_cookie(
+            "admin_access_token",
+            admin_access_token,
+            httponly=True,
+            samesite="lax",
+        )
+        return response
 
     @app.get("/admin", response_class=HTMLResponse)
     def admin_home() -> RedirectResponse:

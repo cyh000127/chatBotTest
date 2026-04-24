@@ -53,7 +53,18 @@ ADMIN_API_ENABLED=true
 ADMIN_API_HOST=127.0.0.1
 ADMIN_API_PORT=8000
 ADMIN_OUTBOX_POLL_INTERVAL_SECONDS=1
+ADMIN_API_ACCESS_TOKEN=replace_with_local_admin_token
 ```
+
+`ADMIN_API_ACCESS_TOKEN` is optional for disposable local-only development. When it is set, every admin route requires authentication.
+
+Supported local authentication methods:
+
+- browser admin pages use the `/admin/login` form and an HTTP-only cookie.
+- JSON API requests may use `Authorization: Bearer <token>`.
+- JSON API requests may use `X-Admin-Token: <token>`.
+
+The token must not be placed in URLs and must not be committed to version control.
 
 Telegram bot execution still requires:
 
@@ -173,6 +184,8 @@ SQLite-backed admin features should remain limited to runtime-safe operations:
 The local admin surface should not introduce product behavior that is absent from the reference documents.
 
 The admin surface should not bypass bot-mediated delivery. Admin replies must be written to the outbox and delivered by the bot delivery loop.
+
+When `ADMIN_API_ACCESS_TOKEN` is configured, the local admin surface is protected by a runtime access-token gate. This is a local safety control for development and pilot verification. It is not a replacement for production RBAC, audit logging, or upstream admin identity.
 
 ## 10. Outbox Retry Policy
 

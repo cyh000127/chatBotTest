@@ -21,6 +21,8 @@ def test_settings_defaults_include_gemini_configuration():
     assert settings.admin_api.host == DEFAULT_ADMIN_API_HOST
     assert settings.admin_api.port == DEFAULT_ADMIN_API_PORT
     assert settings.admin_api.outbox_poll_interval_seconds == DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS
+    assert settings.admin_api.access_token == ""
+    assert settings.admin_api.access_control_enabled is False
     assert settings.sqlite == SqliteSettings()
     assert settings.sqlite.enabled is False
     assert settings.sqlite.busy_timeout_ms == DEFAULT_SQLITE_BUSY_TIMEOUT_MS
@@ -134,6 +136,7 @@ def test_load_settings_reads_admin_api_env(monkeypatch):
     monkeypatch.setenv("ADMIN_API_HOST", "0.0.0.0")
     monkeypatch.setenv("ADMIN_API_PORT", "9000")
     monkeypatch.setenv("ADMIN_OUTBOX_POLL_INTERVAL_SECONDS", "2.5")
+    monkeypatch.setenv("ADMIN_API_ACCESS_TOKEN", "test-admin-token")
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
     settings = load_settings()
@@ -142,6 +145,8 @@ def test_load_settings_reads_admin_api_env(monkeypatch):
     assert settings.admin_api.host == "0.0.0.0"
     assert settings.admin_api.port == 9000
     assert settings.admin_api.outbox_poll_interval_seconds == 2.5
+    assert settings.admin_api.access_token == "test-admin-token"
+    assert settings.admin_api.access_control_enabled is True
 
 
 def test_load_settings_reads_sqlite_env(monkeypatch, tmp_path):
