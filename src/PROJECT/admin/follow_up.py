@@ -13,6 +13,7 @@ from PROJECT.telemetry.events import (
     ADMIN_FOLLOW_UP_USER_MESSAGE_ADDED,
     ADMIN_REPLY_CREATED,
     OUTBOX_MESSAGE_CREATED,
+    OUTBOX_MESSAGE_REQUEUED,
 )
 
 
@@ -346,6 +347,33 @@ class InMemoryAdminRuntime:
 
     def mark_outbox_failed(self, outbox_id: str, error_message: str) -> OutboxMessage | None:
         return self._replace_outbox_status(outbox_id, OutboxStatus.FAILED, error_message=error_message)
+
+    def requeue_manual_review_outbox(
+        self,
+        outbox_id: str,
+        *,
+        source: str = "admin.outbox.requeue",
+    ) -> OutboxMessage | None:
+        with self._lock:
+            message = self._outbox.get(outbox_id)
+            if message is None or message.status != OutboxStatus.MANUAL_REVIEW:
+                return None
+            updated = replace(
+                message,
+                status=OutboxStatus.PENDING,
+                error_message=None,
+                retry_count=0,
+                updated_at=_now(),
+            )
+            self._outbox[outbox_id] = updated
+            log_event(
+                OUTBOX_MESSAGE_REQUEUED,
+                source=source,
+                outbox_id=outbox_id,
+                follow_up_id=updated.follow_up_id,
+                chat_id=updated.chat_id,
+            )
+            return updated
 
     def _replace_outbox_status(
         self,

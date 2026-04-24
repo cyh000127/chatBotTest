@@ -202,6 +202,14 @@ def _conversation_messages(messages: tuple[str, ...], *, empty_text: str) -> str
     return "\n".join(f'<div class="message">{escape(message)}</div>' for message in messages)
 
 
+def _outbox_requeue_form(outbox_id: str, status: OutboxStatus) -> str:
+    if status != OutboxStatus.MANUAL_REVIEW:
+        return ""
+    return f"""<form method="post" action="/admin/pages/outbox/{escape(outbox_id)}/requeue" accept-charset="utf-8">
+    <button type="submit">다시 발송 대기열로 이동</button>
+  </form>"""
+
+
 def _latest_user_message(item) -> str:
     if item.user_messages:
         return item.user_messages[-1]
@@ -522,12 +530,27 @@ def create_admin_api_app(
   <p class="muted">follow-up: {escape(message.follow_up_id or "-")} / chat: {escape(str(message.chat_id))} / source: {escape(message.source)}</p>
   <p class="message">{escape(message.text)}</p>
   <p class="muted">오류: {escape(message.error_message or "-")}</p>
+  {_outbox_requeue_form(message.outbox_id, message.status)}
 </section>"""
                 for message in messages
             )
         else:
             items = '<section class="card"><p class="muted">발송 대기 또는 발송 이력 메시지가 없습니다.</p></section>'
         return _page("발송 대기", _topbar("발송 대기") + filter_links + items)
+
+    @app.post("/admin/pages/outbox/{outbox_id}/requeue")
+    def submit_outbox_requeue_page(outbox_id: str, request: Request):
+        outbox_message = runtime.requeue_manual_review_outbox(outbox_id, source="admin.web.outbox.requeue")
+        if outbox_message is None:
+            raise HTTPException(status_code=404, detail="manual review outbox not found")
+        record_admin_audit(
+            request,
+            action_code="admin.outbox.requeue",
+            source_code="admin.web.outbox.requeue",
+            target_type_code="outbox_message",
+            target_id=outbox_id,
+        )
+        return RedirectResponse("/admin/pages/outbox?status=manual_review", status_code=303)
 
     @app.get("/admin/pages/audit-events", response_class=HTMLResponse)
     def audit_event_page(limit: int = 100) -> HTMLResponse:
@@ -802,6 +825,20 @@ def create_admin_api_app(
     @app.get("/admin/outbox")
     def list_outbox(status: str | None = None) -> dict:
         return {"items": [_serialize(item) for item in runtime.list_outbox(status=_parse_outbox_status(status))]}
+
+    @app.post("/admin/outbox/{outbox_id}/requeue")
+    def requeue_outbox(outbox_id: str, request: Request) -> dict:
+        outbox_message = runtime.requeue_manual_review_outbox(outbox_id, source="admin.api.outbox.requeue")
+        if outbox_message is None:
+            raise HTTPException(status_code=404, detail="manual review outbox not found")
+        record_admin_audit(
+            request,
+            action_code="admin.outbox.requeue",
+            source_code="admin.api.outbox.requeue",
+            target_type_code="outbox_message",
+            target_id=outbox_id,
+        )
+        return {"outbox_message": _serialize(outbox_message)}
 
     @app.get("/admin/audit-events")
     def list_audit_events(limit: int = 100) -> dict:

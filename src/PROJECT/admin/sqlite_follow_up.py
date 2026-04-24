@@ -21,6 +21,7 @@ from PROJECT.telemetry.events import (
     ADMIN_FOLLOW_UP_USER_MESSAGE_ADDED,
     ADMIN_REPLY_CREATED,
     OUTBOX_MESSAGE_CREATED,
+    OUTBOX_MESSAGE_REQUEUED,
 )
 
 
@@ -417,6 +418,52 @@ class SqliteAdminRuntime:
 
     def mark_outbox_failed(self, outbox_id: str, error_message: str) -> OutboxMessage | None:
         return self._replace_outbox_status(outbox_id, OutboxStatus.FAILED, error_message=error_message)
+
+    def requeue_manual_review_outbox(
+        self,
+        outbox_id: str,
+        *,
+        source: str = "admin.outbox.requeue",
+    ) -> OutboxMessage | None:
+        with self._lock:
+            existing = self._connection.execute(
+                "SELECT * FROM outbox_messages WHERE id = ?",
+                (outbox_id,),
+            ).fetchone()
+            if existing is None or str(existing["delivery_state_code"]) != OutboxStatus.MANUAL_REVIEW.value:
+                return None
+            now = _now_text()
+            self._connection.execute(
+                """
+                UPDATE outbox_messages
+                SET delivery_state_code = ?,
+                    retry_count = 0,
+                    error_message = NULL,
+                    updated_at = ?,
+                    sent_at = NULL,
+                    failed_at = NULL
+                WHERE id = ?
+                """,
+                (
+                    OutboxStatus.PENDING.value,
+                    now,
+                    outbox_id,
+                ),
+            )
+            self._connection.commit()
+            row = self._connection.execute(
+                "SELECT * FROM outbox_messages WHERE id = ?",
+                (outbox_id,),
+            ).fetchone()
+            updated = self._row_to_outbox(row)
+            log_event(
+                OUTBOX_MESSAGE_REQUEUED,
+                source=source,
+                outbox_id=outbox_id,
+                follow_up_id=updated.follow_up_id,
+                chat_id=updated.chat_id,
+            )
+            return updated
 
     def _replace_outbox_status(
         self,

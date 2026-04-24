@@ -510,6 +510,7 @@ Outbox rules:
 - Admin pages and Admin API must not send Telegram messages directly.
 - Failed messages remain retryable while below the retry limit.
 - Messages that reach the retry limit move to `manual_review` and are not claimed again by the delivery loop.
+- Admin may move a `manual_review` message back to `pending`; the delivery loop still owns the actual send.
 
 ## 11. Admin Audit Event Table
 

@@ -134,9 +134,10 @@ python -m PROJECT.main
 - `POST /admin/follow-ups/{follow_up_id}/reply`
 - `POST /admin/follow-ups/{follow_up_id}/close`
 - `GET /admin/outbox`
+- `POST /admin/outbox/{outbox_id}/requeue`
 - `GET /admin/audit-events`
 
-`GET /admin/outbox?status=manual_review`로 재시도 한도를 초과해 운영자 확인이 필요한 발송 실패만 조회할 수 있다.
+`GET /admin/outbox?status=manual_review`로 재시도 한도를 초과해 운영자 확인이 필요한 발송 실패만 조회할 수 있다. `POST /admin/outbox/{outbox_id}/requeue`는 해당 메시지를 직접 전송하지 않고 다시 `pending`으로 되돌려 봇 delivery loop가 재처리하게 한다.
 
 PowerShell에서 JSON API로 한글 응답을 직접 보낼 때는 `charset=utf-8`을 명시해야 한다.
 

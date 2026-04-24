@@ -459,6 +459,68 @@ def test_admin_outbox_api_can_filter_manual_review_messages():
     assert invalid.status_code == 400
 
 
+def test_admin_outbox_api_can_requeue_manual_review_messages(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        runtime = InMemoryAdminRuntime()
+        follow_up = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+        )
+        _, outbox_message = runtime.create_admin_reply(follow_up.follow_up_id, "입력 내용을 확인했습니다.")
+        for _ in range(DEFAULT_OUTBOX_MAX_RETRY_COUNT):
+            runtime.mark_outbox_failed(outbox_message.outbox_id, "transport down")
+        audit_repository = SqliteAdminAuditRepository(sqlite_runtime.connection)
+        client = TestClient(create_admin_api_app(runtime, admin_audit_repository=audit_repository))
+
+        response = client.post(f"/admin/outbox/{outbox_message.outbox_id}/requeue")
+
+        assert response.status_code == 200
+        assert response.json()["outbox_message"]["status"] == OutboxStatus.PENDING.value
+        assert response.json()["outbox_message"]["retry_count"] == 0
+        assert response.json()["outbox_message"]["error_message"] is None
+        assert runtime.claim_pending_outbox(limit=1)[0].outbox_id == outbox_message.outbox_id
+        assert audit_repository.list_events()[0].action_code == "admin.outbox.requeue"
+    finally:
+        sqlite_runtime.close()
+
+
+def test_admin_outbox_page_can_requeue_manual_review_messages():
+    runtime = InMemoryAdminRuntime()
+    follow_up = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+    _, outbox_message = runtime.create_admin_reply(follow_up.follow_up_id, "입력 내용을 확인했습니다.")
+    for _ in range(DEFAULT_OUTBOX_MAX_RETRY_COUNT):
+        runtime.mark_outbox_failed(outbox_message.outbox_id, "transport down")
+    client = TestClient(create_admin_api_app(runtime))
+
+    page = client.get("/admin/pages/outbox?status=manual_review")
+    response = client.post(
+        f"/admin/pages/outbox/{outbox_message.outbox_id}/requeue",
+        follow_redirects=False,
+    )
+
+    assert page.status_code == 200
+    assert "다시 발송 대기열로 이동" in page.text
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/pages/outbox?status=manual_review"
+    assert runtime.list_outbox(status=OutboxStatus.PENDING)[0].outbox_id == outbox_message.outbox_id
+
+
 def test_admin_pages_share_navigation_links():
     runtime = InMemoryAdminRuntime()
     client = TestClient(create_admin_api_app(runtime))

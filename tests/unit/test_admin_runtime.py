@@ -88,6 +88,30 @@ def test_outbox_moves_to_manual_review_after_retry_limit():
     assert runtime.claim_pending_outbox() == []
 
 
+def test_manual_review_outbox_can_be_requeued_for_bot_delivery():
+    runtime = InMemoryAdminRuntime()
+    follow_up = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+    _, outbox_message = runtime.create_admin_reply(follow_up.follow_up_id, "확인했습니다.")
+    for _ in range(DEFAULT_OUTBOX_MAX_RETRY_COUNT):
+        runtime.mark_outbox_failed(outbox_message.outbox_id, "transport down")
+
+    requeued = runtime.requeue_manual_review_outbox(outbox_message.outbox_id)
+    claimed = runtime.claim_pending_outbox(limit=1)
+
+    assert requeued is not None
+    assert requeued.status == OutboxStatus.PENDING
+    assert requeued.retry_count == 0
+    assert requeued.error_message is None
+    assert claimed[0].outbox_id == outbox_message.outbox_id
+    assert claimed[0].status == OutboxStatus.SENDING
+
+
 def test_closed_follow_up_does_not_accept_more_messages_or_admin_replies():
     runtime = InMemoryAdminRuntime()
     follow_up = runtime.create_follow_up(

@@ -1,4 +1,4 @@
-from PROJECT.admin.follow_up import FOLLOW_UP_CLOSED_NOTICE, FollowUpStatus, OutboxStatus
+from PROJECT.admin.follow_up import DEFAULT_OUTBOX_MAX_RETRY_COUNT, FOLLOW_UP_CLOSED_NOTICE, FollowUpStatus, OutboxStatus
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.sqlite import bootstrap_sqlite_runtime, open_sqlite_connection
@@ -121,5 +121,33 @@ def test_sqlite_follow_up_runtime_close_can_write_notice_outbox(tmp_path):
         assert closed.status == FollowUpStatus.CLOSED
         assert len(outbox) == 1
         assert outbox[0].text == FOLLOW_UP_CLOSED_NOTICE
+    finally:
+        sqlite_runtime.close()
+
+
+def test_sqlite_manual_review_outbox_can_be_requeued_for_bot_delivery(tmp_path):
+    sqlite_runtime, runtime = bootstrap_runtime(tmp_path)
+
+    try:
+        follow_up = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+        )
+        _, outbox_message = runtime.create_admin_reply(follow_up.follow_up_id, "확인했습니다.")
+        for _ in range(DEFAULT_OUTBOX_MAX_RETRY_COUNT):
+            runtime.mark_outbox_failed(outbox_message.outbox_id, "transport down")
+
+        requeued = runtime.requeue_manual_review_outbox(outbox_message.outbox_id)
+        claimed = runtime.claim_pending_outbox(limit=1)
+
+        assert requeued is not None
+        assert requeued.status == OutboxStatus.PENDING
+        assert requeued.retry_count == 0
+        assert requeued.error_message is None
+        assert claimed[0].outbox_id == outbox_message.outbox_id
+        assert claimed[0].status == OutboxStatus.SENDING
     finally:
         sqlite_runtime.close()

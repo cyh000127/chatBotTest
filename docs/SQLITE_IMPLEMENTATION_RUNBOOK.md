@@ -117,6 +117,11 @@ Manual-review outbox filter:
 http://127.0.0.1:8000/admin/pages/outbox?status=manual_review
 ```
 
+Manual-review messages can be moved back to `pending` from the admin page or
+`POST /admin/outbox/{outbox_id}/requeue`. This action does not send Telegram
+messages directly; it only makes the message claimable by the bot delivery loop
+again.
+
 If `ADMIN_API_ACCESS_TOKEN` is configured, browser requests are redirected to `/admin/login` before accessing admin pages.
 
 ## 4. Startup Sequence
@@ -187,6 +192,7 @@ Follow-up flow:
 5. Runtime writes an `outbox_messages` row.
 6. Bot delivery loop sends the outbox message to the existing chat.
 7. Delivery result updates message and outbox state.
+8. If delivery exhausts retries, Admin can requeue the `manual_review` message back to `pending` for bot-mediated retry.
 
 Admin API and admin pages must not send Telegram messages directly.
 
@@ -524,6 +530,7 @@ Implemented local hardening:
 - local `viewer` and `operator` role gate
 - local admin action audit trail for write-oriented admin operations
 - outbox retry exhaustion to `manual_review`
+- admin requeue from `manual_review` back to bot-mediated `pending`
 
 Remaining production hardening:
 
