@@ -403,3 +403,94 @@ def test_admin_api_rejects_duplicate_onboarding_approval(tmp_path):
         assert second.status_code == 409
     finally:
         runtime.close()
+
+
+def test_admin_onboarding_page_lists_pending_submissions(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        session = create_pending_onboarding_submission(runtime)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                onboarding_admin_repository=SqliteOnboardingAdminRepository(runtime.connection),
+            )
+        )
+
+        response = client.get("/admin/pages/onboarding/submissions")
+
+        assert response.status_code == 200
+        assert "온보딩 승인" in response.text
+        assert "홍길동" in response.text
+        assert session.id in response.text
+        assert "승인" in response.text
+        assert "반려" in response.text
+    finally:
+        runtime.close()
+
+
+def test_admin_onboarding_page_approves_submission_and_creates_outbox(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        session = create_pending_onboarding_submission(runtime)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                onboarding_admin_repository=SqliteOnboardingAdminRepository(runtime.connection),
+            )
+        )
+
+        response = client.post(
+            f"/admin/pages/onboarding/submissions/{session.id}/approve",
+            data={"message": "승인되었습니다."},
+            follow_redirects=False,
+        )
+        outbox = runtime.connection.execute("SELECT * FROM outbox_messages").fetchone()
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/pages/onboarding/submissions"
+        assert outbox["message_text"] == "승인되었습니다."
+    finally:
+        runtime.close()
+
+
+def test_admin_onboarding_page_rejects_submission_and_creates_outbox(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        session = create_pending_onboarding_submission(runtime)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                onboarding_admin_repository=SqliteOnboardingAdminRepository(runtime.connection),
+            )
+        )
+
+        response = client.post(
+            f"/admin/pages/onboarding/submissions/{session.id}/reject",
+            data={"reason_code": "wrong_invitation", "message": "반려되었습니다."},
+            follow_redirects=False,
+        )
+        outbox = runtime.connection.execute("SELECT * FROM outbox_messages").fetchone()
+
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/pages/onboarding/submissions"
+        assert outbox["message_text"] == "반려되었습니다."
+    finally:
+        runtime.close()

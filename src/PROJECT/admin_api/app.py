@@ -122,6 +122,7 @@ def _topbar(title: str) -> str:
   <div>
     <a href="/admin/pages/follow-ups">요청 목록</a>
     <a href="/admin/pages/invitations">초대 코드</a>
+    <a href="/admin/pages/onboarding/submissions">온보딩 승인</a>
   </div>
 </div>"""
 
@@ -185,6 +186,75 @@ def create_admin_api_app(
   </form>
 </section>"""
         return _page("초대 코드", _topbar("초대 코드") + form + items)
+
+    @app.get("/admin/pages/onboarding/submissions", response_class=HTMLResponse)
+    def onboarding_submission_page() -> HTMLResponse:
+        if onboarding_admin_repository is None:
+            return _page(
+                "온보딩 승인",
+                _topbar("온보딩 승인")
+                + '<section class="card"><p class="error">SQLite 저장소가 켜져 있지 않아 온보딩 신청을 조회할 수 없습니다.</p></section>',
+            )
+        submissions = onboarding_admin_repository.list_pending_submissions()
+        if submissions:
+            items = "\n".join(
+                f"""<section class="card">
+  <div>
+    <span class="badge">pending approval</span>
+    <span class="muted"> {escape(submission.submitted_at or submission.created_at)}</span>
+  </div>
+  <h2>{escape(submission.name)}</h2>
+  <p class="message">전화번호: {escape(submission.phone_normalized)}\n언어: {escape(submission.preferred_locale_code)}\nTelegram: {escape(submission.provider_user_id)}</p>
+  <form method="post" action="/admin/pages/onboarding/submissions/{escape(submission.onboarding_session_id)}/approve" accept-charset="utf-8">
+    <input type="hidden" name="message" value="온보딩이 승인되었습니다. 이제 서비스를 이용할 수 있습니다.">
+    <button type="submit">승인</button>
+  </form>
+  <form method="post" action="/admin/pages/onboarding/submissions/{escape(submission.onboarding_session_id)}/reject" accept-charset="utf-8">
+    <input type="hidden" name="reason_code" value="admin_rejected">
+    <input type="hidden" name="message" value="온보딩 신청이 반려되었습니다. 필요한 경우 지원을 요청해주세요.">
+    <button type="submit">반려</button>
+  </form>
+</section>"""
+                for submission in submissions
+            )
+        else:
+            items = '<section class="card"><p class="muted">승인 대기 중인 온보딩 신청이 없습니다.</p></section>'
+        return _page("온보딩 승인", _topbar("온보딩 승인") + items)
+
+    @app.post("/admin/pages/onboarding/submissions/{onboarding_session_id}/approve")
+    async def submit_onboarding_approval_page(onboarding_session_id: str, request: Request):
+        repository = _require_onboarding_admin_repository(onboarding_admin_repository)
+        raw_body = await request.body()
+        form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+        message = (form.get("message") or ["온보딩이 승인되었습니다. 이제 서비스를 이용할 수 있습니다."])[0]
+        try:
+            repository.approve_submission(onboarding_session_id, message_text=message)
+        except OnboardingApprovalError as exc:
+            return _page(
+                "온보딩 승인 실패",
+                _topbar("온보딩 승인") + f'<section class="card"><p class="error">{escape(str(exc))}</p></section>',
+            )
+        return RedirectResponse("/admin/pages/onboarding/submissions", status_code=303)
+
+    @app.post("/admin/pages/onboarding/submissions/{onboarding_session_id}/reject")
+    async def submit_onboarding_rejection_page(onboarding_session_id: str, request: Request):
+        repository = _require_onboarding_admin_repository(onboarding_admin_repository)
+        raw_body = await request.body()
+        form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+        reason_code = (form.get("reason_code") or ["admin_rejected"])[0] or "admin_rejected"
+        message = (form.get("message") or ["온보딩 신청이 반려되었습니다. 필요한 경우 지원을 요청해주세요."])[0]
+        try:
+            repository.reject_submission(
+                onboarding_session_id,
+                reason_code=reason_code,
+                message_text=message,
+            )
+        except OnboardingApprovalError as exc:
+            return _page(
+                "온보딩 반려 실패",
+                _topbar("온보딩 승인") + f'<section class="card"><p class="error">{escape(str(exc))}</p></section>',
+            )
+        return RedirectResponse("/admin/pages/onboarding/submissions", status_code=303)
 
     @app.post("/admin/pages/invitations")
     async def submit_invitation_page(request: Request):
