@@ -4,7 +4,30 @@ from PROJECT.admin.follow_up import FOLLOW_UP_CLOSED_NOTICE, InMemoryAdminRuntim
 from PROJECT.admin_api.app import create_admin_api_app
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED, SqliteInvitationRepository
+from PROJECT.storage.onboarding import ONBOARDING_STATUS_APPROVED, ONBOARDING_STATUS_REJECTED, SqliteOnboardingRepository
+from PROJECT.storage.onboarding_admin import OUTBOX_STATUS_PENDING, SqliteOnboardingAdminRepository
 from PROJECT.storage.sqlite import bootstrap_sqlite_runtime
+
+
+def create_pending_onboarding_submission(runtime):
+    invitation_repository = SqliteInvitationRepository(runtime.connection)
+    onboarding_repository = SqliteOnboardingRepository(runtime.connection)
+    invitation = invitation_repository.create_invitation()
+    session = onboarding_repository.create_or_resume_from_invitation(
+        invitation=invitation,
+        provider_user_id="12345",
+        provider_handle="farmer_user",
+        preferred_locale_code="ko",
+        chat_id=67890,
+    )
+    session = onboarding_repository.update_locale(session.id, "ko")
+    session = onboarding_repository.update_name(session.id, "홍길동")
+    session = onboarding_repository.update_phone(
+        session.id,
+        phone_raw="+855 12 345 678",
+        phone_normalized="+85512345678",
+    )
+    return onboarding_repository.submit_pending_approval(session.id)
 
 
 def test_admin_api_lists_follow_ups_and_accepts_reply():
@@ -256,5 +279,127 @@ def test_admin_invitation_page_creates_invitation(tmp_path):
         assert page_response.status_code == 200
         assert "초대 코드" in page_response.text
         assert "/start INV-" in page_response.text
+    finally:
+        runtime.close()
+
+
+def test_admin_api_returns_503_when_onboarding_admin_repository_is_unavailable():
+    client = TestClient(create_admin_api_app(InMemoryAdminRuntime()))
+
+    response = client.get("/admin/onboarding/submissions")
+
+    assert response.status_code == 503
+
+
+def test_admin_api_lists_pending_onboarding_submissions(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        session = create_pending_onboarding_submission(runtime)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                onboarding_admin_repository=SqliteOnboardingAdminRepository(runtime.connection),
+            )
+        )
+
+        response = client.get("/admin/onboarding/submissions")
+
+        assert response.status_code == 200
+        assert response.json()["items"][0]["onboarding_session_id"] == session.id
+        assert response.json()["items"][0]["name"] == "홍길동"
+    finally:
+        runtime.close()
+
+
+def test_admin_api_approves_onboarding_submission_and_writes_outbox(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        session = create_pending_onboarding_submission(runtime)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                onboarding_admin_repository=SqliteOnboardingAdminRepository(runtime.connection),
+            )
+        )
+
+        response = client.post(
+            f"/admin/onboarding/submissions/{session.id}/approve",
+            json={"message": "승인되었습니다."},
+        )
+        outbox = runtime.connection.execute("SELECT * FROM outbox_messages").fetchone()
+
+        assert response.status_code == 200
+        assert response.json()["session"]["session_status_code"] == ONBOARDING_STATUS_APPROVED
+        assert response.json()["enrollment_id"].startswith("enrollment_")
+        assert outbox["message_text"] == "승인되었습니다."
+        assert outbox["delivery_state_code"] == OUTBOX_STATUS_PENDING
+    finally:
+        runtime.close()
+
+
+def test_admin_api_rejects_onboarding_submission_without_enrollment(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        session = create_pending_onboarding_submission(runtime)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                onboarding_admin_repository=SqliteOnboardingAdminRepository(runtime.connection),
+            )
+        )
+
+        response = client.post(
+            f"/admin/onboarding/submissions/{session.id}/reject",
+            json={"reason_code": "wrong_invitation", "message": "반려되었습니다."},
+        )
+        enrollment_count = runtime.connection.execute("SELECT COUNT(*) FROM project_enrollments").fetchone()[0]
+
+        assert response.status_code == 200
+        assert response.json()["session"]["session_status_code"] == ONBOARDING_STATUS_REJECTED
+        assert enrollment_count == 0
+    finally:
+        runtime.close()
+
+
+def test_admin_api_rejects_duplicate_onboarding_approval(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        session = create_pending_onboarding_submission(runtime)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                onboarding_admin_repository=SqliteOnboardingAdminRepository(runtime.connection),
+            )
+        )
+
+        first = client.post(f"/admin/onboarding/submissions/{session.id}/approve", json={})
+        second = client.post(f"/admin/onboarding/submissions/{session.id}/approve", json={})
+
+        assert first.status_code == 200
+        assert second.status_code == 409
     finally:
         runtime.close()

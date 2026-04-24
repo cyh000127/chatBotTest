@@ -14,6 +14,7 @@ from PROJECT.storage.invitations import (
     DEFAULT_LOCAL_PROJECT_ID,
     SqliteInvitationRepository,
 )
+from PROJECT.storage.onboarding_admin import OnboardingApprovalError, SqliteOnboardingAdminRepository
 
 
 class AdminReplyRequest(BaseModel):
@@ -36,6 +37,17 @@ class CreateInvitationRequest(BaseModel):
     expires_at: str | None = None
 
 
+class OnboardingApprovalRequest(BaseModel):
+    admin_user_id: str = DEFAULT_LOCAL_ADMIN_USER_ID
+    message: str = "온보딩이 승인되었습니다. 이제 서비스를 이용할 수 있습니다."
+
+
+class OnboardingRejectionRequest(BaseModel):
+    admin_user_id: str = DEFAULT_LOCAL_ADMIN_USER_ID
+    reason_code: str = "admin_rejected"
+    message: str = "온보딩 신청이 반려되었습니다. 필요한 경우 지원을 요청해주세요."
+
+
 def _serialize(item) -> dict:
     payload = asdict(item)
     for key, value in list(payload.items()):
@@ -54,6 +66,14 @@ def _require_invitation_repository(invitation_repository: SqliteInvitationReposi
     if invitation_repository is None:
         raise HTTPException(status_code=503, detail="invitation repository unavailable")
     return invitation_repository
+
+
+def _require_onboarding_admin_repository(
+    onboarding_admin_repository: SqliteOnboardingAdminRepository | None,
+) -> SqliteOnboardingAdminRepository:
+    if onboarding_admin_repository is None:
+        raise HTTPException(status_code=503, detail="onboarding admin repository unavailable")
+    return onboarding_admin_repository
 
 
 def _page(title: str, body: str) -> HTMLResponse:
@@ -122,6 +142,7 @@ def create_admin_api_app(
     runtime: InMemoryAdminRuntime = admin_runtime,
     *,
     invitation_repository: SqliteInvitationRepository | None = None,
+    onboarding_admin_repository: SqliteOnboardingAdminRepository | None = None,
 ) -> FastAPI:
     app = FastAPI(title="PROJECT Admin Follow-up API")
 
@@ -332,6 +353,50 @@ def create_admin_api_app(
                 _serialize_invitation(invitation)
                 for invitation in repository.list_invitations(status=status)
             ],
+        }
+
+    @app.get("/admin/onboarding/submissions")
+    def list_onboarding_submissions() -> dict:
+        repository = _require_onboarding_admin_repository(onboarding_admin_repository)
+        return {
+            "items": [_serialize(submission) for submission in repository.list_pending_submissions()],
+        }
+
+    @app.post("/admin/onboarding/submissions/{onboarding_session_id}/approve")
+    def approve_onboarding_submission(onboarding_session_id: str, request: OnboardingApprovalRequest) -> dict:
+        repository = _require_onboarding_admin_repository(onboarding_admin_repository)
+        try:
+            result = repository.approve_submission(
+                onboarding_session_id,
+                admin_user_id=request.admin_user_id,
+                message_text=request.message,
+            )
+        except OnboardingApprovalError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return {
+            "session": _serialize(result.session),
+            "participant_id": result.participant_id,
+            "contact_id": result.contact_id,
+            "identity_id": result.identity_id,
+            "enrollment_id": result.enrollment_id,
+            "outbox_id": result.outbox_id,
+        }
+
+    @app.post("/admin/onboarding/submissions/{onboarding_session_id}/reject")
+    def reject_onboarding_submission(onboarding_session_id: str, request: OnboardingRejectionRequest) -> dict:
+        repository = _require_onboarding_admin_repository(onboarding_admin_repository)
+        try:
+            result = repository.reject_submission(
+                onboarding_session_id,
+                admin_user_id=request.admin_user_id,
+                reason_code=request.reason_code,
+                message_text=request.message,
+            )
+        except OnboardingApprovalError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return {
+            "session": _serialize(result.session),
+            "outbox_id": result.outbox_id,
         }
 
     return app
