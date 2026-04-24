@@ -169,6 +169,56 @@ def test_admin_api_rejects_previous_token_after_rotation_expiry():
     assert response.status_code == 401
 
 
+def test_admin_security_status_reports_local_boundary_without_tokens():
+    client = TestClient(
+        create_admin_api_app(
+            InMemoryAdminRuntime(),
+            admin_access_token="secret-token",
+            admin_previous_access_token="old-token",
+            admin_previous_access_token_expires_at="2999-01-01T00:00:00+00:00",
+            admin_access_role="viewer",
+        )
+    )
+
+    login = client.post("/admin/login", data={"access_token": "secret-token"}, follow_redirects=False)
+    page = client.get("/admin/pages/security")
+    api = client.get("/admin/security-status", headers={"X-Admin-Token": "secret-token"})
+
+    assert login.status_code == 303
+    assert page.status_code == 200
+    assert "보안 상태" in page.text
+    assert "local_access_token" in page.text
+    assert "운영 IDP" in page.text
+    assert "secret-token" not in page.text
+    assert "old-token" not in page.text
+    assert api.status_code == 200
+    payload = api.json()
+    assert payload["auth_model"] == "local_access_token"
+    assert payload["admin_access_required"] is True
+    assert payload["admin_access_role"] == "viewer"
+    assert payload["current_access_token_configured"] is True
+    assert payload["previous_access_token_configured"] is True
+    assert payload["previous_access_token_active"] is True
+    assert payload["previous_access_token_expires_at"] == "2999-01-01T00:00:00+00:00"
+    assert payload["production_identity_provider_connected"] is False
+    assert payload["remaining_production_hardening"] == [
+        "real_admin_identity_provider",
+        "token_rotation_policy",
+    ]
+    assert "secret-token" not in str(payload)
+    assert "old-token" not in str(payload)
+
+
+def test_admin_security_status_reports_open_local_mode():
+    client = TestClient(create_admin_api_app(InMemoryAdminRuntime()))
+
+    response = client.get("/admin/security-status")
+
+    assert response.status_code == 200
+    assert response.json()["admin_access_required"] is False
+    assert response.json()["current_access_token_configured"] is False
+
+
 def test_admin_login_allows_previous_token_and_records_token_slot(tmp_path):
     sqlite_runtime = bootstrap_sqlite_runtime(
         SqliteSettings(
@@ -586,6 +636,7 @@ def test_admin_pages_share_navigation_links():
         "/admin/pages/onboarding/submissions",
         "/admin/pages/outbox",
         "/admin/pages/audit-events",
+        "/admin/pages/security",
     ):
         response = client.get(path)
 
@@ -595,6 +646,7 @@ def test_admin_pages_share_navigation_links():
         assert "/admin/pages/onboarding/submissions" in response.text
         assert "/admin/pages/outbox" in response.text
         assert "/admin/pages/audit-events" in response.text
+        assert "/admin/pages/security" in response.text
         assert "/admin/logout" in response.text
 
 
@@ -652,11 +704,13 @@ def test_admin_home_dashboard_shows_summary_and_links(tmp_path):
         assert "발송 대기" in response.text
         assert "운영 검토" in response.text
         assert "감사 로그" in response.text
+        assert "보안 상태" in response.text
         assert "/admin/pages/follow-ups" in response.text
         assert "/admin/pages/invitations" in response.text
         assert "/admin/pages/onboarding/submissions" in response.text
         assert "/admin/pages/outbox?status=manual_review" in response.text
         assert "/admin/pages/audit-events" in response.text
+        assert "/admin/pages/security" in response.text
     finally:
         sqlite_runtime.close()
 

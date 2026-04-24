@@ -187,6 +187,7 @@ def _topbar(title: str) -> str:
     <a href="/admin/pages/onboarding/submissions">온보딩 승인</a>
     <a href="/admin/pages/outbox">발송 대기</a>
     <a href="/admin/pages/audit-events">감사 로그</a>
+    <a href="/admin/pages/security">보안 상태</a>
     <form method="post" action="/admin/logout" accept-charset="utf-8">
       <button type="submit">로그아웃</button>
     </form>
@@ -198,6 +199,24 @@ def _dashboard_card(title: str, value: str | int, href: str, description: str) -
     return f"""<section class="card">
   <h2><a href="{escape(href)}">{escape(title)}</a></h2>
   <p class="badge">{escape(str(value))}</p>
+  <p class="muted">{escape(description)}</p>
+</section>"""
+
+
+def _boolean_label(value: bool) -> str:
+    return "yes" if value else "no"
+
+
+def _security_status_card(label: str, value: str | bool | None, description: str) -> str:
+    if isinstance(value, bool):
+        display = _boolean_label(value)
+    elif value is None:
+        display = "-"
+    else:
+        display = value
+    return f"""<section class="card">
+  <h2>{escape(label)}</h2>
+  <p class="badge">{escape(display)}</p>
   <p class="muted">{escape(description)}</p>
 </section>"""
 
@@ -470,6 +489,24 @@ def create_admin_api_app(
         response.delete_cookie("admin_access_token")
         return response
 
+    def admin_security_status() -> dict:
+        return {
+            "auth_model": "local_access_token",
+            "admin_access_required": admin_access_required(),
+            "admin_access_role": resolved_admin_access_role,
+            "current_access_token_configured": bool(admin_access_token),
+            "previous_access_token_configured": bool(admin_previous_access_token),
+            "previous_access_token_active": previous_access_token_active(),
+            "previous_access_token_expires_at": (
+                previous_access_token_expires_at.isoformat() if previous_access_token_expires_at else None
+            ),
+            "production_identity_provider_connected": False,
+            "remaining_production_hardening": [
+                "real_admin_identity_provider",
+                "token_rotation_policy",
+            ],
+        }
+
     @app.get("/admin", response_class=HTMLResponse)
     def admin_home() -> HTMLResponse:
         follow_ups = runtime.list_follow_ups(include_closed=True)
@@ -503,8 +540,41 @@ def create_admin_api_app(
   {_dashboard_card("발송 대기", f"{pending_outbox_count} pending / {failed_outbox_count} failed", "/admin/pages/outbox", "봇 전송 계층으로 전달될 메시지 상태를 확인합니다.")}
   {_dashboard_card("운영 검토", manual_review_outbox_count, "/admin/pages/outbox?status=manual_review", "재시도 한도를 초과한 outbox 메시지를 점검합니다.")}
   {_dashboard_card("감사 로그", audit_count, "/admin/pages/audit-events", "관리자 쓰기 작업과 접근 제어 이벤트를 확인합니다.")}
+  {_dashboard_card("보안 상태", "local token", "/admin/pages/security", "로컬 인증 경계와 운영 전환 하드닝 상태를 확인합니다.")}
 </section>"""
         return _page("Admin Dashboard", body)
+
+    @app.get("/admin/security-status")
+    def get_admin_security_status() -> dict:
+        return admin_security_status()
+
+    @app.get("/admin/pages/security", response_class=HTMLResponse)
+    def admin_security_page() -> HTMLResponse:
+        status = admin_security_status()
+        remaining_items = "\n".join(
+            f"<li>{escape(item)}</li>" for item in status["remaining_production_hardening"]
+        )
+        body = _topbar("보안 상태") + f"""<section class="card">
+  <h2>로컬 관리자 인증 경계</h2>
+  <p>현재 관리자 인증은 운영 IDP가 아니라 로컬 access token gate입니다.</p>
+  <p class="muted">이 화면은 토큰 값을 표시하지 않고, 운영 전환에 필요한 하드닝 상태만 보여줍니다.</p>
+</section>
+<section class="dashboard" aria-label="Admin security status">
+  {_security_status_card("인증 모델", status["auth_model"], "운영 IDP가 아닌 로컬 토큰 모드입니다.")}
+  {_security_status_card("토큰 게이트", status["admin_access_required"], "관리자 route 접근에 access token이 필요한지 표시합니다.")}
+  {_security_status_card("관리자 역할", status["admin_access_role"], "viewer는 읽기 전용, operator는 로컬 쓰기 작업 가능입니다.")}
+  {_security_status_card("현재 토큰 설정", status["current_access_token_configured"], "값 자체는 표시하지 않고 설정 여부만 보여줍니다.")}
+  {_security_status_card("이전 토큰 활성", status["previous_access_token_active"], "회전 기간 동안만 yes가 됩니다.")}
+  {_security_status_card("이전 토큰 만료", status["previous_access_token_expires_at"], "토큰 값은 표시하지 않습니다.")}
+  {_security_status_card("운영 IDP 연결", status["production_identity_provider_connected"], "아직 연결하지 않았습니다.")}
+</section>
+<section class="card">
+  <h2>남은 production hardening</h2>
+  <ul>
+    {remaining_items}
+  </ul>
+</section>"""
+        return _page("보안 상태", body)
 
     @app.get("/admin/pages/invitations", response_class=HTMLResponse)
     def invitation_page() -> HTMLResponse:

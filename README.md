@@ -115,8 +115,9 @@ python -m PROJECT.main
 - 사용자 대화 내용: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}`
 - 사용자 응답 작성: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}/reply`
 - 감사 로그: `http://127.0.0.1:8000/admin/pages/audit-events`
+- 보안 상태: `http://127.0.0.1:8000/admin/pages/security`
 
-대시보드는 지원 이관, 초대 코드, 온보딩 승인, outbox, 감사 로그 화면으로 이동하는 로컬 운영 홈이다.
+대시보드는 지원 이관, 초대 코드, 온보딩 승인, outbox, 감사 로그, 보안 상태 화면으로 이동하는 로컬 운영 홈이다.
 이 화면에서 응답을 보내면 admin reply가 follow-up 항목에 기록되고 outbox에 메시지가 생성된다. 상세 화면에서는 답변 없이 요청을 종료할 수 있으며, 종료 안내도 outbox를 통해 봇 delivery loop가 전송한다.
 
 `ADMIN_API_ACCESS_TOKEN`이 설정되어 있으면 관리자 화면은 `/admin/login`에서 access token을 입력한 뒤 접근할 수 있다. 이 값은 실제 환경 파일에만 두고 코드나 문서 예시에 실제 토큰을 남기지 않는다.
@@ -125,6 +126,8 @@ python -m PROJECT.main
 토큰 교체 중에는 `ADMIN_API_PREVIOUS_ACCESS_TOKEN`과 `ADMIN_API_PREVIOUS_ACCESS_TOKEN_EXPIRES_AT`을 함께 설정해 이전 토큰을 짧은 기간만 임시 허용할 수 있다. 만료 시각이 지났거나 잘못된 형식이면 이전 토큰은 자동으로 거부된다.
 
 `ADMIN_API_ACCESS_ROLE`은 로컬 관리자 권한을 제한한다. `viewer`는 조회만 가능하고, `operator`는 초대 코드 생성, 온보딩 승인/반려, follow-up 응답 같은 쓰기 작업을 수행할 수 있다.
+
+보안 상태 화면과 `GET /admin/security-status`는 토큰 값을 표시하지 않고 로컬 access token gate, 이전 토큰 활성 여부, 운영 IDP 미연결 상태, 남은 production hardening 항목만 노출한다.
 
 ## JSON API
 
@@ -140,6 +143,7 @@ python -m PROJECT.main
 - `GET /admin/outbox`
 - `POST /admin/outbox/{outbox_id}/requeue`
 - `GET /admin/audit-events`
+- `GET /admin/security-status`
 
 초대 코드는 `expires_at`에 ISO-8601 만료 시각을 넣어 생성할 수 있다. 만료된 초대 코드는 `/start <invite_code>` 온보딩을 시작하지 않는다.
 

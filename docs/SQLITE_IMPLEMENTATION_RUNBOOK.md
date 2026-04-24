@@ -105,11 +105,19 @@ http://127.0.0.1:8000/admin/pages/invitations
 http://127.0.0.1:8000/admin/pages/onboarding/submissions
 http://127.0.0.1:8000/admin/pages/outbox
 http://127.0.0.1:8000/admin/pages/audit-events
+http://127.0.0.1:8000/admin/pages/security
 ```
 
 `/admin` is the local admin dashboard. It summarizes queue, invitation,
-onboarding, outbox, manual-review, and audit-log entry points without exposing
-secret values.
+onboarding, outbox, manual-review, audit-log, and security-status entry points
+without exposing secret values.
+
+Security status:
+
+- `GET /admin/security-status` exposes local auth mode metadata only.
+- the security page and JSON API must never expose current or previous token values.
+- `production_identity_provider_connected=false` means this runtime still uses the local access-token gate.
+- remaining production hardening is reported as `real_admin_identity_provider` and `token_rotation_policy`.
 
 Manual-review outbox filter:
 
@@ -226,6 +234,7 @@ Token rotation flow:
 4. Restart the runtime.
 5. Verify both current and previous tokens work during the rotation window.
 6. After the window expires, remove the previous-token variables and restart.
+7. Verify `/admin/pages/security` or `GET /admin/security-status` shows the expected previous-token active state without exposing token values.
 
 ## 7. Implementation Commits
 
