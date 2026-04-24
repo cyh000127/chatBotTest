@@ -95,6 +95,8 @@ def _page(title: str, body: str) -> HTMLResponse:
     a {{ color: #286a46; font-weight: 700; text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
     .topbar {{ display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 24px; }}
+    .admin-nav {{ display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }}
+    .admin-nav a {{ display: inline-block; padding: 8px 12px; border-radius: 999px; background: #e8f2df; color: #2f5f26; }}
     .card {{ background: #fffdf7; border: 1px solid #ded6c5; border-radius: 18px; padding: 18px; margin: 14px 0; box-shadow: 0 8px 24px rgba(64, 50, 26, 0.08); }}
     .muted {{ color: #6d675c; font-size: 14px; }}
     .badge {{ display: inline-block; padding: 4px 10px; border-radius: 999px; background: #e8f2df; color: #2f5f26; font-size: 13px; font-weight: 700; }}
@@ -119,11 +121,13 @@ def _page(title: str, body: str) -> HTMLResponse:
 def _topbar(title: str) -> str:
     return f"""<div class="topbar">
   <h1>{escape(title)}</h1>
-  <div>
-    <a href="/admin/pages/follow-ups">요청 목록</a>
+  <nav class="admin-nav" aria-label="Admin navigation">
+    <a href="/admin">Admin 홈</a>
+    <a href="/admin/pages/follow-ups">지원 이관</a>
     <a href="/admin/pages/invitations">초대 코드</a>
     <a href="/admin/pages/onboarding/submissions">온보딩 승인</a>
-  </div>
+    <a href="/admin/pages/outbox">발송 대기</a>
+  </nav>
 </div>"""
 
 
@@ -220,6 +224,27 @@ def create_admin_api_app(
         else:
             items = '<section class="card"><p class="muted">승인 대기 중인 온보딩 신청이 없습니다.</p></section>'
         return _page("온보딩 승인", _topbar("온보딩 승인") + items)
+
+    @app.get("/admin/pages/outbox", response_class=HTMLResponse)
+    def outbox_page() -> HTMLResponse:
+        messages = runtime.list_outbox()
+        if messages:
+            items = "\n".join(
+                f"""<section class="card">
+  <div>
+    <span class="badge">{escape(message.status.value)}</span>
+    <span class="muted"> {escape(message.created_at.isoformat())}</span>
+  </div>
+  <h2>{escape(message.outbox_id)}</h2>
+  <p class="muted">follow-up: {escape(message.follow_up_id or "-")} / chat: {escape(str(message.chat_id))} / source: {escape(message.source)}</p>
+  <p class="message">{escape(message.text)}</p>
+  <p class="muted">오류: {escape(message.error_message or "-")}</p>
+</section>"""
+                for message in messages
+            )
+        else:
+            items = '<section class="card"><p class="muted">발송 대기 또는 발송 이력 메시지가 없습니다.</p></section>'
+        return _page("발송 대기", _topbar("발송 대기") + items)
 
     @app.post("/admin/pages/onboarding/submissions/{onboarding_session_id}/approve")
     async def submit_onboarding_approval_page(onboarding_session_id: str, request: Request):

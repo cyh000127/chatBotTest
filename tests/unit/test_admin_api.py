@@ -127,6 +127,32 @@ def test_admin_pages_show_follow_up_request_list():
     assert "최근 사용자 메시지" in response.text
     assert "추가로 사진 업로드도 안 됩니다" in response.text
     assert "전체 대화 보기" in response.text
+    assert "/admin/pages/invitations" in response.text
+    assert "/admin/pages/onboarding/submissions" in response.text
+    assert "/admin/pages/outbox" in response.text
+
+
+def test_admin_pages_show_outbox_messages():
+    runtime = InMemoryAdminRuntime()
+    follow_up = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+        user_message="확인해주세요",
+    )
+    runtime.create_admin_reply(follow_up.follow_up_id, "입력 내용을 확인했습니다.")
+    client = TestClient(create_admin_api_app(runtime))
+
+    response = client.get("/admin/pages/outbox")
+
+    assert response.status_code == 200
+    assert "발송 대기" in response.text
+    assert "입력 내용을 확인했습니다." in response.text
+    assert "/admin/pages/follow-ups" in response.text
+    assert "/admin/pages/invitations" in response.text
+    assert "/admin/pages/onboarding/submissions" in response.text
 
 
 def test_admin_pages_show_follow_up_conversation():
