@@ -848,6 +848,39 @@ def test_admin_api_creates_and_lists_invitations(tmp_path):
         runtime.close()
 
 
+def test_admin_api_creates_invitation_with_expiry(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        repository = SqliteInvitationRepository(runtime.connection)
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                invitation_repository=repository,
+                admin_audit_repository=audit_repository,
+            )
+        )
+
+        created = client.post("/admin/invitations", json={"expires_at": "2999-01-01T00:00:00Z"})
+        invalid = client.post("/admin/invitations", json={"expires_at": "not-a-date"})
+        audit_event = audit_repository.list_events()[0]
+
+        assert created.status_code == 201
+        assert created.json()["invitation"]["expires_at"] == "2999-01-01T00:00:00+00:00"
+        assert repository.list_invitations()[0].expires_at == "2999-01-01T00:00:00+00:00"
+        assert invalid.status_code == 400
+        assert "ISO-8601" in invalid.json()["detail"]
+        assert audit_event.detail["expires_at"] == "2999-01-01T00:00:00+00:00"
+    finally:
+        runtime.close()
+
+
 def test_admin_api_revokes_invitation_and_writes_audit_event(tmp_path):
     runtime = bootstrap_sqlite_runtime(
         SqliteSettings(
@@ -897,14 +930,42 @@ def test_admin_invitation_page_creates_invitation(tmp_path):
         repository = SqliteInvitationRepository(runtime.connection)
         client = TestClient(create_admin_api_app(InMemoryAdminRuntime(), invitation_repository=repository))
 
-        create_response = client.post("/admin/pages/invitations", data={}, follow_redirects=False)
+        create_response = client.post(
+            "/admin/pages/invitations",
+            data={"expires_at": "2999-01-01T00:00:00+00:00"},
+            follow_redirects=False,
+        )
         page_response = client.get("/admin/pages/invitations")
+        invitation = repository.list_invitations()[0]
 
         assert create_response.status_code == 303
         assert create_response.headers["location"] == "/admin/pages/invitations"
         assert page_response.status_code == 200
         assert "초대 코드" in page_response.text
         assert "/start INV-" in page_response.text
+        assert invitation.expires_at == "2999-01-01T00:00:00+00:00"
+        assert "2999-01-01T00:00:00+00:00" in page_response.text
+    finally:
+        runtime.close()
+
+
+def test_admin_invitation_page_rejects_invalid_expiry(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        repository = SqliteInvitationRepository(runtime.connection)
+        client = TestClient(create_admin_api_app(InMemoryAdminRuntime(), invitation_repository=repository))
+
+        response = client.post("/admin/pages/invitations", data={"expires_at": "not-a-date"})
+
+        assert response.status_code == 200
+        assert "ISO-8601" in response.text
+        assert repository.list_invitations() == ()
     finally:
         runtime.close()
 

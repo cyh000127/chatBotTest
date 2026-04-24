@@ -78,6 +78,7 @@ def test_invitation_repository_persists_invitation_after_reopen(tmp_path):
             target_contact_type_code="phone",
             target_contact_normalized="+85500000000",
             target_contact_raw="+855 00 000 000",
+            expires_at="2999-01-01T00:00:00+00:00",
         )
     finally:
         first_runtime.close()
@@ -91,6 +92,7 @@ def test_invitation_repository_persists_invitation_after_reopen(tmp_path):
         assert loaded.target_contact_type_code == "phone"
         assert loaded.target_contact_normalized == "+85500000000"
         assert loaded.target_contact_raw == "+855 00 000 000"
+        assert loaded.expires_at == "2999-01-01T00:00:00+00:00"
     finally:
         second_connection.close()
 

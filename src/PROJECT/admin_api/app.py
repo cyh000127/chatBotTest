@@ -235,6 +235,21 @@ def _invitation_revoke_form(invitation_id: str, status: str) -> str:
   </form>"""
 
 
+def _normalize_invitation_expires_at(expires_at: str | None) -> str | None:
+    if expires_at is None:
+        return None
+    value = expires_at.strip()
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("expires_at은 ISO-8601 형식이어야 합니다.") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC).isoformat()
+
+
 def _latest_user_message(item) -> str:
     if item.user_messages:
         return item.user_messages[-1]
@@ -510,6 +525,7 @@ def create_admin_api_app(
   <h2>{escape(invitation.invite_code)}</h2>
   <p class="message">{escape(invitation.start_command)}</p>
   <p class="muted">프로젝트: {escape(invitation.project_id)} / 채널: {escape(invitation.channel_code)} / 역할: {escape(invitation.target_participant_role_code)}</p>
+  <p class="muted">만료: {escape(invitation.expires_at or "-")} / 회수: {escape(invitation.revoked_at or "-")}</p>
   {_invitation_revoke_form(invitation.id, invitation.invite_status_code)}
 </section>"""
                 for invitation in invitations
@@ -519,6 +535,9 @@ def create_admin_api_app(
         form = """<section class="card">
   <h2>새 초대 코드 생성</h2>
   <form method="post" accept-charset="utf-8">
+    <label for="expires_at">만료 시각 선택 입력</label>
+    <input id="expires_at" name="expires_at" placeholder="예: 2999-01-01T00:00:00+00:00">
+    <p class="muted">비워두면 만료 시각 없이 생성합니다. 입력할 때는 ISO-8601 형식을 사용합니다.</p>
     <button type="submit">초대 코드 생성</button>
   </form>
 </section>"""
@@ -683,6 +702,13 @@ def create_admin_api_app(
         repository = _require_invitation_repository(invitation_repository)
         raw_body = await request.body()
         form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+        try:
+            expires_at = _normalize_invitation_expires_at((form.get("expires_at") or [""])[0])
+        except ValueError as exc:
+            return _page(
+                "초대 코드 생성 실패",
+                _topbar("초대 코드") + f'<section class="card"><p class="error">{escape(str(exc))}</p></section>',
+            )
         invitation = repository.create_invitation(
             project_id=(form.get("project_id") or [DEFAULT_LOCAL_PROJECT_ID])[0] or DEFAULT_LOCAL_PROJECT_ID,
             invited_by_admin_user_id=(form.get("invited_by_admin_user_id") or [DEFAULT_LOCAL_ADMIN_USER_ID])[0]
@@ -690,6 +716,7 @@ def create_admin_api_app(
             channel_code=(form.get("channel_code") or [DEFAULT_INVITATION_CHANNEL])[0] or DEFAULT_INVITATION_CHANNEL,
             target_participant_role_code=(form.get("target_participant_role_code") or [DEFAULT_INVITATION_ROLE])[0]
             or DEFAULT_INVITATION_ROLE,
+            expires_at=expires_at,
         )
         record_admin_audit(
             request,
@@ -702,6 +729,7 @@ def create_admin_api_app(
                 "project_id": invitation.project_id,
                 "channel_code": invitation.channel_code,
                 "target_participant_role_code": invitation.target_participant_role_code,
+                "expires_at": invitation.expires_at,
             },
         )
         return RedirectResponse("/admin/pages/invitations", status_code=303)
@@ -937,6 +965,10 @@ def create_admin_api_app(
     @app.post("/admin/invitations", status_code=201)
     def create_invitation(payload: CreateInvitationRequest, request: Request) -> dict:
         repository = _require_invitation_repository(invitation_repository)
+        try:
+            expires_at = _normalize_invitation_expires_at(payload.expires_at)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         invitation = repository.create_invitation(
             project_id=payload.project_id,
             invited_by_admin_user_id=payload.invited_by_admin_user_id,
@@ -945,7 +977,7 @@ def create_admin_api_app(
             target_contact_normalized=payload.target_contact_normalized,
             target_contact_raw=payload.target_contact_raw,
             target_participant_role_code=payload.target_participant_role_code,
-            expires_at=payload.expires_at,
+            expires_at=expires_at,
         )
         record_admin_audit(
             request,
@@ -958,6 +990,7 @@ def create_admin_api_app(
                 "project_id": invitation.project_id,
                 "channel_code": invitation.channel_code,
                 "target_participant_role_code": invitation.target_participant_role_code,
+                "expires_at": invitation.expires_at,
             },
         )
         return {"invitation": _serialize_invitation(invitation)}

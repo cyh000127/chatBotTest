@@ -124,9 +124,10 @@ Invitation status vocabulary:
 - `used`
 - `revoked`
 
-Only `issued` invitations can start onboarding. Revoked invitations must remain
-queryable for audit and operations, but they must not create new onboarding
-sessions.
+Only non-expired `issued` invitations can start onboarding. Revoked invitations
+must remain queryable for audit and operations, but they must not create new
+onboarding sessions. `expires_at` is optional; when present, it must be an
+ISO-8601 timestamp and the runtime must reject expired invitation start attempts.
 
 ## 6. Invitation And Onboarding Tables
 

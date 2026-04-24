@@ -171,12 +171,13 @@ Admin features remain limited to runtime-safe actions.
 
 Invitation flow:
 
-1. Admin requests a new invitation code through the Admin API or admin page.
+1. Admin requests a new invitation code through the Admin API or admin page, optionally with an ISO-8601 expiry.
 2. Runtime stores the invitation in `project_invitations`.
 3. Admin shares the code outside the bot.
 4. Farmer uses `/start <invite_code>`.
 5. Runtime marks the invitation as used only when onboarding progresses to the accepted state defined by implementation rules.
 6. Admin can revoke an unused issued invitation; revoked invitations cannot start onboarding.
+7. Expired invitations cannot start onboarding.
 
 Approval flow:
 
@@ -537,6 +538,7 @@ Implemented local hardening:
 - outbox retry exhaustion to `manual_review`
 - admin requeue from `manual_review` back to bot-mediated `pending`
 - admin revoke for unused issued invitation codes
+- optional invitation expiry enforced before onboarding starts
 
 Remaining production hardening:
 

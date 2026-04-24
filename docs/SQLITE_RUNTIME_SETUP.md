@@ -194,6 +194,7 @@ SQLite-backed admin features should remain limited to runtime-safe operations:
 - create invitation code
 - list invitation codes
 - revoke unused invitation codes
+- set optional invitation expiry
 - view onboarding submissions
 - approve or reject onboarding submission
 - view admin follow-up queue

@@ -161,6 +161,34 @@ def test_start_with_revoked_invitation_does_not_create_onboarding_session(monkey
         runtime.close()
 
 
+def test_start_with_expired_invitation_does_not_create_onboarding_session(monkeypatch, tmp_path):
+    sent: list[str] = []
+
+    async def fake_send_text(update, text, keyboard_layout=None):
+        sent.append(text)
+
+    monkeypatch.setattr(commands, "send_text", fake_send_text)
+    runtime, invitation_repository, onboarding_repository = _sqlite_repositories(tmp_path)
+
+    try:
+        invitation = invitation_repository.create_invitation(expires_at="2000-01-01T00:00:00+00:00")
+        context = _context(
+            args=[invitation.invite_code],
+            bot_data={
+                "invitation_repository": invitation_repository,
+                "onboarding_repository": onboarding_repository,
+            },
+        )
+
+        asyncio.run(commands.start_command(_update(f"/start {invitation.invite_code}"), context))
+
+        assert current_state(context.user_data) == STATE_MAIN_MENU
+        assert "확인하지 못했습니다" in sent[0]
+        assert get_session(context.user_data)["onboarding_session_id"] is None
+    finally:
+        runtime.close()
+
+
 def test_protected_farmer_command_requires_approved_onboarding(monkeypatch, tmp_path):
     sent: list[str] = []
 
