@@ -32,7 +32,12 @@ from PROJECT.dispatch.session_dispatcher import (
     set_yield_draft,
     is_authenticated,
 )
-from PROJECT.dispatch.support_handoff_dispatcher import close_support_handoff, create_support_handoff_request, record_support_handoff_admin_reply
+from PROJECT.dispatch.support_handoff_dispatcher import (
+    admin_runtime_for_context,
+    close_support_handoff,
+    create_support_handoff_request,
+    record_support_handoff_admin_reply,
+)
 from PROJECT.channels.telegram.handlers.onboarding import send_onboarding_prompt, sync_onboarding_session
 from PROJECT.i18n.translator import get_catalog, language_keyboard
 from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED
@@ -229,6 +234,7 @@ async def show_support_guidance(
         failure_count=failure_count,
         recent_messages_summary=recent_messages_summary,
         source=source,
+        runtime=admin_runtime_for_context(context),
     )
     await send_text(
         update,
@@ -260,6 +266,7 @@ async def close_support_handoff_from_admin(update, context, *, reason: str = "ad
         context.user_data,
         reason=reason,
         source="admin_close",
+        runtime=admin_runtime_for_context(context),
     )
     if handoff is None:
         return False
@@ -386,7 +393,12 @@ async def open_fertilizer_edit_selector(update, context) -> bool:
 
 async def start_command(update, context) -> None:
     catalog = catalog_for(context)
-    close_support_handoff(context.user_data, reason="user_restart", source="start_command")
+    close_support_handoff(
+        context.user_data,
+        reason="user_restart",
+        source="start_command",
+        runtime=admin_runtime_for_context(context),
+    )
 
     if _sqlite_onboarding_enabled(context):
         invite_code = _start_invite_code(context)
@@ -469,7 +481,12 @@ async def help_command(update, context) -> None:
 
 async def menu_command(update, context) -> None:
     catalog = catalog_for(context)
-    close_support_handoff(context.user_data, reason="user_menu_exit", source="menu_command")
+    close_support_handoff(
+        context.user_data,
+        reason="user_menu_exit",
+        source="menu_command",
+        runtime=admin_runtime_for_context(context),
+    )
     reset_session(context.user_data)
     await send_text(
         update,
@@ -480,7 +497,12 @@ async def menu_command(update, context) -> None:
 
 async def cancel_command(update, context) -> None:
     catalog = catalog_for(context)
-    close_support_handoff(context.user_data, reason="user_cancel", source="cancel_command")
+    close_support_handoff(
+        context.user_data,
+        reason="user_cancel",
+        source="cancel_command",
+        runtime=admin_runtime_for_context(context),
+    )
     cancel_session(context.user_data)
     await send_text(
         update,

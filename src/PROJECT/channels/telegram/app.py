@@ -3,6 +3,8 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, f
 from PROJECT.channels.telegram.handlers.commands import cancel_command, fertilizer_command, help_command, input_resolve_command, language_command, menu_command, myfields_command, profile_command, start_command, support_command, yield_command
 from PROJECT.channels.telegram.handlers.messages import button_callback, text_message, unknown_command
 from PROJECT.admin.delivery import run_outbox_delivery_loop
+from PROJECT.admin.follow_up import admin_runtime
+from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.llm import GeminiEditIntentResolver, GeminiRecoveryClassifier
 from PROJECT.settings import Settings
 from PROJECT.storage.invitations import SqliteInvitationRepository
@@ -42,6 +44,11 @@ def create_application(settings: Settings, *, sqlite_runtime: SqliteRuntime | No
     application.bot_data["llm_runtime_mode"] = settings.llm_runtime_mode
     application.bot_data["gemini_recovery_classifier"] = gemini_recovery_classifier
     application.bot_data["gemini_edit_intent_resolver"] = gemini_edit_intent_resolver
+    application.bot_data["admin_runtime"] = (
+        SqliteAdminRuntime(sqlite_runtime.connection)
+        if sqlite_runtime is not None
+        else admin_runtime
+    )
     if sqlite_runtime is not None:
         application.bot_data["invitation_repository"] = SqliteInvitationRepository(sqlite_runtime.connection)
         application.bot_data["onboarding_repository"] = SqliteOnboardingRepository(sqlite_runtime.connection)

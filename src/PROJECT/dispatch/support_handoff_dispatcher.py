@@ -10,6 +10,10 @@ from PROJECT.telemetry.events import (
 )
 
 
+def admin_runtime_for_context(context) -> InMemoryAdminRuntime:
+    return getattr(context, "bot_data", {}).get("admin_runtime", admin_runtime)
+
+
 def create_support_handoff_request(
     user_data: dict,
     *,

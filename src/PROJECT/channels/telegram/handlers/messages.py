@@ -125,7 +125,12 @@ from PROJECT.dispatch.session_dispatcher import (
     set_yield_draft,
     yield_draft,
 )
-from PROJECT.dispatch.support_handoff_dispatcher import close_support_handoff, create_support_handoff_request, record_support_handoff_user_message
+from PROJECT.dispatch.support_handoff_dispatcher import (
+    admin_runtime_for_context,
+    close_support_handoff,
+    create_support_handoff_request,
+    record_support_handoff_user_message,
+)
 from PROJECT.i18n.translator import get_catalog, language_keyboard, resolve_language_choice
 from PROJECT.llm import GeminiNotConfiguredError, GeminiRecoveryError, GeminiResponseFormatError, LlmEditAction, LlmEditIntentResult
 from PROJECT.policy import (
@@ -373,6 +378,7 @@ def create_handoff_request_from_runtime(
         failure_count=failure_count,
         recent_messages_summary=recent_messages_summary,
         source=source,
+        runtime=admin_runtime_for_context(context),
     )
 
 
@@ -1465,6 +1471,7 @@ async def text_message(update, context) -> None:
             context.user_data,
             user_message=inbound.text,
             source="active_handoff_user_message",
+            runtime=admin_runtime_for_context(context),
         )
         await send_text(
             update,
@@ -1478,6 +1485,7 @@ async def text_message(update, context) -> None:
             context.user_data,
             reason="user_safe_exit",
             source="active_handoff_safe_exit",
+            runtime=admin_runtime_for_context(context),
         )
 
     early_gate = classify_cheap_gate(

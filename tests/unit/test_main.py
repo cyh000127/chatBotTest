@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+from PROJECT.admin.follow_up import admin_runtime
+from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.channels.telegram.app import create_application
 from PROJECT.policy import LocalAiGate
 from PROJECT import main as project_main
@@ -13,6 +15,7 @@ def test_create_application_registers_settings():
     assert application.bot_data["llm_runtime_mode"] == "rules_only_disabled"
     assert application.bot_data["gemini_recovery_classifier"] is None
     assert application.bot_data["gemini_edit_intent_resolver"] is None
+    assert application.bot_data["admin_runtime"] is admin_runtime
 
 
 def test_create_application_registers_sqlite_repositories_when_runtime_is_available(tmp_path):
@@ -29,6 +32,7 @@ def test_create_application_registers_sqlite_repositories_when_runtime_is_availa
 
         assert "invitation_repository" in application.bot_data
         assert "onboarding_repository" in application.bot_data
+        assert isinstance(application.bot_data["admin_runtime"], SqliteAdminRuntime)
     finally:
         runtime.close()
 
