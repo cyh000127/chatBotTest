@@ -25,6 +25,7 @@ from PROJECT.dispatch.session_dispatcher import (
     reset_session,
     set_fertilizer_draft,
     set_onboarding_session,
+    set_onboarding_progress,
     set_pending_slot,
     set_profile_draft,
     set_state,
@@ -83,12 +84,33 @@ def _is_expired(expires_at: str) -> bool:
     return parsed <= datetime.now(UTC)
 
 
-def _farmer_feature_access_allowed(context) -> bool:
+def _farmer_feature_access_allowed(update, context) -> bool:
     if not _sqlite_onboarding_enabled(context):
         return True
     if is_authenticated(context.user_data):
         return True
-    return current_onboarding_status(context.user_data) == ONBOARDING_STATUS_APPROVED
+    if current_onboarding_status(context.user_data) == ONBOARDING_STATUS_APPROVED:
+        return True
+    effective_user = update.effective_user
+    if effective_user is None:
+        return False
+    approved_session = _onboarding_repository(context).find_active_approved_session_for_provider(str(effective_user.id))
+    if approved_session is None:
+        return False
+    set_onboarding_session(
+        context.user_data,
+        onboarding_session_id=approved_session.id,
+        invite_code="",
+        project_id=approved_session.project_id,
+        status=approved_session.session_status_code,
+        step=approved_session.current_step_code,
+    )
+    set_onboarding_progress(
+        context.user_data,
+        status=approved_session.session_status_code,
+        step=approved_session.current_step_code,
+    )
+    return True
 
 
 async def _send_onboarding_access_required(update, context) -> None:
@@ -116,7 +138,7 @@ async def _send_onboarding_access_required(update, context) -> None:
 
 
 async def _require_farmer_feature_access(update, context) -> bool:
-    if _farmer_feature_access_allowed(context):
+    if _farmer_feature_access_allowed(update, context):
         return True
     await _send_onboarding_access_required(update, context)
     return False

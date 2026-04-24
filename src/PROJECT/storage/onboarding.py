@@ -166,6 +166,31 @@ class SqliteOnboardingRepository:
                 return None
             return row_to_onboarding_session(row)
 
+    def find_active_approved_session_for_provider(self, provider_user_id: str) -> OnboardingSession | None:
+        with self._lock:
+            row = self._connection.execute(
+                """
+                SELECT os.*
+                FROM onboarding_sessions os
+                JOIN project_enrollments pe
+                  ON pe.id = os.result_enrollment_id
+                 AND pe.enrollment_status_code = 'active'
+                WHERE os.identity_provider_code = ?
+                  AND os.provider_user_id = ?
+                  AND os.session_status_code = ?
+                ORDER BY os.completed_at DESC, os.updated_at DESC
+                LIMIT 1
+                """,
+                (
+                    DEFAULT_IDENTITY_PROVIDER_CODE,
+                    provider_user_id,
+                    ONBOARDING_STATUS_APPROVED,
+                ),
+            ).fetchone()
+            if row is None:
+                return None
+            return row_to_onboarding_session(row)
+
     def update_locale(self, onboarding_session_id: str, locale_code: str) -> OnboardingSession:
         session = self._require_by_id(onboarding_session_id)
         draft = _draft_from_json(session.draft_payload_json)

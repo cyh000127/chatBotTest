@@ -8,6 +8,7 @@ from PROJECT.dispatch.session_dispatcher import current_state, get_session, rese
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.invitations import SqliteInvitationRepository
 from PROJECT.storage.onboarding import SqliteOnboardingRepository
+from PROJECT.storage.onboarding_admin import SqliteOnboardingAdminRepository
 from PROJECT.storage.sqlite import bootstrap_sqlite_runtime
 
 
@@ -151,5 +152,47 @@ def test_protected_farmer_command_requires_approved_onboarding(monkeypatch, tmp_
 
         assert current_state(context.user_data) != STATE_FERTILIZER_USED
         assert "온보딩" in sent[0]
+    finally:
+        runtime.close()
+
+
+def test_protected_farmer_command_restores_access_after_admin_approval(monkeypatch, tmp_path):
+    sent: list[str] = []
+
+    async def fake_send_text(update, text, keyboard_layout=None):
+        sent.append(text)
+
+    monkeypatch.setattr(commands, "send_text", fake_send_text)
+    runtime, invitation_repository, onboarding_repository = _sqlite_repositories(tmp_path)
+
+    try:
+        invitation = invitation_repository.create_invitation()
+        onboarding_session = onboarding_repository.create_or_resume_from_invitation(
+            invitation=invitation,
+            provider_user_id="12345",
+            provider_handle="farmer_user",
+            preferred_locale_code="ko",
+            chat_id=67890,
+        )
+        onboarding_session = onboarding_repository.update_locale(onboarding_session.id, "ko")
+        onboarding_session = onboarding_repository.update_name(onboarding_session.id, "홍길동")
+        onboarding_session = onboarding_repository.update_phone(
+            onboarding_session.id,
+            phone_raw="+855 12 345 678",
+            phone_normalized="+85512345678",
+        )
+        onboarding_session = onboarding_repository.submit_pending_approval(onboarding_session.id)
+        SqliteOnboardingAdminRepository(runtime.connection).approve_submission(onboarding_session.id)
+        context = _context(
+            bot_data={
+                "invitation_repository": invitation_repository,
+                "onboarding_repository": onboarding_repository,
+            },
+        )
+
+        asyncio.run(commands.fertilizer_command(_update("/fertilizer"), context))
+
+        assert current_state(context.user_data) == STATE_FERTILIZER_USED
+        assert sent
     finally:
         runtime.close()

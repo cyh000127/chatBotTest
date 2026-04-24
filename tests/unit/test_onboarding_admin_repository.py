@@ -116,6 +116,22 @@ def test_onboarding_admin_repository_approval_creates_participant_enrollment_and
         runtime.close()
 
 
+def test_onboarding_repository_finds_active_approved_session_for_provider(tmp_path):
+    runtime, _, session, admin_repository = create_pending_submission(tmp_path)
+
+    try:
+        admin_repository.approve_submission(session.id)
+        repository = SqliteOnboardingRepository(runtime.connection)
+
+        approved = repository.find_active_approved_session_for_provider("12345")
+
+        assert approved is not None
+        assert approved.id == session.id
+        assert approved.session_status_code == ONBOARDING_STATUS_APPROVED
+    finally:
+        runtime.close()
+
+
 def test_onboarding_admin_repository_rejection_does_not_create_participant_or_enrollment(tmp_path):
     runtime, _, session, admin_repository = create_pending_submission(tmp_path)
 
