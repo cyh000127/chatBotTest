@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from dotenv import load_dotenv
 from PROJECT.policy import (
@@ -16,6 +17,7 @@ TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
 DEFAULT_ADMIN_API_HOST = "127.0.0.1"
 DEFAULT_ADMIN_API_PORT = 8000
 DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS = 1.0
+DEFAULT_SQLITE_BUSY_TIMEOUT_MS = 5000
 
 
 @dataclass(frozen=True)
@@ -35,11 +37,23 @@ class AdminApiSettings:
 
 
 @dataclass(frozen=True)
+class SqliteSettings:
+    database_path: str = ""
+    migrations_enabled: bool = False
+    busy_timeout_ms: int = DEFAULT_SQLITE_BUSY_TIMEOUT_MS
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.database_path)
+
+
+@dataclass(frozen=True)
 class Settings:
     bot_token: str
     gemini: GeminiSettings | None = None
     local_ai_gate: LocalAiGate = LocalAiGate.DISABLED
     admin_api: AdminApiSettings = AdminApiSettings()
+    sqlite: SqliteSettings = SqliteSettings()
 
     @property
     def ai_mode(self) -> LocalAiGate:
@@ -89,6 +103,30 @@ def parse_bool_env(name: str, default: bool = False) -> bool:
     if raw is None:
         return default
     return raw.strip().lower() in TRUE_ENV_VALUES
+
+
+def parse_int_env(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw.strip())
+    except ValueError:
+        return default
+    if value < 0:
+        return default
+    return value
+
+
+def load_sqlite_settings() -> SqliteSettings:
+    database_path = os.getenv("SQLITE_DATABASE_PATH", "").strip()
+    if database_path and not Path(database_path).is_absolute():
+        raise ValueError("SQLITE_DATABASE_PATH 는 절대 경로여야 합니다.")
+    return SqliteSettings(
+        database_path=database_path,
+        migrations_enabled=parse_bool_env("SQLITE_MIGRATIONS_ENABLED", default=False),
+        busy_timeout_ms=parse_int_env("SQLITE_BUSY_TIMEOUT_MS", DEFAULT_SQLITE_BUSY_TIMEOUT_MS),
+    )
 
 
 def load_settings() -> Settings:
@@ -144,4 +182,5 @@ def load_settings() -> Settings:
             port=admin_api_port,
             outbox_poll_interval_seconds=admin_outbox_poll_interval_seconds,
         ),
+        sqlite=load_sqlite_settings(),
     )

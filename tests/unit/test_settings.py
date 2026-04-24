@@ -3,10 +3,13 @@ from PROJECT.settings import (
     DEFAULT_ADMIN_API_HOST,
     DEFAULT_ADMIN_API_PORT,
     DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS,
+    DEFAULT_SQLITE_BUSY_TIMEOUT_MS,
     GeminiSettings,
     Settings,
+    SqliteSettings,
     load_settings,
     parse_bool_env,
+    parse_int_env,
 )
 
 
@@ -18,6 +21,9 @@ def test_settings_defaults_include_gemini_configuration():
     assert settings.admin_api.host == DEFAULT_ADMIN_API_HOST
     assert settings.admin_api.port == DEFAULT_ADMIN_API_PORT
     assert settings.admin_api.outbox_poll_interval_seconds == DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS
+    assert settings.sqlite == SqliteSettings()
+    assert settings.sqlite.enabled is False
+    assert settings.sqlite.busy_timeout_ms == DEFAULT_SQLITE_BUSY_TIMEOUT_MS
     assert settings.local_ai_gate == LocalAiGate.DISABLED
     assert settings.enable_llm_edit_intent is False
     assert settings.enable_llm_recovery is False
@@ -81,6 +87,23 @@ def test_parse_bool_env_accepts_true_values(monkeypatch):
     assert parse_bool_env("ENABLE_LLM_EDIT_INTENT", default=False) is True
 
 
+def test_parse_int_env_returns_default_for_missing_or_invalid_values(monkeypatch):
+    monkeypatch.delenv("SQLITE_BUSY_TIMEOUT_MS", raising=False)
+    assert parse_int_env("SQLITE_BUSY_TIMEOUT_MS", default=5000) == 5000
+
+    monkeypatch.setenv("SQLITE_BUSY_TIMEOUT_MS", "invalid")
+    assert parse_int_env("SQLITE_BUSY_TIMEOUT_MS", default=5000) == 5000
+
+    monkeypatch.setenv("SQLITE_BUSY_TIMEOUT_MS", "-1")
+    assert parse_int_env("SQLITE_BUSY_TIMEOUT_MS", default=5000) == 5000
+
+
+def test_parse_int_env_accepts_non_negative_integer(monkeypatch):
+    monkeypatch.setenv("SQLITE_BUSY_TIMEOUT_MS", "2500")
+
+    assert parse_int_env("SQLITE_BUSY_TIMEOUT_MS", default=5000) == 2500
+
+
 def test_load_settings_reads_local_ai_gate_from_ai_mode_env(monkeypatch):
     monkeypatch.setenv("BOT_TOKEN", "test-token")
     monkeypatch.setenv("AI_MODE", "recovery_assist_only")
@@ -119,3 +142,32 @@ def test_load_settings_reads_admin_api_env(monkeypatch):
     assert settings.admin_api.host == "0.0.0.0"
     assert settings.admin_api.port == 9000
     assert settings.admin_api.outbox_poll_interval_seconds == 2.5
+
+
+def test_load_settings_reads_sqlite_env(monkeypatch, tmp_path):
+    database_path = tmp_path / "runtime.sqlite3"
+    monkeypatch.setenv("BOT_TOKEN", "test-token")
+    monkeypatch.setenv("SQLITE_DATABASE_PATH", str(database_path))
+    monkeypatch.setenv("SQLITE_MIGRATIONS_ENABLED", "true")
+    monkeypatch.setenv("SQLITE_BUSY_TIMEOUT_MS", "1234")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    settings = load_settings()
+
+    assert settings.sqlite.enabled is True
+    assert settings.sqlite.database_path == str(database_path)
+    assert settings.sqlite.migrations_enabled is True
+    assert settings.sqlite.busy_timeout_ms == 1234
+
+
+def test_load_settings_rejects_relative_sqlite_path(monkeypatch):
+    monkeypatch.setenv("BOT_TOKEN", "test-token")
+    monkeypatch.setenv("SQLITE_DATABASE_PATH", "runtime.sqlite3")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    try:
+        load_settings()
+    except ValueError as exc:
+        assert "SQLITE_DATABASE_PATH" in str(exc)
+    else:
+        raise AssertionError("relative SQLite path should be rejected")

@@ -3,3 +3,11 @@
 __pycache__/
 *.pyc
 reference-docs/
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
+runtime-data/
+local-state/

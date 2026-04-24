@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from PROJECT.channels.telegram.app import create_application
 from PROJECT.policy import LocalAiGate
 from PROJECT import main as project_main
-from PROJECT.settings import AdminApiSettings, GeminiSettings, Settings
+from PROJECT.settings import AdminApiSettings, GeminiSettings, Settings, SqliteSettings
 
 
 def test_create_application_registers_settings():
@@ -146,6 +146,8 @@ def test_startup_log_fields_reflect_runtime_mode_from_actual_model_availability(
         "llm_recovery_enabled": False,
         "llm_edit_intent_enabled": False,
         "admin_api_enabled": False,
+        "sqlite_enabled": False,
+        "sqlite_migrations_enabled": False,
     }
 
 
@@ -180,6 +182,8 @@ def test_main_logs_bot_started_with_runtime_snapshot(monkeypatch):
                 "llm_recovery_enabled": False,
                 "llm_edit_intent_enabled": True,
                 "admin_api_enabled": False,
+                "sqlite_enabled": False,
+                "sqlite_migrations_enabled": False,
             },
         )
     ]
@@ -202,3 +206,23 @@ def test_main_starts_admin_api_server_when_enabled(monkeypatch):
     project_main.main()
 
     assert started == [settings]
+
+
+def test_main_bootstraps_and_closes_sqlite_runtime_when_enabled(monkeypatch, tmp_path):
+    closed = []
+    application = SimpleNamespace(run_polling=lambda: None)
+    settings = Settings(
+        bot_token="test-token",
+        sqlite=SqliteSettings(database_path=str(tmp_path / "runtime.sqlite3")),
+    )
+    runtime = SimpleNamespace(close=lambda: closed.append(True))
+
+    monkeypatch.setattr(project_main, "configure_logging", lambda: None)
+    monkeypatch.setattr(project_main, "load_settings", lambda: settings)
+    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings: application)
+    monkeypatch.setattr(project_main, "bootstrap_sqlite_runtime", lambda sqlite_settings: runtime)
+    monkeypatch.setattr(project_main, "log_event", lambda event, **fields: None)
+
+    project_main.main()
+
+    assert closed == [True]
