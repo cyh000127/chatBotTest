@@ -1,6 +1,7 @@
 import asyncio
 from types import SimpleNamespace
 
+from PROJECT.auth.session_registry import process_auth_registry
 from PROJECT.channels.telegram.handlers import commands, messages
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_USED
 from PROJECT.conversations.sample_menu.states import STATE_AUTH_LOGIN, STATE_MAIN_MENU
@@ -15,7 +16,9 @@ def _update(text: str) -> SimpleNamespace:
     )
 
 
-def _context(*, args=None) -> SimpleNamespace:
+def _context(*, args=None, clear_registry: bool = True) -> SimpleNamespace:
+    if clear_registry:
+        process_auth_registry.clear()
     user_data: dict = {}
     reset_session(user_data)
     return SimpleNamespace(args=args or [], user_data=user_data, bot_data={})
@@ -69,6 +72,23 @@ def test_local_start_with_login_id_authenticates_and_allows_feature(monkeypatch)
     assert is_authenticated(context.user_data) is True
     assert current_state(context.user_data) == STATE_FERTILIZER_USED
     assert any("어서오세요" in message for message in sent)
+
+
+def test_local_process_auth_registry_restores_access_without_reauth(monkeypatch):
+    sent: list[str] = []
+
+    async def fake_send_text(update, text, keyboard_layout=None):
+        sent.append(text)
+
+    monkeypatch.setattr(commands, "send_text", fake_send_text)
+    first_context = _context(args=["sample-user"])
+    second_context = _context(clear_registry=False)
+
+    asyncio.run(commands.start_command(_update("/start sample-user"), first_context))
+    asyncio.run(commands.fertilizer_command(_update("/fertilizer"), second_context))
+
+    assert is_authenticated(second_context.user_data) is True
+    assert current_state(second_context.user_data) == STATE_FERTILIZER_USED
 
 
 def test_local_auth_failure_twice_requires_start_again(monkeypatch):

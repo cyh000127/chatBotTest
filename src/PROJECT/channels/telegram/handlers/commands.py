@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from PROJECT.adapters.outbound.reply_sender import send_text
 from PROJECT.auth.service import authenticate_login_id
+from PROJECT.auth.session_registry import process_auth_registry, telegram_identity_key
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_USED
@@ -126,6 +127,8 @@ def _farmer_feature_access_allowed(update, context) -> bool:
 def _started_access_allowed(update, context) -> bool:
     if is_authenticated(context.user_data):
         return True
+    if _restore_process_auth_session(update, context):
+        return True
     if current_onboarding_session_id(context.user_data) is not None:
         return True
     if current_onboarding_status(context.user_data) is not None:
@@ -133,6 +136,20 @@ def _started_access_allowed(update, context) -> bool:
     if _sqlite_onboarding_enabled(context):
         return _farmer_feature_access_allowed(update, context)
     return False
+
+
+def _restore_process_auth_session(update, context) -> bool:
+    if _sqlite_onboarding_enabled(context):
+        return False
+    record = process_auth_registry.get(telegram_identity_key(update))
+    if record is None:
+        return False
+    authenticate_session(
+        context.user_data,
+        login_id=record.login_id,
+        user_name=record.user_name,
+    )
+    return True
 
 
 async def _send_onboarding_access_required(update, context) -> None:
@@ -207,6 +224,13 @@ async def complete_local_auth(update, context, login_id: str, *, already_logged_
         login_id=result["login_id"],
         user_name=result["user_name"],
     )
+    identity_key = telegram_identity_key(update)
+    if identity_key is not None:
+        process_auth_registry.set_authenticated(
+            identity_key=identity_key,
+            login_id=result["login_id"],
+            user_name=result["user_name"],
+        )
     reset_session(context.user_data)
     set_state(context.user_data, STATE_MAIN_MENU)
     message_template = catalog.AUTH_ALREADY_LOGGED_IN_MESSAGE if already_logged_in else catalog.AUTH_WELCOME_MESSAGE
@@ -221,6 +245,7 @@ async def complete_local_auth(update, context, login_id: str, *, already_logged_
 async def handle_local_auth_text(update, context, text: str) -> bool:
     if _sqlite_onboarding_enabled(context):
         return False
+    _restore_process_auth_session(update, context)
     if is_authenticated(context.user_data):
         return False
     if current_state(context.user_data) != STATE_AUTH_LOGIN:
