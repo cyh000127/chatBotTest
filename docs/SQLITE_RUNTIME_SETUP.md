@@ -54,6 +54,8 @@ ADMIN_API_HOST=127.0.0.1
 ADMIN_API_PORT=8000
 ADMIN_OUTBOX_POLL_INTERVAL_SECONDS=1
 ADMIN_API_ACCESS_TOKEN=replace_with_local_admin_token
+ADMIN_API_PREVIOUS_ACCESS_TOKEN=replace_with_previous_local_admin_token
+ADMIN_API_PREVIOUS_ACCESS_TOKEN_EXPIRES_AT=2026-12-31T23:59:59+00:00
 ADMIN_API_ACCESS_ROLE=operator
 ```
 
@@ -66,6 +68,14 @@ Supported local authentication methods:
 - JSON API requests may use `X-Admin-Token: <token>`.
 
 The token must not be placed in URLs and must not be committed to version control.
+
+Token rotation uses the current token plus one previous token:
+
+- `ADMIN_API_ACCESS_TOKEN` is the current accepted token.
+- `ADMIN_API_PREVIOUS_ACCESS_TOKEN` is accepted only during a short rotation window.
+- `ADMIN_API_PREVIOUS_ACCESS_TOKEN_EXPIRES_AT` must be an ISO-8601 timestamp in the future.
+- an expired or invalid previous-token expiry disables the previous token automatically.
+- after rotation is complete, remove the previous token variables from the runtime environment.
 
 `ADMIN_API_ACCESS_ROLE` controls the local admin role:
 

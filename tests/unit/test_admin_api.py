@@ -125,6 +125,83 @@ def test_admin_api_access_token_allows_header_credentials():
     assert len(response.json()["items"]) == 1
 
 
+def test_admin_api_allows_previous_token_before_rotation_expiry():
+    runtime = InMemoryAdminRuntime()
+    runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+    client = TestClient(
+        create_admin_api_app(
+            runtime,
+            admin_access_token="new-token",
+            admin_previous_access_token="old-token",
+            admin_previous_access_token_expires_at="2999-01-01T00:00:00+00:00",
+        )
+    )
+
+    previous_token_response = client.get("/admin/follow-ups", headers={"X-Admin-Token": "old-token"})
+    current_token_response = client.get(
+        "/admin/follow-ups",
+        headers={"Authorization": "Bearer new-token"},
+    )
+
+    assert previous_token_response.status_code == 200
+    assert current_token_response.status_code == 200
+
+
+def test_admin_api_rejects_previous_token_after_rotation_expiry():
+    runtime = InMemoryAdminRuntime()
+    client = TestClient(
+        create_admin_api_app(
+            runtime,
+            admin_access_token="new-token",
+            admin_previous_access_token="old-token",
+            admin_previous_access_token_expires_at="2000-01-01T00:00:00+00:00",
+        )
+    )
+
+    response = client.get("/admin/follow-ups", headers={"X-Admin-Token": "old-token"})
+
+    assert response.status_code == 401
+
+
+def test_admin_login_allows_previous_token_and_records_token_slot(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        audit_repository = SqliteAdminAuditRepository(sqlite_runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                admin_audit_repository=audit_repository,
+                admin_access_token="new-token",
+                admin_previous_access_token="old-token",
+                admin_previous_access_token_expires_at="2999-01-01T00:00:00+00:00",
+            )
+        )
+
+        login = client.post("/admin/login", data={"access_token": "old-token"}, follow_redirects=False)
+        allowed = client.get("/admin/follow-ups")
+        event = audit_repository.list_events()[0]
+
+        assert login.status_code == 303
+        assert "admin_access_token" in login.headers["set-cookie"]
+        assert allowed.status_code == 200
+        assert event.action_code == "admin.login"
+        assert event.detail == {"role": "operator", "token_slot": "previous"}
+    finally:
+        sqlite_runtime.close()
+
+
 def test_admin_api_viewer_role_allows_reads_and_blocks_writes(tmp_path):
     sqlite_runtime = bootstrap_sqlite_runtime(
         SqliteSettings(

@@ -52,6 +52,8 @@ def start_admin_api_server(
             onboarding_admin_repository=onboarding_admin_repository,
             admin_audit_repository=admin_audit_repository,
             admin_access_token=settings.admin_api.access_token,
+            admin_previous_access_token=settings.admin_api.previous_access_token,
+            admin_previous_access_token_expires_at=settings.admin_api.previous_access_token_expires_at,
             admin_access_role=settings.admin_api.access_role,
         ),
         host=settings.admin_api.host,

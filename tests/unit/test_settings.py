@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from PROJECT.policy import LocalAiGate
 from PROJECT.settings import (
     DEFAULT_ADMIN_API_HOST,
@@ -12,6 +14,7 @@ from PROJECT.settings import (
     parse_admin_api_access_role,
     parse_bool_env,
     parse_int_env,
+    parse_optional_datetime,
 )
 
 
@@ -24,8 +27,11 @@ def test_settings_defaults_include_gemini_configuration():
     assert settings.admin_api.port == DEFAULT_ADMIN_API_PORT
     assert settings.admin_api.outbox_poll_interval_seconds == DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS
     assert settings.admin_api.access_token == ""
+    assert settings.admin_api.previous_access_token == ""
+    assert settings.admin_api.previous_access_token_expires_at is None
     assert settings.admin_api.access_role == DEFAULT_ADMIN_API_ACCESS_ROLE
     assert settings.admin_api.access_control_enabled is False
+    assert settings.admin_api.previous_access_token_active is False
     assert settings.admin_api.write_access_enabled is True
     assert settings.sqlite == SqliteSettings()
     assert settings.sqlite.enabled is False
@@ -116,6 +122,20 @@ def test_parse_admin_api_access_role_accepts_known_roles():
     assert parse_admin_api_access_role("unknown") == DEFAULT_ADMIN_API_ACCESS_ROLE
 
 
+def test_parse_optional_datetime_accepts_iso_values():
+    assert parse_optional_datetime("") is None
+    assert parse_optional_datetime("invalid") is None
+    assert parse_optional_datetime("2030-01-02T03:04:05Z") == datetime(
+        2030,
+        1,
+        2,
+        3,
+        4,
+        5,
+        tzinfo=UTC,
+    )
+
+
 def test_load_settings_reads_local_ai_gate_from_ai_mode_env(monkeypatch):
     monkeypatch.setenv("BOT_TOKEN", "test-token")
     monkeypatch.setenv("AI_MODE", "recovery_assist_only")
@@ -147,6 +167,8 @@ def test_load_settings_reads_admin_api_env(monkeypatch):
     monkeypatch.setenv("ADMIN_API_PORT", "9000")
     monkeypatch.setenv("ADMIN_OUTBOX_POLL_INTERVAL_SECONDS", "2.5")
     monkeypatch.setenv("ADMIN_API_ACCESS_TOKEN", "test-admin-token")
+    monkeypatch.setenv("ADMIN_API_PREVIOUS_ACCESS_TOKEN", "old-admin-token")
+    monkeypatch.setenv("ADMIN_API_PREVIOUS_ACCESS_TOKEN_EXPIRES_AT", "2999-01-01T00:00:00+00:00")
     monkeypatch.setenv("ADMIN_API_ACCESS_ROLE", "viewer")
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
@@ -157,8 +179,11 @@ def test_load_settings_reads_admin_api_env(monkeypatch):
     assert settings.admin_api.port == 9000
     assert settings.admin_api.outbox_poll_interval_seconds == 2.5
     assert settings.admin_api.access_token == "test-admin-token"
+    assert settings.admin_api.previous_access_token == "old-admin-token"
+    assert settings.admin_api.previous_access_token_expires_at == datetime(2999, 1, 1, tzinfo=UTC)
     assert settings.admin_api.access_role == "viewer"
     assert settings.admin_api.access_control_enabled is True
+    assert settings.admin_api.previous_access_token_active is True
     assert settings.admin_api.write_access_enabled is False
 
 

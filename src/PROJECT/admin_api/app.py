@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from datetime import UTC, datetime
 from html import escape
 from urllib.parse import parse_qs
 
@@ -52,6 +53,9 @@ class OnboardingRejectionRequest(BaseModel):
 ADMIN_ACCESS_ROLE_VIEWER = "viewer"
 ADMIN_ACCESS_ROLE_OPERATOR = "operator"
 ADMIN_WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+ADMIN_TOKEN_SLOT_OPEN = "open"
+ADMIN_TOKEN_SLOT_CURRENT = "current"
+ADMIN_TOKEN_SLOT_PREVIOUS = "previous"
 
 
 def _serialize(item) -> dict:
@@ -205,6 +209,24 @@ def _admin_role_can_write(role: str) -> bool:
     return _normalize_admin_access_role(role) == ADMIN_ACCESS_ROLE_OPERATOR
 
 
+def _coerce_expires_at(expires_at: datetime | str | None) -> datetime | None:
+    if expires_at is None:
+        return None
+    if isinstance(expires_at, datetime):
+        parsed = expires_at
+    else:
+        value = expires_at.strip()
+        if not value:
+            return None
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 def create_admin_api_app(
     runtime: InMemoryAdminRuntime = admin_runtime,
     *,
@@ -212,10 +234,13 @@ def create_admin_api_app(
     onboarding_admin_repository: SqliteOnboardingAdminRepository | None = None,
     admin_audit_repository: SqliteAdminAuditRepository | None = None,
     admin_access_token: str = "",
+    admin_previous_access_token: str = "",
+    admin_previous_access_token_expires_at: datetime | str | None = None,
     admin_access_role: str = ADMIN_ACCESS_ROLE_OPERATOR,
 ) -> FastAPI:
     app = FastAPI(title="PROJECT Admin Follow-up API")
     resolved_admin_access_role = _normalize_admin_access_role(admin_access_role)
+    previous_access_token_expires_at = _coerce_expires_at(admin_previous_access_token_expires_at)
 
     def admin_actor_id(request: Request, *, fallback: str = DEFAULT_LOCAL_ADMIN_USER_ID) -> str:
         return request.headers.get("x-admin-user-id") or fallback
@@ -246,18 +271,35 @@ def create_admin_api_app(
             detail=detail,
         )
 
-    def admin_request_authorized(request: Request) -> bool:
-        if not admin_access_token:
-            return True
+    def admin_access_required() -> bool:
+        return bool(admin_access_token or admin_previous_access_token)
+
+    def previous_access_token_active() -> bool:
+        if not admin_previous_access_token or previous_access_token_expires_at is None:
+            return False
+        return previous_access_token_expires_at > datetime.now(UTC)
+
+    def request_access_token(request: Request) -> str:
         authorization = request.headers.get("authorization", "")
         bearer_prefix = "Bearer "
-        if authorization.startswith(bearer_prefix) and authorization[len(bearer_prefix):] == admin_access_token:
-            return True
-        if request.headers.get("x-admin-token") == admin_access_token:
-            return True
-        if request.cookies.get("admin_access_token") == admin_access_token:
-            return True
-        return False
+        if authorization.startswith(bearer_prefix):
+            return authorization[len(bearer_prefix):]
+        return request.headers.get("x-admin-token") or request.cookies.get("admin_access_token") or ""
+
+    def admin_token_slot_for_value(token: str) -> str | None:
+        if not admin_access_required():
+            return ADMIN_TOKEN_SLOT_OPEN
+        if token and admin_access_token and token == admin_access_token:
+            return ADMIN_TOKEN_SLOT_CURRENT
+        if token and previous_access_token_active() and token == admin_previous_access_token:
+            return ADMIN_TOKEN_SLOT_PREVIOUS
+        return None
+
+    def admin_request_token_slot(request: Request) -> str | None:
+        return admin_token_slot_for_value(request_access_token(request))
+
+    def admin_request_authorized(request: Request) -> bool:
+        return admin_request_token_slot(request) is not None
 
     def wants_html(request: Request) -> bool:
         accept = request.headers.get("accept", "")
@@ -312,12 +354,13 @@ def create_admin_api_app(
 
     @app.post("/admin/login")
     async def submit_admin_login(request: Request):
-        if not admin_access_token:
+        if not admin_access_required():
             return RedirectResponse("/admin", status_code=303)
         raw_body = await request.body()
         form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
         access_token = (form.get("access_token") or [""])[0]
-        if access_token != admin_access_token:
+        token_slot = admin_token_slot_for_value(access_token)
+        if token_slot is None:
             record_admin_audit(
                 request,
                 action_code="admin.login",
@@ -335,12 +378,12 @@ def create_admin_api_app(
             source_code="admin.web.login",
             target_type_code="admin_session",
             result_code=RESULT_SUCCESS,
-            detail={"role": resolved_admin_access_role},
+            detail={"role": resolved_admin_access_role, "token_slot": token_slot},
         )
         response = RedirectResponse("/admin", status_code=303)
         response.set_cookie(
             "admin_access_token",
-            admin_access_token,
+            access_token,
             httponly=True,
             samesite="lax",
         )

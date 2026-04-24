@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -37,11 +38,19 @@ class AdminApiSettings:
     port: int = DEFAULT_ADMIN_API_PORT
     outbox_poll_interval_seconds: float = DEFAULT_ADMIN_OUTBOX_POLL_INTERVAL_SECONDS
     access_token: str = ""
+    previous_access_token: str = ""
+    previous_access_token_expires_at: datetime | None = None
     access_role: str = DEFAULT_ADMIN_API_ACCESS_ROLE
 
     @property
     def access_control_enabled(self) -> bool:
-        return bool(self.access_token)
+        return bool(self.access_token or self.previous_access_token)
+
+    @property
+    def previous_access_token_active(self) -> bool:
+        if not self.previous_access_token or self.previous_access_token_expires_at is None:
+            return False
+        return self.previous_access_token_expires_at > datetime.now(UTC)
 
     @property
     def write_access_enabled(self) -> bool:
@@ -137,6 +146,19 @@ def parse_admin_api_access_role(raw: str) -> str:
     return DEFAULT_ADMIN_API_ACCESS_ROLE
 
 
+def parse_optional_datetime(raw: str) -> datetime | None:
+    value = raw.strip()
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 def load_sqlite_settings() -> SqliteSettings:
     database_path = os.getenv("SQLITE_DATABASE_PATH", "").strip()
     if database_path and not Path(database_path).is_absolute():
@@ -201,6 +223,10 @@ def load_settings() -> Settings:
             port=admin_api_port,
             outbox_poll_interval_seconds=admin_outbox_poll_interval_seconds,
             access_token=os.getenv("ADMIN_API_ACCESS_TOKEN", "").strip(),
+            previous_access_token=os.getenv("ADMIN_API_PREVIOUS_ACCESS_TOKEN", "").strip(),
+            previous_access_token_expires_at=parse_optional_datetime(
+                os.getenv("ADMIN_API_PREVIOUS_ACCESS_TOKEN_EXPIRES_AT", "")
+            ),
             access_role=parse_admin_api_access_role(
                 os.getenv("ADMIN_API_ACCESS_ROLE", DEFAULT_ADMIN_API_ACCESS_ROLE)
             ),

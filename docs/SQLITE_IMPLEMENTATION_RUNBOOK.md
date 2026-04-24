@@ -26,6 +26,8 @@ ADMIN_API_HOST=127.0.0.1
 ADMIN_API_PORT=8000
 ADMIN_OUTBOX_POLL_INTERVAL_SECONDS=1
 ADMIN_API_ACCESS_TOKEN=replace_with_local_admin_token
+ADMIN_API_PREVIOUS_ACCESS_TOKEN=replace_with_previous_local_admin_token
+ADMIN_API_PREVIOUS_ACCESS_TOKEN_EXPIRES_AT=2026-12-31T23:59:59+00:00
 ADMIN_API_ACCESS_ROLE=operator
 ```
 
@@ -44,6 +46,8 @@ Rules:
 - local database, journal, WAL, SHM, and backup files must stay outside version control.
 - `ADMIN_API_ACCESS_TOKEN` should be set when the local admin API is exposed beyond a disposable local shell.
 - admin tokens must be sent through the login form, `Authorization: Bearer`, or `X-Admin-Token`; tokens must not be sent in URLs.
+- `ADMIN_API_PREVIOUS_ACCESS_TOKEN` is accepted only until `ADMIN_API_PREVIOUS_ACCESS_TOKEN_EXPIRES_AT`.
+- previous-token expiry must be ISO-8601; an invalid or expired value disables the previous token.
 - `ADMIN_API_ACCESS_ROLE=viewer` makes the local admin surface read-only.
 - `ADMIN_API_ACCESS_ROLE=operator` allows local admin write actions.
 - missing model credentials must not block the rules-only runtime.
@@ -197,6 +201,15 @@ Local role flow:
 3. `viewer` cannot create invitations, approve or reject onboarding, reply to follow-ups, or close follow-ups.
 4. Denied write attempts return `403` and append an `admin.rbac.denied` audit event when the audit repository is configured.
 5. `operator` keeps the existing local write behavior.
+
+Token rotation flow:
+
+1. Set a new value in `ADMIN_API_ACCESS_TOKEN`.
+2. Move the old token to `ADMIN_API_PREVIOUS_ACCESS_TOKEN`.
+3. Set a short future ISO-8601 expiry in `ADMIN_API_PREVIOUS_ACCESS_TOKEN_EXPIRES_AT`.
+4. Restart the runtime.
+5. Verify both current and previous tokens work during the rotation window.
+6. After the window expires, remove the previous-token variables and restart.
 
 ## 7. Implementation Commits
 
@@ -500,6 +513,7 @@ Current status: complete for the local SQLite runtime baseline. Future productio
 Implemented local hardening:
 
 - optional `ADMIN_API_ACCESS_TOKEN` gate for Admin API and admin pages
+- current plus expiring previous-token rotation window
 - browser login cookie for local admin pages
 - header-based access for JSON API clients
 - local `viewer` and `operator` role gate
