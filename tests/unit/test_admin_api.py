@@ -155,6 +155,25 @@ def test_admin_pages_show_outbox_messages():
     assert "/admin/pages/onboarding/submissions" in response.text
 
 
+def test_admin_pages_share_navigation_links():
+    runtime = InMemoryAdminRuntime()
+    client = TestClient(create_admin_api_app(runtime))
+
+    for path in (
+        "/admin/pages/follow-ups",
+        "/admin/pages/invitations",
+        "/admin/pages/onboarding/submissions",
+        "/admin/pages/outbox",
+    ):
+        response = client.get(path)
+
+        assert response.status_code == 200
+        assert "/admin/pages/follow-ups" in response.text
+        assert "/admin/pages/invitations" in response.text
+        assert "/admin/pages/onboarding/submissions" in response.text
+        assert "/admin/pages/outbox" in response.text
+
+
 def test_admin_pages_show_follow_up_conversation():
     runtime = InMemoryAdminRuntime()
     follow_up = runtime.create_follow_up(
