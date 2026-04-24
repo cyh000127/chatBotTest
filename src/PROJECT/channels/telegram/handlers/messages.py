@@ -9,7 +9,9 @@ from PROJECT.channels.telegram.handlers.commands import (
     cancel_command,
     help_command,
     fertilizer_command,
+    handle_local_auth_text,
     input_resolve_command,
+    _require_started_access,
     open_fertilizer_edit_selector,
     menu_command,
     myfields_command,
@@ -19,6 +21,7 @@ from PROJECT.channels.telegram.handlers.commands import (
     profile_command,
     show_support_guidance,
     show_current_profile,
+    start_command,
     yield_command,
 )
 from PROJECT.channels.telegram.handlers.onboarding import (
@@ -1466,6 +1469,11 @@ async def text_message(update, context) -> None:
         locale=session_locale,
     )
 
+    if await handle_local_auth_text(update, context, inbound.text):
+        return
+    if not await _require_started_access(update, context):
+        return
+
     if has_active_support_handoff(context.user_data) and intent not in HANDOFF_SAFE_EXIT_INTENTS:
         record_support_handoff_user_message(
             context.user_data,
@@ -2121,6 +2129,14 @@ async def button_callback(update, context) -> None:
     state = current_state(context.user_data)
     action, payload = parse_callback_data(query.data)
 
+    if action == registry.INTENT_RESTART:
+        await clear_callback_markup(update)
+        await start_command(update, context)
+        return
+
+    if not await _require_started_access(update, context):
+        return
+
     if action == "language_select":
         await clear_callback_markup(update)
         if await handle_onboarding_language_selection(update, context, payload["locale"]):
@@ -2502,6 +2518,8 @@ async def button_callback(update, context) -> None:
 async def unknown_command(update, context) -> None:
     catalog = current_catalog(context)
     inbound = parse_update(update)
+    if not await _require_started_access(update, context):
+        return
     profile_repair = detect_repair_intent(
         inbound.text,
         current_state=STATE_PROFILE_CONFIRM if has_confirmed_profile(context.user_data) else current_state(context.user_data),

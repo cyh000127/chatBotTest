@@ -5,7 +5,7 @@ from PROJECT.admin.follow_up import admin_runtime
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.channels.telegram.handlers import commands, messages
 from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
-from PROJECT.dispatch.session_dispatcher import active_follow_up_id, reset_session, support_handoff
+from PROJECT.dispatch.session_dispatcher import active_follow_up_id, authenticate_session, reset_session, support_handoff
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.sqlite import bootstrap_sqlite_runtime, open_sqlite_connection
 
@@ -32,6 +32,7 @@ def _context() -> SimpleNamespace:
     admin_runtime.clear()
     user_data: dict = {}
     reset_session(user_data)
+    authenticate_session(user_data, login_id="sample-user", user_name="테스트 사용자")
     return SimpleNamespace(user_data=user_data, bot_data={})
 
 
@@ -45,6 +46,7 @@ def _sqlite_context(tmp_path) -> tuple[SimpleNamespace, object]:
     assert sqlite_runtime is not None
     user_data: dict = {}
     reset_session(user_data)
+    authenticate_session(user_data, login_id="sample-user", user_name="테스트 사용자")
     context = SimpleNamespace(
         user_data=user_data,
         bot_data={"admin_runtime": SqliteAdminRuntime(sqlite_runtime.connection)},

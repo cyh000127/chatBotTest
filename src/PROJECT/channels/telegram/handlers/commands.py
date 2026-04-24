@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from PROJECT.adapters.outbound.reply_sender import send_text
+from PROJECT.auth.service import authenticate_login_id
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_USED
@@ -11,16 +12,20 @@ from PROJECT.conversations.yield_intake import service as yield_service
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_READY
 from PROJECT.conversations.sample_menu import service
 from PROJECT.conversations.sample_menu.keyboards import keyboard_layout_for_state
-from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
+from PROJECT.conversations.sample_menu.states import STATE_AUTH_LOGIN, STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.dispatch.session_dispatcher import (
     confirmed_fertilizer,
     confirmed_profile,
     cancel_session,
+    authenticate_session,
     has_confirmed_fertilizer,
     has_confirmed_profile,
     current_locale,
+    current_onboarding_session_id,
     current_onboarding_status,
     current_state,
+    current_user_name,
+    increment_auth_failures,
     profile_draft,
     reset_session,
     set_fertilizer_draft,
@@ -91,7 +96,7 @@ def _is_expired(expires_at: str) -> bool:
 
 def _farmer_feature_access_allowed(update, context) -> bool:
     if not _sqlite_onboarding_enabled(context):
-        return True
+        return is_authenticated(context.user_data)
     if is_authenticated(context.user_data):
         return True
     if current_onboarding_status(context.user_data) == ONBOARDING_STATUS_APPROVED:
@@ -118,6 +123,18 @@ def _farmer_feature_access_allowed(update, context) -> bool:
     return True
 
 
+def _started_access_allowed(update, context) -> bool:
+    if is_authenticated(context.user_data):
+        return True
+    if current_onboarding_session_id(context.user_data) is not None:
+        return True
+    if current_onboarding_status(context.user_data) is not None:
+        return True
+    if _sqlite_onboarding_enabled(context):
+        return _farmer_feature_access_allowed(update, context)
+    return False
+
+
 async def _send_onboarding_access_required(update, context) -> None:
     catalog = catalog_for(context)
     status = current_onboarding_status(context.user_data)
@@ -142,11 +159,74 @@ async def _send_onboarding_access_required(update, context) -> None:
     )
 
 
+async def _send_auth_required(update, context) -> None:
+    catalog = catalog_for(context)
+    await send_text(
+        update,
+        catalog.AUTH_REQUIRED_MESSAGE,
+        keyboard_layout=[
+            [{"text": catalog.BUTTON_RESTART, "data": "intent:restart"}],
+        ],
+    )
+
+
+async def _require_started_access(update, context) -> bool:
+    if _started_access_allowed(update, context):
+        return True
+    await _send_auth_required(update, context)
+    return False
+
+
 async def _require_farmer_feature_access(update, context) -> bool:
+    if not _sqlite_onboarding_enabled(context):
+        if is_authenticated(context.user_data):
+            return True
+        await _send_auth_required(update, context)
+        return False
     if _farmer_feature_access_allowed(update, context):
         return True
     await _send_onboarding_access_required(update, context)
     return False
+
+
+async def complete_local_auth(update, context, login_id: str, *, already_logged_in: bool = False) -> bool:
+    catalog = catalog_for(context)
+    result = authenticate_login_id(login_id)
+    if result is None:
+        failures = increment_auth_failures(context.user_data)
+        if failures >= 2:
+            reset_session(context.user_data)
+            set_state(context.user_data, STATE_MAIN_MENU)
+            await send_text(update, catalog.AUTH_RETRY_LIMIT_MESSAGE)
+            return True
+        await send_text(update, catalog.AUTH_INVALID_MESSAGE)
+        return False
+
+    authenticate_session(
+        context.user_data,
+        login_id=result["login_id"],
+        user_name=result["user_name"],
+    )
+    reset_session(context.user_data)
+    set_state(context.user_data, STATE_MAIN_MENU)
+    message_template = catalog.AUTH_ALREADY_LOGGED_IN_MESSAGE if already_logged_in else catalog.AUTH_WELCOME_MESSAGE
+    await send_text(
+        update,
+        f"{message_template.format(user_name=result['user_name'])}\n\n{service.main_menu_text(catalog)}",
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+    )
+    return True
+
+
+async def handle_local_auth_text(update, context, text: str) -> bool:
+    if _sqlite_onboarding_enabled(context):
+        return False
+    if is_authenticated(context.user_data):
+        return False
+    if current_state(context.user_data) != STATE_AUTH_LOGIN:
+        return False
+    await complete_local_auth(update, context, text.strip())
+    return True
 
 
 async def start_profile_input(update, context) -> None:
@@ -461,16 +541,33 @@ async def start_command(update, context) -> None:
         await send_onboarding_prompt(update, context)
         return
 
+    if is_authenticated(context.user_data):
+        user_name = current_user_name(context.user_data) or ""
+        reset_session(context.user_data)
+        set_state(context.user_data, STATE_MAIN_MENU)
+        await send_text(
+            update,
+            f"{catalog.AUTH_ALREADY_LOGGED_IN_MESSAGE.format(user_name=user_name)}\n\n{service.main_menu_text(catalog)}",
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        )
+        return
+
+    login_id = _start_invite_code(context)
+    if login_id:
+        await complete_local_auth(update, context, login_id)
+        return
+
     reset_session(context.user_data)
-    set_state(context.user_data, STATE_MAIN_MENU)
+    set_state(context.user_data, STATE_AUTH_LOGIN)
     await send_text(
         update,
-        service.start_text(catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        catalog.AUTH_START_PROMPT,
     )
 
 
 async def help_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
     catalog = catalog_for(context)
     await send_text(
         update,
@@ -480,6 +577,8 @@ async def help_command(update, context) -> None:
 
 
 async def menu_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
     catalog = catalog_for(context)
     close_support_handoff(
         context.user_data,
@@ -496,6 +595,8 @@ async def menu_command(update, context) -> None:
 
 
 async def cancel_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
     catalog = catalog_for(context)
     close_support_handoff(
         context.user_data,
@@ -512,6 +613,8 @@ async def cancel_command(update, context) -> None:
 
 
 async def profile_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
     if not await _require_farmer_feature_access(update, context):
         return
     catalog = catalog_for(context)
@@ -527,34 +630,46 @@ async def profile_command(update, context) -> None:
 
 
 async def fertilizer_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
     if not await _require_farmer_feature_access(update, context):
         return
     await start_fertilizer_input(update, context)
 
 
 async def yield_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
     if not await _require_farmer_feature_access(update, context):
         return
     await start_yield_input(update, context)
 
 
 async def myfields_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
     if not await _require_farmer_feature_access(update, context):
         return
     await show_myfields_entry(update, context)
 
 
 async def input_resolve_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
     if not await _require_farmer_feature_access(update, context):
         return
     await start_input_resolve_entry(update, context)
 
 
 async def support_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
     await show_support_guidance(update, context)
 
 
 async def language_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
     catalog = catalog_for(context)
     set_state(context.user_data, STATE_LANGUAGE_SELECT)
     await send_text(
