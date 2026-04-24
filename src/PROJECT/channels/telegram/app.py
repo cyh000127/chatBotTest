@@ -20,6 +20,7 @@ async def start_admin_background_tasks(application) -> None:
         run_outbox_delivery_loop(
             application.bot,
             interval_seconds=settings.admin_api.outbox_poll_interval_seconds,
+            runtime=application.bot_data["admin_runtime"],
         ),
         name="admin_outbox_delivery_loop",
     )

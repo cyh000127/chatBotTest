@@ -2,6 +2,9 @@ import asyncio
 
 from PROJECT.admin.delivery import deliver_pending_outbox
 from PROJECT.admin.follow_up import InMemoryAdminRuntime, OutboxStatus
+from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
+from PROJECT.settings import SqliteSettings
+from PROJECT.storage.sqlite import bootstrap_sqlite_runtime, open_sqlite_connection
 
 
 class FakeBot:
@@ -49,3 +52,68 @@ def test_deliver_pending_outbox_marks_failed_when_send_fails():
     assert delivered == 0
     assert runtime.list_outbox()[0].outbox_id == outbox_id
     assert runtime.list_outbox()[0].status == OutboxStatus.FAILED
+
+
+def test_deliver_pending_outbox_marks_sqlite_message_sent(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        runtime = SqliteAdminRuntime(sqlite_runtime.connection)
+        follow_up = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+        )
+        _, outbox_message = runtime.create_admin_reply(follow_up.follow_up_id, "사진을 다시 보내주세요.")
+
+        delivered = asyncio.run(deliver_pending_outbox(FakeBot(), runtime=runtime))
+
+        assert delivered == 1
+        assert runtime.list_outbox()[0].outbox_id == outbox_message.outbox_id
+        assert runtime.list_outbox()[0].status == OutboxStatus.SENT
+    finally:
+        sqlite_runtime.close()
+
+    reopened = open_sqlite_connection(SqliteSettings(database_path=str(tmp_path / "runtime.sqlite3")))
+    try:
+        loaded = SqliteAdminRuntime(reopened).list_outbox()[0]
+        assert loaded.outbox_id == outbox_message.outbox_id
+        assert loaded.status == OutboxStatus.SENT
+    finally:
+        reopened.close()
+
+
+def test_deliver_pending_outbox_marks_sqlite_message_failed(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        runtime = SqliteAdminRuntime(sqlite_runtime.connection)
+        follow_up = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+        )
+        _, outbox_message = runtime.create_admin_reply(follow_up.follow_up_id, "사진을 다시 보내주세요.")
+
+        delivered = asyncio.run(deliver_pending_outbox(FakeBot(should_fail=True), runtime=runtime))
+
+        assert delivered == 0
+        assert runtime.list_outbox()[0].outbox_id == outbox_message.outbox_id
+        assert runtime.list_outbox()[0].status == OutboxStatus.FAILED
+        assert runtime.list_outbox()[0].error_message == "transport down"
+    finally:
+        sqlite_runtime.close()

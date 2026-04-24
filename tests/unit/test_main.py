@@ -1,8 +1,10 @@
+import asyncio
 from types import SimpleNamespace
 
-from PROJECT.admin.follow_up import admin_runtime
+from PROJECT.admin.follow_up import InMemoryAdminRuntime, admin_runtime
+from PROJECT.channels.telegram import app as telegram_app
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
-from PROJECT.channels.telegram.app import create_application
+from PROJECT.channels.telegram.app import create_application, start_admin_background_tasks
 from PROJECT.policy import LocalAiGate
 from PROJECT import main as project_main
 from PROJECT.settings import AdminApiSettings, GeminiSettings, Settings, SqliteSettings
@@ -35,6 +37,53 @@ def test_create_application_registers_sqlite_repositories_when_runtime_is_availa
         assert isinstance(application.bot_data["admin_runtime"], SqliteAdminRuntime)
     finally:
         runtime.close()
+
+
+def test_start_admin_background_tasks_uses_registered_admin_runtime(monkeypatch):
+    captured: dict[str, object] = {}
+    runtime = InMemoryAdminRuntime()
+    settings = Settings(
+        bot_token="test-token",
+        admin_api=AdminApiSettings(
+            enabled=True,
+            outbox_poll_interval_seconds=0.25,
+        ),
+    )
+
+    def fake_delivery_loop(bot, *, interval_seconds, runtime):
+        captured["bot"] = bot
+        captured["interval_seconds"] = interval_seconds
+        captured["runtime"] = runtime
+
+        async def noop():
+            return None
+
+        return noop()
+
+    def fake_create_task(coro, *, name):
+        captured["task_name"] = name
+        coro.close()
+        return "task"
+
+    monkeypatch.setattr(telegram_app, "run_outbox_delivery_loop", fake_delivery_loop)
+    application = SimpleNamespace(
+        bot="bot",
+        bot_data={
+            "settings": settings,
+            "admin_runtime": runtime,
+        },
+        create_task=fake_create_task,
+    )
+
+    asyncio.run(start_admin_background_tasks(application))
+
+    assert captured == {
+        "bot": "bot",
+        "interval_seconds": 0.25,
+        "runtime": runtime,
+        "task_name": "admin_outbox_delivery_loop",
+    }
+    assert application.bot_data["admin_outbox_delivery_task"] == "task"
 
 
 def test_create_application_registers_myfields_command():
