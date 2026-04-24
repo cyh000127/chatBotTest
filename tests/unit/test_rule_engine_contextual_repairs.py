@@ -24,11 +24,11 @@ def test_detect_profile_direct_birth_update():
 
 
 def test_detect_profile_direct_name_update():
-    decision = detect_profile_direct_update("이름은 최윤혁으로 수정할게")
+    decision = detect_profile_direct_update("이름은 홍길동으로 수정할게")
 
     assert decision is not None
     assert decision.target_state == STATE_PROFILE_NAME
-    assert decision.changes["name"] == "최윤혁"
+    assert decision.changes["name"] == "홍길동"
 
 
 def test_detect_profile_negation_update_with_confirm_context():

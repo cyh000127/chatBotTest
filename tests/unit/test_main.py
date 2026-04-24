@@ -4,6 +4,7 @@ from PROJECT.channels.telegram.app import create_application
 from PROJECT.policy import LocalAiGate
 from PROJECT import main as project_main
 from PROJECT.settings import AdminApiSettings, GeminiSettings, Settings, SqliteSettings
+from PROJECT.storage.sqlite import bootstrap_sqlite_runtime
 
 
 def test_create_application_registers_settings():
@@ -12,6 +13,24 @@ def test_create_application_registers_settings():
     assert application.bot_data["llm_runtime_mode"] == "rules_only_disabled"
     assert application.bot_data["gemini_recovery_classifier"] is None
     assert application.bot_data["gemini_edit_intent_resolver"] is None
+
+
+def test_create_application_registers_sqlite_repositories_when_runtime_is_available(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+
+    try:
+        application = create_application(Settings(bot_token="test-token"), sqlite_runtime=runtime)
+
+        assert "invitation_repository" in application.bot_data
+        assert "onboarding_repository" in application.bot_data
+    finally:
+        runtime.close()
 
 
 def test_create_application_registers_myfields_command():
@@ -167,7 +186,7 @@ def test_main_logs_bot_started_with_runtime_snapshot(monkeypatch):
 
     monkeypatch.setattr(project_main, "configure_logging", lambda: None)
     monkeypatch.setattr(project_main, "load_settings", lambda: settings)
-    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings: application)
+    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings, **kwargs: application)
     monkeypatch.setattr(project_main, "log_event", lambda event, **fields: captured_events.append((event, fields)))
 
     project_main.main()
@@ -199,7 +218,7 @@ def test_main_starts_admin_api_server_when_enabled(monkeypatch):
 
     monkeypatch.setattr(project_main, "configure_logging", lambda: None)
     monkeypatch.setattr(project_main, "load_settings", lambda: settings)
-    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings: application)
+    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings, **kwargs: application)
     monkeypatch.setattr(
         project_main,
         "start_admin_api_server",
@@ -224,7 +243,7 @@ def test_main_passes_sqlite_runtime_to_admin_api_server(monkeypatch, tmp_path):
 
     monkeypatch.setattr(project_main, "configure_logging", lambda: None)
     monkeypatch.setattr(project_main, "load_settings", lambda: settings)
-    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings: application)
+    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings, **kwargs: application)
     monkeypatch.setattr(project_main, "bootstrap_sqlite_runtime", lambda sqlite_settings: sqlite_runtime)
     monkeypatch.setattr(
         project_main,
@@ -249,7 +268,7 @@ def test_main_bootstraps_and_closes_sqlite_runtime_when_enabled(monkeypatch, tmp
 
     monkeypatch.setattr(project_main, "configure_logging", lambda: None)
     monkeypatch.setattr(project_main, "load_settings", lambda: settings)
-    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings: application)
+    monkeypatch.setattr(project_main, "create_application", lambda loaded_settings, **kwargs: application)
     monkeypatch.setattr(project_main, "bootstrap_sqlite_runtime", lambda sqlite_settings: runtime)
     monkeypatch.setattr(project_main, "log_event", lambda event, **fields: None)
 

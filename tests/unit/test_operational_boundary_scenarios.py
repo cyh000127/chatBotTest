@@ -31,7 +31,7 @@ def _settings(local_ai_gate: LocalAiGate) -> Settings:
 def _context(local_ai_gate: LocalAiGate, resolver) -> SimpleNamespace:
     user_data = {}
     reset_session(user_data)
-    authenticate_session(user_data, login_id="okccc5", user_name="테스터")
+    authenticate_session(user_data, login_id="sample-user", user_name="테스터")
     set_state(user_data, STATE_FERTILIZER_CONFIRM)
     return SimpleNamespace(
         user_data=user_data,

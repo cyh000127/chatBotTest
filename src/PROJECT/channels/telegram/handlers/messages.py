@@ -8,6 +8,7 @@ from PROJECT.channels.telegram.parser import parse_update
 from PROJECT.channels.telegram.handlers.commands import (
     cancel_command,
     help_command,
+    fertilizer_command,
     input_resolve_command,
     open_fertilizer_edit_selector,
     menu_command,
@@ -15,11 +16,10 @@ from PROJECT.channels.telegram.handlers.commands import (
     open_fertilizer_target_edit,
     open_profile_edit_selector,
     open_profile_target_edit,
+    profile_command,
     show_support_guidance,
     show_current_profile,
-    start_fertilizer_input,
-    start_profile_input,
-    start_yield_input,
+    yield_command,
 )
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
@@ -1857,12 +1857,12 @@ async def text_message(update, context) -> None:
 
     if decision.route == ROUTE_OPEN_PROFILE:
         reset_recovery_attempts(context.user_data)
-        await start_profile_input(update, context)
+        await profile_command(update, context)
         return
 
     if decision.route == ROUTE_OPEN_YIELD:
         reset_recovery_attempts(context.user_data)
-        await start_yield_input(update, context)
+        await yield_command(update, context)
         return
 
     if decision.route == ROUTE_OPEN_MYFIELDS:
@@ -1887,7 +1887,7 @@ async def text_message(update, context) -> None:
 
     if decision.route == ROUTE_OPEN_FERTILIZER:
         reset_recovery_attempts(context.user_data)
-        await start_fertilizer_input(update, context)
+        await fertilizer_command(update, context)
         return
 
     if decision.route == ROUTE_CANCEL:
@@ -2359,7 +2359,7 @@ async def button_callback(update, context) -> None:
         return
 
     if decision.route == ROUTE_OPEN_PROFILE:
-        await start_profile_input(update, context)
+        await profile_command(update, context)
         return
 
     if decision.route == ROUTE_OPEN_MYFIELDS:
@@ -2375,11 +2375,11 @@ async def button_callback(update, context) -> None:
         return
 
     if decision.route == ROUTE_OPEN_FERTILIZER:
-        await start_fertilizer_input(update, context)
+        await fertilizer_command(update, context)
         return
 
     if decision.route == ROUTE_OPEN_YIELD:
-        await start_yield_input(update, context)
+        await yield_command(update, context)
         return
 
     if decision.route == ROUTE_CANCEL:

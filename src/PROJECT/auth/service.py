@@ -1,5 +1,5 @@
 USER_DIRECTORY = {
-    "okccc5": "최윤혁",
+    "sample-user": "테스트 사용자",
 }
 
 

@@ -24,7 +24,7 @@ def main() -> None:
     settings = load_settings()
     sqlite_runtime = bootstrap_sqlite_runtime(settings.sqlite)
     try:
-        application = create_application(settings)
+        application = create_application(settings, sqlite_runtime=sqlite_runtime)
         if settings.admin_api.enabled:
             start_admin_api_server(settings, sqlite_runtime=sqlite_runtime)
         log_event(BOT_STARTED, **startup_log_fields(settings))

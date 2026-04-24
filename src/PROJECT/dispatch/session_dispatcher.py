@@ -20,6 +20,11 @@ def _default_session() -> dict:
         "login_id": None,
         "user_name": None,
         "auth_failures": 0,
+        "onboarding_session_id": None,
+        "onboarding_invite_code": None,
+        "onboarding_project_id": None,
+        "onboarding_status": None,
+        "onboarding_step": None,
         "recovery_attempts": 0,
         "last_recovery_context": None,
         "pending_repair_confirmation": None,
@@ -40,6 +45,11 @@ def reset_session(user_data: dict) -> dict:
     authenticated = get_session(user_data).get("authenticated", False) if "session" in user_data else False
     login_id = get_session(user_data).get("login_id") if "session" in user_data else None
     user_name = get_session(user_data).get("user_name") if "session" in user_data else None
+    onboarding_session_id = get_session(user_data).get("onboarding_session_id") if "session" in user_data else None
+    onboarding_invite_code = get_session(user_data).get("onboarding_invite_code") if "session" in user_data else None
+    onboarding_project_id = get_session(user_data).get("onboarding_project_id") if "session" in user_data else None
+    onboarding_status = get_session(user_data).get("onboarding_status") if "session" in user_data else None
+    onboarding_step = get_session(user_data).get("onboarding_step") if "session" in user_data else None
     confirmed_profile = get_session(user_data).get("confirmed_profile") if "session" in user_data else None
     confirmed_fertilizer = get_session(user_data).get("confirmed_fertilizer") if "session" in user_data else None
     confirmed_yield = get_session(user_data).get("confirmed_yield") if "session" in user_data else None
@@ -49,6 +59,11 @@ def reset_session(user_data: dict) -> dict:
     user_data["session"]["authenticated"] = authenticated
     user_data["session"]["login_id"] = login_id
     user_data["session"]["user_name"] = user_name
+    user_data["session"]["onboarding_session_id"] = onboarding_session_id
+    user_data["session"]["onboarding_invite_code"] = onboarding_invite_code
+    user_data["session"]["onboarding_project_id"] = onboarding_project_id
+    user_data["session"]["onboarding_status"] = onboarding_status
+    user_data["session"]["onboarding_step"] = onboarding_step
     user_data["session"]["confirmed_profile"] = confirmed_profile
     user_data["session"]["confirmed_fertilizer"] = confirmed_fertilizer
     user_data["session"]["confirmed_yield"] = confirmed_yield
@@ -186,6 +201,41 @@ def current_user_name(user_data: dict) -> str | None:
 
 def current_login_id(user_data: dict) -> str | None:
     return get_session(user_data)["login_id"]
+
+
+def set_onboarding_session(
+    user_data: dict,
+    *,
+    onboarding_session_id: str,
+    invite_code: str,
+    project_id: str | None,
+    status: str,
+    step: str,
+) -> None:
+    session = get_session(user_data)
+    session["authenticated"] = False
+    session["onboarding_session_id"] = onboarding_session_id
+    session["onboarding_invite_code"] = invite_code
+    session["onboarding_project_id"] = project_id
+    session["onboarding_status"] = status
+    session["onboarding_step"] = step
+
+
+def current_onboarding_session_id(user_data: dict) -> str | None:
+    return get_session(user_data).get("onboarding_session_id")
+
+
+def current_onboarding_status(user_data: dict) -> str | None:
+    return get_session(user_data).get("onboarding_status")
+
+
+def clear_onboarding_session(user_data: dict) -> None:
+    session = get_session(user_data)
+    session["onboarding_session_id"] = None
+    session["onboarding_invite_code"] = None
+    session["onboarding_project_id"] = None
+    session["onboarding_status"] = None
+    session["onboarding_step"] = None
 
 
 def auth_failures(user_data: dict) -> int:

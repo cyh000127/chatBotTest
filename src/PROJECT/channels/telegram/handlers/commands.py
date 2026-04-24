@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from PROJECT.adapters.outbound.reply_sender import send_text
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
@@ -17,21 +19,106 @@ from PROJECT.dispatch.session_dispatcher import (
     has_confirmed_fertilizer,
     has_confirmed_profile,
     current_locale,
+    current_onboarding_status,
     current_state,
     profile_draft,
     reset_session,
     set_fertilizer_draft,
+    set_onboarding_session,
     set_pending_slot,
     set_profile_draft,
     set_state,
     set_yield_draft,
+    is_authenticated,
 )
 from PROJECT.dispatch.support_handoff_dispatcher import close_support_handoff, create_support_handoff_request, record_support_handoff_admin_reply
 from PROJECT.i18n.translator import get_catalog, language_keyboard
+from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED
+from PROJECT.storage.onboarding import ONBOARDING_STATUS_APPROVED
+from PROJECT.telemetry.event_logger import log_event
+from PROJECT.telemetry.events import ONBOARDING_ACCESS_BLOCKED, ONBOARDING_INVITE_REJECTED, ONBOARDING_STARTED
 
 
 def catalog_for(context):
     return get_catalog(current_locale(context.user_data))
+
+
+def _invitation_repository(context):
+    return getattr(context, "bot_data", {}).get("invitation_repository")
+
+
+def _onboarding_repository(context):
+    return getattr(context, "bot_data", {}).get("onboarding_repository")
+
+
+def _sqlite_onboarding_enabled(context) -> bool:
+    return _invitation_repository(context) is not None and _onboarding_repository(context) is not None
+
+
+def _start_invite_code(context) -> str | None:
+    args = [arg.strip() for arg in getattr(context, "args", []) if arg.strip()]
+    if not args:
+        return None
+    return args[0]
+
+
+def _invitation_can_start_onboarding(invitation) -> bool:
+    if invitation is None:
+        return False
+    if invitation.invite_status_code != INVITATION_STATUS_ISSUED:
+        return False
+    if invitation.expires_at and _is_expired(invitation.expires_at):
+        return False
+    return True
+
+
+def _is_expired(expires_at: str) -> bool:
+    try:
+        parsed = datetime.fromisoformat(expires_at)
+    except ValueError:
+        return True
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed <= datetime.now(UTC)
+
+
+def _farmer_feature_access_allowed(context) -> bool:
+    if not _sqlite_onboarding_enabled(context):
+        return True
+    if is_authenticated(context.user_data):
+        return True
+    return current_onboarding_status(context.user_data) == ONBOARDING_STATUS_APPROVED
+
+
+async def _send_onboarding_access_required(update, context) -> None:
+    catalog = catalog_for(context)
+    status = current_onboarding_status(context.user_data)
+    message = (
+        catalog.ONBOARDING_PENDING_APPROVAL_MESSAGE
+        if status
+        else catalog.ONBOARDING_ACCESS_REQUIRED_MESSAGE
+    )
+    log_event(
+        ONBOARDING_ACCESS_BLOCKED,
+        state=current_state(context.user_data),
+        onboarding_status=status,
+    )
+    await send_text(
+        update,
+        message,
+        keyboard_layout=[
+            [{"text": catalog.BUTTON_SUPPORT, "data": "intent:support.escalate"}],
+            [{"text": catalog.BUTTON_RESTART, "data": "intent:restart"}],
+            [{"text": catalog.BUTTON_HELP, "data": "intent:help"}],
+        ],
+    )
+
+
+async def _require_farmer_feature_access(update, context) -> bool:
+    if _farmer_feature_access_allowed(context):
+        return True
+    await _send_onboarding_access_required(update, context)
+    return False
 
 
 async def start_profile_input(update, context) -> None:
@@ -277,6 +364,71 @@ async def open_fertilizer_edit_selector(update, context) -> bool:
 async def start_command(update, context) -> None:
     catalog = catalog_for(context)
     close_support_handoff(context.user_data, reason="user_restart", source="start_command")
+
+    if _sqlite_onboarding_enabled(context):
+        invite_code = _start_invite_code(context)
+        if not invite_code:
+            reset_session(context.user_data)
+            set_state(context.user_data, STATE_MAIN_MENU)
+            await send_text(
+                update,
+                catalog.ONBOARDING_INVITE_REQUIRED_MESSAGE,
+                keyboard_layout=[
+                    [{"text": catalog.BUTTON_SUPPORT, "data": "intent:support.escalate"}],
+                    [{"text": catalog.BUTTON_HELP, "data": "intent:help"}],
+                ],
+            )
+            return
+
+        invitation = _invitation_repository(context).get_by_code(invite_code)
+        if not _invitation_can_start_onboarding(invitation):
+            reset_session(context.user_data)
+            set_state(context.user_data, STATE_MAIN_MENU)
+            log_event(ONBOARDING_INVITE_REJECTED, reason="invalid_or_inactive_invitation")
+            await send_text(
+                update,
+                catalog.ONBOARDING_INVALID_INVITE_MESSAGE,
+                keyboard_layout=[
+                    [{"text": catalog.BUTTON_SUPPORT, "data": "intent:support.escalate"}],
+                    [{"text": catalog.BUTTON_HELP, "data": "intent:help"}],
+                ],
+            )
+            return
+
+        effective_user = update.effective_user
+        if effective_user is None:
+            await send_text(update, catalog.ONBOARDING_IDENTITY_REQUIRED_MESSAGE)
+            return
+
+        onboarding_session = _onboarding_repository(context).create_or_resume_from_invitation(
+            invitation=invitation,
+            provider_user_id=str(effective_user.id),
+            provider_handle=getattr(effective_user, "username", None),
+            preferred_locale_code=current_locale(context.user_data),
+        )
+        reset_session(context.user_data)
+        set_onboarding_session(
+            context.user_data,
+            onboarding_session_id=onboarding_session.id,
+            invite_code=invitation.invite_code,
+            project_id=invitation.project_id,
+            status=onboarding_session.session_status_code,
+            step=onboarding_session.current_step_code,
+        )
+        set_state(context.user_data, STATE_LANGUAGE_SELECT)
+        log_event(
+            ONBOARDING_STARTED,
+            onboarding_session_id=onboarding_session.id,
+            invitation_id=invitation.id,
+            state=STATE_LANGUAGE_SELECT,
+        )
+        await send_text(
+            update,
+            catalog.ONBOARDING_STARTED_MESSAGE,
+            keyboard_layout=language_keyboard(),
+        )
+        return
+
     reset_session(context.user_data)
     set_state(context.user_data, STATE_MAIN_MENU)
     await send_text(
@@ -318,6 +470,8 @@ async def cancel_command(update, context) -> None:
 
 
 async def profile_command(update, context) -> None:
+    if not await _require_farmer_feature_access(update, context):
+        return
     catalog = catalog_for(context)
 
     args = [arg.strip().lower() for arg in getattr(context, "args", []) if arg.strip()]
@@ -331,18 +485,26 @@ async def profile_command(update, context) -> None:
 
 
 async def fertilizer_command(update, context) -> None:
+    if not await _require_farmer_feature_access(update, context):
+        return
     await start_fertilizer_input(update, context)
 
 
 async def yield_command(update, context) -> None:
+    if not await _require_farmer_feature_access(update, context):
+        return
     await start_yield_input(update, context)
 
 
 async def myfields_command(update, context) -> None:
+    if not await _require_farmer_feature_access(update, context):
+        return
     await show_myfields_entry(update, context)
 
 
 async def input_resolve_command(update, context) -> None:
+    if not await _require_farmer_feature_access(update, context):
+        return
     await start_input_resolve_entry(update, context)
 
 

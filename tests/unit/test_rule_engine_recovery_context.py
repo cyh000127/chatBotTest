@@ -49,7 +49,7 @@ def test_assemble_recovery_context_for_main_menu():
 def test_assemble_recovery_context_for_profile_confirm_includes_draft_summary():
     draft = profile_service.update_draft(
         profile_service.new_draft(),
-        name="최윤혁",
+        name="홍길동",
         residence="서울",
         city="서울특별시",
         district="강남구",
@@ -89,7 +89,7 @@ def test_assemble_recovery_context_for_profile_confirm_includes_draft_summary():
     assert context.metadata["recovery_focus_target"] == "profile_confirmation"
     assert context.metadata["runtime_handoff_reason_hint"] == "user_requested_human_support"
     assert context.metadata["runtime_handoff_route_hint"] == "support.escalate"
-    assert "- 이름: 최윤혁" in context.current_question
+    assert "- 이름: 홍길동" in context.current_question
 
 
 def test_assemble_recovery_context_for_yield_step_uses_shared_schema():

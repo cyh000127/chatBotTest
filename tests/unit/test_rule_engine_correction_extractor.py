@@ -15,11 +15,11 @@ def test_extract_profile_target_only_correction_pattern():
 
 
 def test_extract_profile_value_correction_pattern():
-    decision = extract_profile_correction_pattern("이름은 최윤혁으로 바꿀래")
+    decision = extract_profile_correction_pattern("이름은 홍길동으로 바꿀래")
 
     assert decision is not None
     assert decision.target_state == STATE_PROFILE_NAME
-    assert decision.candidate_value == "최윤혁"
+    assert decision.candidate_value == "홍길동"
 
 
 def test_extract_fertilizer_value_correction_pattern():

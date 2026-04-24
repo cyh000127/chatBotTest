@@ -5,6 +5,9 @@ from PROJECT.channels.telegram.handlers.messages import button_callback, text_me
 from PROJECT.admin.delivery import run_outbox_delivery_loop
 from PROJECT.llm import GeminiEditIntentResolver, GeminiRecoveryClassifier
 from PROJECT.settings import Settings
+from PROJECT.storage.invitations import SqliteInvitationRepository
+from PROJECT.storage.onboarding import SqliteOnboardingRepository
+from PROJECT.storage.sqlite import SqliteRuntime
 
 
 async def start_admin_background_tasks(application) -> None:
@@ -20,7 +23,7 @@ async def start_admin_background_tasks(application) -> None:
     )
 
 
-def create_application(settings: Settings):
+def create_application(settings: Settings, *, sqlite_runtime: SqliteRuntime | None = None):
     gemini_recovery_classifier = (
         GeminiRecoveryClassifier(settings.gemini)
         if settings.llm_recovery_runtime_enabled
@@ -39,6 +42,9 @@ def create_application(settings: Settings):
     application.bot_data["llm_runtime_mode"] = settings.llm_runtime_mode
     application.bot_data["gemini_recovery_classifier"] = gemini_recovery_classifier
     application.bot_data["gemini_edit_intent_resolver"] = gemini_edit_intent_resolver
+    if sqlite_runtime is not None:
+        application.bot_data["invitation_repository"] = SqliteInvitationRepository(sqlite_runtime.connection)
+        application.bot_data["onboarding_repository"] = SqliteOnboardingRepository(sqlite_runtime.connection)
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("menu", menu_command))

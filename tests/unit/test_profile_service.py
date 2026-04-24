@@ -75,11 +75,11 @@ def test_profile_repair_confirmation_text_mentions_target_field():
 
 def test_profile_change_preview_text_shows_before_and_after():
     before = service.update_draft(service.new_draft(), name="김민수")
-    after = service.update_draft(before, name="최윤혁")
+    after = service.update_draft(before, name="홍길동")
 
     text = service.change_preview_text(before, after, STATE_PROFILE_NAME, ko)
 
     assert "이전" in text
     assert "변경" in text
     assert "김민수" in text
-    assert "최윤혁" in text
+    assert "홍길동" in text

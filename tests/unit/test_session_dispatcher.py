@@ -64,9 +64,9 @@ def test_reset_session_clears_auth_failures():
 def test_confirmed_profile_helpers_work():
     user_data = {}
     assert has_confirmed_profile(user_data) is False
-    set_confirmed_profile(user_data, {"name": "최윤혁"})
+    set_confirmed_profile(user_data, {"name": "홍길동"})
     assert has_confirmed_profile(user_data) is True
-    assert confirmed_profile(user_data) == {"name": "최윤혁"}
+    assert confirmed_profile(user_data) == {"name": "홍길동"}
 
 
 def test_yield_draft_and_confirmed_helpers_work():
