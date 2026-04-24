@@ -120,6 +120,7 @@ python -m PROJECT.main
 이 화면에서 응답을 보내면 admin reply가 follow-up 항목에 기록되고 outbox에 메시지가 생성된다. 상세 화면에서는 답변 없이 요청을 종료할 수 있으며, 종료 안내도 outbox를 통해 봇 delivery loop가 전송한다.
 
 `ADMIN_API_ACCESS_TOKEN`이 설정되어 있으면 관리자 화면은 `/admin/login`에서 access token을 입력한 뒤 접근할 수 있다. 이 값은 실제 환경 파일에만 두고 코드나 문서 예시에 실제 토큰을 남기지 않는다.
+관리자 화면의 `로그아웃` 버튼은 브라우저 로그인 쿠키를 삭제하고 다시 `/admin/login`으로 이동한다.
 
 토큰 교체 중에는 `ADMIN_API_PREVIOUS_ACCESS_TOKEN`과 `ADMIN_API_PREVIOUS_ACCESS_TOKEN_EXPIRES_AT`을 함께 설정해 이전 토큰을 짧은 기간만 임시 허용할 수 있다. 만료 시각이 지났거나 잘못된 형식이면 이전 토큰은 자동으로 거부된다.
 

@@ -123,6 +123,8 @@ messages directly; it only makes the message claimable by the bot delivery loop
 again.
 
 If `ADMIN_API_ACCESS_TOKEN` is configured, browser requests are redirected to `/admin/login` before accessing admin pages.
+The admin page logout action deletes the browser login cookie and redirects back
+to `/admin/login`.
 
 ## 4. Startup Sequence
 
@@ -527,6 +529,7 @@ Implemented local hardening:
 - optional `ADMIN_API_ACCESS_TOKEN` gate for Admin API and admin pages
 - current plus expiring previous-token rotation window
 - browser login cookie for local admin pages
+- browser logout cookie clearing for local admin pages
 - header-based access for JSON API clients
 - local `viewer` and `operator` role gate
 - local admin action audit trail for write-oriented admin operations

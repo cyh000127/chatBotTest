@@ -300,6 +300,61 @@ def test_admin_page_access_token_redirects_to_login_and_sets_cookie():
     assert "지원 이관 요청 목록" in allowed.text
 
 
+def test_admin_page_logout_clears_cookie_and_blocks_next_request(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                admin_audit_repository=audit_repository,
+                admin_access_token="secret-token",
+            )
+        )
+
+        login = client.post("/admin/login", data={"access_token": "secret-token"}, follow_redirects=False)
+        allowed = client.get("/admin/pages/follow-ups")
+        logout = client.post("/admin/logout", follow_redirects=False)
+        blocked = client.get("/admin/pages/follow-ups", follow_redirects=False)
+        event = audit_repository.list_events()[0]
+
+        assert login.status_code == 303
+        assert allowed.status_code == 200
+        assert logout.status_code == 303
+        assert logout.headers["location"] == "/admin/login"
+        assert "admin_access_token" in logout.headers["set-cookie"]
+        assert "Max-Age=0" in logout.headers["set-cookie"]
+        assert blocked.status_code == 303
+        assert blocked.headers["location"] == "/admin/login"
+        assert event.action_code == "admin.logout"
+        assert event.detail == {"role": "operator", "token_slot": "current"}
+    finally:
+        runtime.close()
+
+
+def test_admin_logout_is_allowed_for_viewer_role():
+    client = TestClient(
+        create_admin_api_app(
+            InMemoryAdminRuntime(),
+            admin_access_token="secret-token",
+            admin_access_role="viewer",
+        )
+    )
+
+    login = client.post("/admin/login", data={"access_token": "secret-token"}, follow_redirects=False)
+    logout = client.post("/admin/logout", follow_redirects=False)
+
+    assert login.status_code == 303
+    assert logout.status_code == 303
+    assert logout.headers["location"] == "/admin/login"
+
+
 def test_admin_login_attempts_can_be_audited(tmp_path):
     runtime = bootstrap_sqlite_runtime(
         SqliteSettings(
@@ -540,6 +595,7 @@ def test_admin_pages_share_navigation_links():
         assert "/admin/pages/onboarding/submissions" in response.text
         assert "/admin/pages/outbox" in response.text
         assert "/admin/pages/audit-events" in response.text
+        assert "/admin/logout" in response.text
 
 
 def test_admin_home_dashboard_shows_summary_and_links(tmp_path):

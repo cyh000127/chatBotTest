@@ -133,6 +133,8 @@ def _page(title: str, body: str) -> HTMLResponse:
     .topbar {{ display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 24px; }}
     .admin-nav {{ display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }}
     .admin-nav a {{ display: inline-block; padding: 8px 12px; border-radius: 999px; background: #e8f2df; color: #2f5f26; }}
+    .admin-nav form {{ margin: 0; }}
+    .admin-nav button {{ margin: 0; padding: 8px 12px; border-radius: 999px; background: #eee9df; color: #5c4b30; }}
     .dashboard {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }}
     .dashboard .card {{ margin: 0; }}
     .card {{ background: #fffdf7; border: 1px solid #ded6c5; border-radius: 18px; padding: 18px; margin: 14px 0; box-shadow: 0 8px 24px rgba(64, 50, 26, 0.08); }}
@@ -184,6 +186,9 @@ def _topbar(title: str) -> str:
     <a href="/admin/pages/onboarding/submissions">온보딩 승인</a>
     <a href="/admin/pages/outbox">발송 대기</a>
     <a href="/admin/pages/audit-events">감사 로그</a>
+    <form method="post" action="/admin/logout" accept-charset="utf-8">
+      <button type="submit">로그아웃</button>
+    </form>
   </nav>
 </div>"""
 
@@ -332,10 +337,14 @@ def create_admin_api_app(
 
     def wants_html(request: Request) -> bool:
         accept = request.headers.get("accept", "")
-        return "text/html" in accept or request.url.path.startswith("/admin/pages") or request.url.path in {"/admin", "/admin/login"}
+        return (
+            "text/html" in accept
+            or request.url.path.startswith("/admin/pages")
+            or request.url.path in {"/admin", "/admin/login", "/admin/logout"}
+        )
 
     def admin_write_request_blocked(request: Request) -> bool:
-        if request.url.path == "/admin/login":
+        if request.url.path in {"/admin/login", "/admin/logout"}:
             return False
         return request.method.upper() in ADMIN_WRITE_METHODS and not _admin_role_can_write(resolved_admin_access_role)
 
@@ -416,6 +425,25 @@ def create_admin_api_app(
             httponly=True,
             samesite="lax",
         )
+        return response
+
+    @app.post("/admin/logout")
+    def submit_admin_logout(request: Request):
+        if not admin_access_required():
+            return RedirectResponse("/admin", status_code=303)
+        record_admin_audit(
+            request,
+            action_code="admin.logout",
+            source_code="admin.web.logout",
+            target_type_code="admin_session",
+            result_code=RESULT_SUCCESS,
+            detail={
+                "role": resolved_admin_access_role,
+                "token_slot": admin_request_token_slot(request) or "unknown",
+            },
+        )
+        response = RedirectResponse("/admin/login", status_code=303)
+        response.delete_cookie("admin_access_token")
         return response
 
     @app.get("/admin", response_class=HTMLResponse)
