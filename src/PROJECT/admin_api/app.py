@@ -71,6 +71,10 @@ class ResolveFieldBindingExceptionRequest(BaseModel):
     pass
 
 
+class EvidenceReviewDecisionRequest(BaseModel):
+    message: str | None = None
+
+
 ADMIN_ACCESS_ROLE_VIEWER = "viewer"
 ADMIN_ACCESS_ROLE_OPERATOR = "operator"
 ADMIN_WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -162,6 +166,15 @@ def _serialize_evidence_state_log(item) -> dict:
     payload = _serialize(item)
     payload["detail"] = item.detail
     return payload
+
+
+def _coerce_numeric_user_id(value: str | None) -> int | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    return int(normalized) if normalized.isdigit() else None
 
 
 def _require_invitation_repository(invitation_repository: SqliteInvitationRepository | None) -> SqliteInvitationRepository:
@@ -708,6 +721,117 @@ def create_admin_api_app(
             },
         }
 
+    def default_evidence_review_accept_message(file_name: str | None) -> str:
+        return (
+            "운영 검토 결과 증빙이 확인되었습니다.\n"
+            f"- 파일명: {file_name or '-'}"
+        )
+
+    def default_evidence_review_retry_message(file_name: str | None) -> str:
+        return (
+            "운영 검토 결과 현재 증빙은 다시 제출이 필요합니다.\n"
+            f"- 파일명: {file_name or '-'}\n\n"
+            "/evidence 로 다시 시작한 뒤 원본 document를 다시 업로드해 주세요."
+        )
+
+    def ensure_evidence_submission(submission_id: str):
+        repository = _require_evidence_repository(evidence_repository)
+        submission = repository.get_submission(submission_id)
+        if submission is None:
+            raise HTTPException(status_code=404, detail="evidence submission not found")
+        return repository, submission
+
+    def resolve_evidence_follow_up(submission, session):
+        if session is None:
+            raise HTTPException(status_code=409, detail="evidence session not found")
+        existing = next(
+            (
+                item
+                for item in runtime.list_follow_ups(include_closed=False, query=submission.id)
+                if item.reason == "evidence_submission_manual_review" and item.chat_id == session.chat_id
+            ),
+            None,
+        )
+        if existing is not None:
+            return existing
+        summary = (
+            f"evidence_submission session={session.id} "
+            f"submission={submission.id} "
+            f"file={submission.file_name or '-'}"
+        )
+        return runtime.create_follow_up(
+            route_hint="admin_follow_up_queue",
+            reason="evidence_submission_manual_review",
+            chat_id=session.chat_id,
+            user_id=_coerce_numeric_user_id(session.provider_user_id),
+            current_step=session.current_step_code,
+            locale="ko",
+            user_message=summary,
+            failure_count=0,
+            recent_messages_summary=summary,
+            source="admin.evidence_review",
+        )
+
+    def send_evidence_review_message(submission, session, *, message: str, source: str):
+        follow_up = resolve_evidence_follow_up(submission, session)
+        result = runtime.create_admin_reply(follow_up.follow_up_id, message, source=source)
+        if result is None:
+            raise HTTPException(status_code=409, detail="open follow-up not found")
+        updated_follow_up, outbox_message = result
+        closed_follow_up = runtime.close_follow_up(updated_follow_up.follow_up_id, source=f"{source}.close", notify_user=False)
+        return closed_follow_up or updated_follow_up, outbox_message
+
+    def admin_accept_evidence_submission(submission_id: str):
+        repository, submission = ensure_evidence_submission(submission_id)
+        if submission.artifact_status_code != EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED:
+            raise HTTPException(status_code=409, detail="evidence review action requires manual_review_required status")
+        session = repository.get_submission_session(submission.evidence_submission_session_id)
+        request_event = repository.get_request_event(submission.evidence_request_event_id)
+        repository.update_submission_artifact_status(
+            submission.id,
+            artifact_status_code=EVIDENCE_ARTIFACT_STATUS_ACCEPTED,
+            submitted_at=datetime.now(UTC).isoformat(),
+        )
+        repository.append_state_log(
+            evidence_submission_id=submission.id,
+            from_state_code=submission.artifact_status_code,
+            to_state_code=EVIDENCE_ARTIFACT_STATUS_ACCEPTED,
+            reason_code="admin_review_accepted",
+            detail={},
+        )
+        if session is not None:
+            session = repository.mark_session_completed(session.id)
+        if request_event is not None and request_event.request_status_code != "satisfied":
+            request_event = repository.mark_request_satisfied(request_event.id)
+        updated_submission = repository.get_submission(submission.id)
+        if updated_submission is None:
+            raise HTTPException(status_code=500, detail="evidence submission reload failed")
+        return updated_submission, session, request_event
+
+    def admin_request_evidence_retry(submission_id: str):
+        repository, submission = ensure_evidence_submission(submission_id)
+        if submission.artifact_status_code != EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED:
+            raise HTTPException(status_code=409, detail="evidence review action requires manual_review_required status")
+        session = repository.get_submission_session(submission.evidence_submission_session_id)
+        request_event = repository.get_request_event(submission.evidence_request_event_id)
+        repository.update_submission_artifact_status(
+            submission.id,
+            artifact_status_code=EVIDENCE_ARTIFACT_STATUS_REJECTED,
+        )
+        repository.append_state_log(
+            evidence_submission_id=submission.id,
+            from_state_code=submission.artifact_status_code,
+            to_state_code=EVIDENCE_ARTIFACT_STATUS_REJECTED,
+            reason_code="admin_review_retry_requested",
+            detail={},
+        )
+        if session is not None:
+            session = repository.mark_session_abandoned(session.id)
+        updated_submission = repository.get_submission(submission.id)
+        if updated_submission is None:
+            raise HTTPException(status_code=500, detail="evidence submission reload failed")
+        return updated_submission, session, request_event
+
     @app.get("/admin", response_class=HTMLResponse)
     def admin_home() -> HTMLResponse:
         summary = admin_runtime_summary()
@@ -990,6 +1114,21 @@ def create_admin_api_app(
             f'<div class="message">{escape(log.to_state_code)} / {escape(log.reason_code or "-")} / {escape(log.created_at)}</div>'
             for log in state_logs
         ) or '<p class="muted">저장된 상태 이력이 없습니다.</p>'
+        action_section = '<section class="card"><p class="muted">현재 상태에서는 관리자 결정을 내릴 수 없습니다.</p></section>'
+        if submission.artifact_status_code == EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED:
+            action_section = f"""<section class="card">
+  <h2>관리자 결정</h2>
+  <form method="post" action="/admin/pages/evidence-reviews/{escape(submission.id)}/approve" accept-charset="utf-8">
+    <label for="approve_message">승인 안내 메시지</label>
+    <textarea id="approve_message" name="message">{escape(default_evidence_review_accept_message(submission.file_name))}</textarea>
+    <button type="submit">승인 처리</button>
+  </form>
+  <form method="post" action="/admin/pages/evidence-reviews/{escape(submission.id)}/request-retry" accept-charset="utf-8">
+    <label for="retry_message">재제출 안내 메시지</label>
+    <textarea id="retry_message" name="message">{escape(default_evidence_review_retry_message(submission.file_name))}</textarea>
+    <button type="submit">재제출 요청</button>
+  </form>
+</section>"""
         body = f"""{_topbar("증빙 상세")}
 <section class="card">
   <h2>{escape(submission.id)}</h2>
@@ -1017,8 +1156,56 @@ def create_admin_api_app(
 <section class="card">
   <h2>State logs</h2>
   {state_log_items}
-</section>"""
+</section>
+{action_section}"""
         return _page("증빙 상세", body)
+
+    @app.post("/admin/pages/evidence-reviews/{submission_id}/approve")
+    async def submit_evidence_review_approve_page(submission_id: str, request: Request):
+        raw_body = await request.body()
+        form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+        message = (form.get("message") or [""])[0].strip()
+        submission, session, request_event = admin_accept_evidence_submission(submission_id)
+        _, outbox_message = send_evidence_review_message(
+            submission,
+            session,
+            message=message or default_evidence_review_accept_message(submission.file_name),
+            source="admin.web.evidence_review.approve",
+        )
+        record_admin_audit(
+            request,
+            action_code="admin.evidence_review.approve",
+            source_code="admin.web.evidence_review.approve",
+            target_type_code="evidence_submission",
+            target_id=submission_id,
+            detail={
+                "outbox_id": outbox_message.outbox_id,
+                "request_status_code": request_event.request_status_code if request_event is not None else None,
+            },
+        )
+        return RedirectResponse(f"/admin/pages/evidence-reviews/{submission_id}", status_code=303)
+
+    @app.post("/admin/pages/evidence-reviews/{submission_id}/request-retry")
+    async def submit_evidence_review_request_retry_page(submission_id: str, request: Request):
+        raw_body = await request.body()
+        form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+        message = (form.get("message") or [""])[0].strip()
+        submission, session, _ = admin_request_evidence_retry(submission_id)
+        _, outbox_message = send_evidence_review_message(
+            submission,
+            session,
+            message=message or default_evidence_review_retry_message(submission.file_name),
+            source="admin.web.evidence_review.request_retry",
+        )
+        record_admin_audit(
+            request,
+            action_code="admin.evidence_review.request_retry",
+            source_code="admin.web.evidence_review.request_retry",
+            target_type_code="evidence_submission",
+            target_id=submission_id,
+            detail={"outbox_id": outbox_message.outbox_id},
+        )
+        return RedirectResponse(f"/admin/pages/evidence-reviews/{submission_id}", status_code=303)
 
     @app.get("/admin/pages/outbox", response_class=HTMLResponse)
     def outbox_page(status: str | None = None) -> HTMLResponse:
@@ -1609,6 +1796,72 @@ def create_admin_api_app(
             "request_event": _serialize_evidence_request(request_event) if request_event is not None else None,
             "signals": [_serialize_evidence_signal(item) for item in repository.list_validation_signals(submission.id)],
             "state_logs": [_serialize_evidence_state_log(item) for item in repository.list_state_logs(submission.id)],
+        }
+
+    @app.post("/admin/evidence-reviews/{submission_id}/approve")
+    def approve_evidence_review(
+        submission_id: str,
+        payload: EvidenceReviewDecisionRequest,
+        request: Request,
+    ) -> dict:
+        submission, session, request_event = admin_accept_evidence_submission(submission_id)
+        follow_up, outbox_message = send_evidence_review_message(
+            submission,
+            session,
+            message=(payload.message or "").strip() or default_evidence_review_accept_message(submission.file_name),
+            source="admin.api.evidence_review.approve",
+        )
+        record_admin_audit(
+            request,
+            action_code="admin.evidence_review.approve",
+            source_code="admin.api.evidence_review.approve",
+            target_type_code="evidence_submission",
+            target_id=submission_id,
+            detail={
+                "follow_up_id": follow_up.follow_up_id,
+                "outbox_id": outbox_message.outbox_id,
+                "request_status_code": request_event.request_status_code if request_event is not None else None,
+            },
+        )
+        return {
+            "submission": _serialize_evidence_submission(submission),
+            "session": _serialize_evidence_session(session) if session is not None else None,
+            "request_event": _serialize_evidence_request(request_event) if request_event is not None else None,
+            "follow_up": _serialize(follow_up),
+            "outbox_message": _serialize(outbox_message),
+        }
+
+    @app.post("/admin/evidence-reviews/{submission_id}/request-retry")
+    def request_evidence_review_retry(
+        submission_id: str,
+        payload: EvidenceReviewDecisionRequest,
+        request: Request,
+    ) -> dict:
+        submission, session, request_event = admin_request_evidence_retry(submission_id)
+        follow_up, outbox_message = send_evidence_review_message(
+            submission,
+            session,
+            message=(payload.message or "").strip() or default_evidence_review_retry_message(submission.file_name),
+            source="admin.api.evidence_review.request_retry",
+        )
+        record_admin_audit(
+            request,
+            action_code="admin.evidence_review.request_retry",
+            source_code="admin.api.evidence_review.request_retry",
+            target_type_code="evidence_submission",
+            target_id=submission_id,
+            detail={
+                "follow_up_id": follow_up.follow_up_id,
+                "outbox_id": outbox_message.outbox_id,
+                "request_status_code": request_event.request_status_code if request_event is not None else None,
+            },
+        )
+        return {
+            "submission": _serialize_evidence_submission(submission),
+            "session": _serialize_evidence_session(session) if session is not None else None,
+            "request_event": _serialize_evidence_request(request_event) if request_event is not None else None,
+            "follow_up": _serialize(follow_up),
+            "outbox_message": _serialize(outbox_message),
         }
 
     @app.get("/admin/outbox")
