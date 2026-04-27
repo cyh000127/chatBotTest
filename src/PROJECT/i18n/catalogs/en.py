@@ -10,6 +10,13 @@ BUTTON_FIELD_REFRESH = "Refresh"
 BUTTON_FIELD_LOOKUP_LOCATION = "Use location"
 BUTTON_FIELD_LOOKUP_CODE = "Enter field code"
 BUTTON_INPUT_RESOLVE = "Resolve input"
+BUTTON_INPUT_RESOLVE_TARGET_FIELD_CODE = "Field code"
+BUTTON_INPUT_RESOLVE_TARGET_FIELD_NAME = "Field name"
+BUTTON_INPUT_RESOLVE_METHOD_TYPED_TEXT = "Type text"
+BUTTON_INPUT_RESOLVE_CONFIRM_CANDIDATE = "Use this candidate"
+BUTTON_INPUT_RESOLVE_RETRY = "Retry"
+BUTTON_INPUT_RESOLVE_RETRY_LATER = "Later"
+BUTTON_INPUT_RESOLVE_MANUAL_REVIEW = "Manual review"
 BUTTON_SUPPORT = "Support"
 BUTTON_HELP = "Help"
 BUTTON_BACK = "Back"
@@ -113,6 +120,17 @@ MYFIELDS_BINDING_CONFLICT_MESSAGE = "This field cannot be registered right now.\
 MYFIELDS_LOOKUP_METHOD_LOCATION_LABEL = "Location share"
 MYFIELDS_LOOKUP_METHOD_CODE_LABEL = "Field code"
 INPUT_RESOLVE_ENTRY_MESSAGE = "This is the input resolve entry.\nFor now, the runtime starts with the main value flow.\nCandidate matching and manual review are in a separate scope."
+INPUT_RESOLVE_TARGET_FALLBACK = "Choose the value to resolve with the buttons."
+INPUT_RESOLVE_METHOD_FALLBACK = "Only typed text is available in this step.\nSelect [Type text]."
+INPUT_RESOLVE_RAW_INPUT_FALLBACK = "Enter the raw value again.\nExample: FIELD-001, Plot 1"
+INPUT_RESOLVE_CANDIDATE_NONE_MESSAGE = "No matching candidate was found.\nRetry, come back later, or send it to manual review."
+INPUT_RESOLVE_MANUAL_REVIEW_MESSAGE = "The input resolve request was sent to manual review.\nFollow-up guidance will continue in this chat."
+INPUT_RESOLVE_INVALID_RESUME_MESSAGE = "The resume token could not be verified.\nStart again with /resolve or ask for support."
+INPUT_RESOLVE_STEP_TARGET_LABEL = "Choose value"
+INPUT_RESOLVE_STEP_METHOD_LABEL = "Choose method"
+INPUT_RESOLVE_STEP_RAW_INPUT_LABEL = "Enter raw text"
+INPUT_RESOLVE_STEP_CANDIDATES_LABEL = "Review candidates"
+INPUT_RESOLVE_STEP_DECISION_LABEL = "Confirm candidate"
 SUPPORT_ESCALATION_MESSAGE = "Your support request was sent.\nNo new chat will open. We will keep replying here.\nUse /help, /menu, or /start to go back."
 SUPPORT_HANDOFF_MESSAGE_RECORDED = "The extra note was saved to the support thread.\nReplies will stay in this chat.\nUse /start to start over."
 SUPPORT_HANDOFF_CLOSED_MESSAGE = "The support thread is closed.\nYou can ask for help again in this chat."
@@ -143,6 +161,8 @@ FALLBACK_MESSAGES = {
     "yield_confirm": "You are at the yield check step.\nChoose Confirm or Back below.",
     "myfields_input": "The field registration input could not be processed.\nChoose the matching method for this step.",
     "myfields_confirm": "You are at the field check step.\nChoose Confirm or another method below.",
+    "input_resolve_input": "The input resolve step could not be processed.\nSend a matching button choice or a short example again.",
+    "input_resolve_confirm": "This is the candidate review step.\nChoose a candidate, retry, come back later, or send it to manual review.",
 }
 RECOVERY_GUIDANCE_SOFT = "Here is what this step needs."
 RECOVERY_GUIDANCE_GUIDED = "Use the guide below to continue."
@@ -376,6 +396,50 @@ def format_support_admin_reply(*, admin_message: str) -> str:
         f"{admin_message}\n\n"
         "If you need to add more, continue here."
     )
+
+
+def format_input_resolve_candidate_list(*, target_label: str, raw_input: str, candidates: tuple[str, ...]) -> str:
+    candidate_lines = "\n".join(f"{index}. {candidate}" for index, candidate in enumerate(candidates, start=1))
+    return (
+        f"Candidates found for {target_label}.\n"
+        f"- Raw input: {raw_input}\n\n"
+        f"{candidate_lines}\n\n"
+        "Choose the matching item or retry."
+    )
+
+
+def format_input_resolve_selected_candidate(*, target_label: str, candidate_label: str) -> str:
+    return (
+        f"Review the {target_label} candidate.\n"
+        f"- Selected candidate: {candidate_label}\n\n"
+        "Choose use this candidate, retry, later, or manual review."
+    )
+
+
+def format_input_resolve_resolved(*, target_label: str, candidate_label: str) -> str:
+    return (
+        "The resolved value was saved.\n"
+        f"- Target: {target_label}\n"
+        f"- Value: {candidate_label}"
+    )
+
+
+def format_input_resolve_reminder(*, command_text: str) -> str:
+    return (
+        "It is time to continue the saved input resolve flow.\n"
+        f"Enter {command_text} to reopen it."
+    )
+
+
+def format_input_resolve_reminder_created(*, command_text: str) -> str:
+    return (
+        "Saved so you can continue later.\n"
+        f"When you want to continue, enter {command_text}."
+    )
+
+
+def format_input_resolve_resumed(*, step_label: str, prompt_text: str) -> str:
+    return f"Reopened the saved input resolve flow.\nCurrent step: {step_label}\n\n{prompt_text}"
 
 
 WEATHER_CODE_LABELS = {

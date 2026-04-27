@@ -272,10 +272,6 @@ class SqliteInputResolutionRepository:
                         created_at=now,
                     )
                 )
-            next_status = (
-                INPUT_RESOLUTION_STATUS_CANDIDATE_REVIEW if created_items else INPUT_RESOLUTION_STATUS_COLLECTING_RAW_INPUT
-            )
-            next_step = STATE_INPUT_RESOLVE_CANDIDATES if created_items else STATE_INPUT_RESOLVE_RAW_INPUT
             self._connection.execute(
                 """
                 UPDATE input_resolution_sessions
@@ -285,8 +281,8 @@ class SqliteInputResolutionRepository:
                 WHERE id = ?
                 """,
                 (
-                    next_status,
-                    next_step,
+                    INPUT_RESOLUTION_STATUS_CANDIDATE_REVIEW,
+                    STATE_INPUT_RESOLVE_CANDIDATES,
                     now,
                     session_id,
                 ),
@@ -411,6 +407,53 @@ class SqliteInputResolutionRepository:
                     session_id,
                     None,
                     "retry_later",
+                    note,
+                    now,
+                ),
+            )
+            self._connection.execute(
+                """
+                UPDATE input_resolution_sessions
+                SET session_status_code = ?,
+                    current_step_code = ?,
+                    selected_candidate_id = NULL,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    INPUT_RESOLUTION_STATUS_COLLECTING_RAW_INPUT,
+                    STATE_INPUT_RESOLVE_RAW_INPUT,
+                    now,
+                    session_id,
+                ),
+            )
+            self._connection.commit()
+        updated = self.get_session(session_id)
+        if updated is None:
+            raise RuntimeError("retry session을 다시 읽을 수 없습니다.")
+        return updated
+
+    def mark_retry(self, session_id: str, *, note: str | None = None) -> InputResolutionSession:
+        with self._lock:
+            now = utc_now_text()
+            decision_id = f"input_resolution_decision_{uuid4().hex}"
+            self._connection.execute(
+                """
+                INSERT INTO input_resolution_decisions (
+                  id,
+                  input_resolution_session_id,
+                  selected_candidate_id,
+                  decision_code,
+                  note,
+                  created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    decision_id,
+                    session_id,
+                    None,
+                    "retry",
                     note,
                     now,
                 ),

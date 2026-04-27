@@ -24,6 +24,10 @@ from PROJECT.channels.telegram.handlers.field_binding import (
     handle_field_code_text,
     handle_field_location,
 )
+from PROJECT.channels.telegram.handlers.input_resolution import (
+    handle_input_resolution_callback,
+    handle_input_resolution_text,
+)
 from PROJECT.channels.telegram.handlers.onboarding import (
     handle_onboarding_callback,
     handle_onboarding_language_selection,
@@ -39,6 +43,13 @@ from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_KIND,
     STATE_FERTILIZER_PRODUCT,
     STATE_FERTILIZER_USED,
+)
+from PROJECT.conversations.input_resolve.states import (
+    STATE_INPUT_RESOLVE_CANDIDATES,
+    STATE_INPUT_RESOLVE_DECISION,
+    STATE_INPUT_RESOLVE_METHOD,
+    STATE_INPUT_RESOLVE_RAW_INPUT,
+    STATE_INPUT_RESOLVE_TARGET,
 )
 from PROJECT.conversations.yield_intake import service as yield_service
 from PROJECT.conversations.yield_intake.states import (
@@ -89,6 +100,7 @@ from PROJECT.dispatch.session_dispatcher import (
     has_seen_llm_input,
     increment_llm_calls_in_step,
     increment_recovery_attempts,
+    input_resolution_draft,
     last_recovery_context,
     llm_calls_in_step,
     mark_llm_input_seen,
@@ -172,6 +184,14 @@ YIELD_STATES = {
     STATE_YIELD_DATE,
     STATE_YIELD_CONFIRM,
     STATE_YIELD_EDIT_SELECT,
+}
+
+INPUT_RESOLVE_STATES = {
+    STATE_INPUT_RESOLVE_TARGET,
+    STATE_INPUT_RESOLVE_METHOD,
+    STATE_INPUT_RESOLVE_RAW_INPUT,
+    STATE_INPUT_RESOLVE_CANDIDATES,
+    STATE_INPUT_RESOLVE_DECISION,
 }
 
 FERTILIZER_EDIT_CALLBACK_TO_STATE = {
@@ -1009,6 +1029,20 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "fieldbind_candidate", {"field_id": data.rsplit(":", 1)[1]}
     if data == "fieldbind:confirm":
         return "fieldbind_confirm", {}
+    if data.startswith("inputresolve:target:"):
+        return "inputresolve_target", {"target": data.rsplit(":", 1)[1]}
+    if data.startswith("inputresolve:method:"):
+        return "inputresolve_method", {"method": data.rsplit(":", 1)[1]}
+    if data.startswith("inputresolve:candidate:"):
+        return "inputresolve_candidate", {"candidate_id": data.rsplit(":", 1)[1]}
+    if data == "inputresolve:retry":
+        return "inputresolve_retry", {}
+    if data == "inputresolve:retry_later":
+        return "inputresolve_retry_later", {}
+    if data == "inputresolve:manual_review":
+        return "inputresolve_manual_review", {}
+    if data.startswith("inputresolve:decision:"):
+        return "inputresolve_decision", {"decision": data.rsplit(":", 1)[1]}
     if data == "repair:candidate:apply":
         return "repair_candidate_apply", {}
     if data.startswith("repair:confirm:"):
@@ -1586,6 +1620,12 @@ async def text_message(update, context) -> None:
             reset_recovery_attempts(context.user_data)
             return
 
+    if state in INPUT_RESOLVE_STATES:
+        handled = await handle_input_resolution_text(update, context, state=state, text=inbound.text)
+        if handled:
+            reset_recovery_attempts(context.user_data)
+            return
+
     fallback_key = fallback_key_for_state(current_state(context.user_data))
     late_gate = classify_cheap_gate(
         inbound.text,
@@ -1678,6 +1718,7 @@ async def text_message(update, context) -> None:
             current_state(context.user_data),
             catalog,
             field_binding_draft(context.user_data),
+            {"input_resolution_draft": input_resolution_draft(context.user_data)} if state in INPUT_RESOLVE_STATES else None,
         ),
     )
     log_event(
@@ -1891,6 +1932,29 @@ async def button_callback(update, context) -> None:
                 current_state(context.user_data),
                 current_catalog(context),
                 field_binding_draft(context.user_data),
+            ),
+        )
+        return
+
+    if action.startswith("inputresolve_"):
+        await clear_callback_markup(update)
+        if await handle_input_resolution_callback(update, context, action=action, payload=payload):
+            reset_recovery_attempts(context.user_data)
+            return
+        await send_text(
+            update,
+            service.fallback_text(
+                fallback_key_for_state(current_state(context.user_data)),
+                current_catalog(context),
+                {
+                    "input_resolution_draft": input_resolution_draft(context.user_data),
+                },
+            ),
+            keyboard_layout=fallback_keyboard_layout_for_state(
+                current_state(context.user_data),
+                current_catalog(context),
+                None,
+                {"input_resolution_draft": input_resolution_draft(context.user_data)},
             ),
         )
         return

@@ -14,6 +14,13 @@ from PROJECT.conversations.field_binding.states import (
     STATE_FIELD_BINDING_METHOD,
     STATE_MYFIELDS_SUMMARY,
 )
+from PROJECT.conversations.input_resolve.states import (
+    STATE_INPUT_RESOLVE_CANDIDATES,
+    STATE_INPUT_RESOLVE_DECISION,
+    STATE_INPUT_RESOLVE_METHOD,
+    STATE_INPUT_RESOLVE_RAW_INPUT,
+    STATE_INPUT_RESOLVE_TARGET,
+)
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_AMOUNT, STATE_YIELD_CONFIRM, STATE_YIELD_DATE, STATE_YIELD_EDIT_SELECT, STATE_YIELD_FIELD, STATE_YIELD_READY
 
@@ -38,4 +45,8 @@ def fallback_key_for_state(state: str) -> str:
         return "myfields_input"
     if state in {STATE_FIELD_BINDING_CANDIDATE_SELECT, STATE_FIELD_BINDING_CONFIRM}:
         return "myfields_confirm"
+    if state in {STATE_INPUT_RESOLVE_TARGET, STATE_INPUT_RESOLVE_METHOD, STATE_INPUT_RESOLVE_RAW_INPUT}:
+        return "input_resolve_input"
+    if state in {STATE_INPUT_RESOLVE_CANDIDATES, STATE_INPUT_RESOLVE_DECISION}:
+        return "input_resolve_confirm"
     return FALLBACK_DEFAULT

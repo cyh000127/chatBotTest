@@ -35,6 +35,7 @@ from PROJECT.dispatch.support_handoff_dispatcher import (
 )
 from PROJECT.channels.telegram.handlers.onboarding import send_onboarding_prompt, sync_onboarding_session
 from PROJECT.channels.telegram.handlers.field_binding import show_myfields_summary
+from PROJECT.channels.telegram.handlers.input_resolution import resume_input_resolution_session, start_input_resolution_session
 from PROJECT.i18n.translator import get_catalog, language_keyboard
 from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED
 from PROJECT.storage.onboarding import ONBOARDING_STATUS_APPROVED
@@ -63,6 +64,15 @@ def _start_invite_code(context) -> str | None:
     if not args:
         return None
     return args[0]
+
+
+def _start_resume_token(context) -> str | None:
+    token = _start_invite_code(context)
+    if token is None:
+        return None
+    if token.startswith("rt_"):
+        return token
+    return None
 
 
 def _invitation_can_start_onboarding(invitation) -> bool:
@@ -210,6 +220,8 @@ async def show_myfields_entry(update, context) -> None:
 
 
 async def start_input_resolve_entry(update, context) -> None:
+    if await start_input_resolution_session(update, context):
+        return
     catalog = catalog_for(context)
     reset_session(context.user_data)
     set_state(context.user_data, STATE_INPUT_RESOLVE_TARGET)
@@ -343,6 +355,11 @@ async def start_command(update, context) -> None:
     )
 
     if _sqlite_onboarding_enabled(context):
+        resume_token = _start_resume_token(context)
+        if resume_token:
+            if await resume_input_resolution_session(update, context, resume_token=resume_token):
+                return
+
         invite_code = _start_invite_code(context)
         if not invite_code:
             reset_session(context.user_data)

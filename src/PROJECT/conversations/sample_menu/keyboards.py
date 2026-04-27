@@ -10,6 +10,14 @@ from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_PRODUCT,
     STATE_FERTILIZER_USED,
 )
+from PROJECT.conversations.input_resolve import service as input_resolve_service
+from PROJECT.conversations.input_resolve.states import (
+    STATE_INPUT_RESOLVE_CANDIDATES,
+    STATE_INPUT_RESOLVE_DECISION,
+    STATE_INPUT_RESOLVE_METHOD,
+    STATE_INPUT_RESOLVE_RAW_INPUT,
+    STATE_INPUT_RESOLVE_TARGET,
+)
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_LANGUAGE_SELECT
 from PROJECT.conversations.onboarding import service as onboarding_service
 from PROJECT.conversations.onboarding.states import ONBOARDING_STATES
@@ -113,6 +121,19 @@ def fallback_keyboard_layout_for_state(
             candidates=candidates,
         )
     if state in {
+        STATE_INPUT_RESOLVE_TARGET,
+        STATE_INPUT_RESOLVE_METHOD,
+        STATE_INPUT_RESOLVE_RAW_INPUT,
+        STATE_INPUT_RESOLVE_CANDIDATES,
+        STATE_INPUT_RESOLVE_DECISION,
+    }:
+        payload = recovery_context.get("input_resolution_draft") if recovery_context else draft
+        return input_resolve_service.keyboard_for_state(
+            state,
+            catalog,
+            input_resolve_service.draft_from_dict(payload),
+        )
+    if state in {
         STATE_FERTILIZER_USED,
         STATE_FERTILIZER_KIND,
         STATE_FERTILIZER_PRODUCT,
@@ -145,6 +166,18 @@ def keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) ->
             catalog,
             has_bindings=has_bindings,
             candidates=candidates,
+        )
+    if state in {
+        STATE_INPUT_RESOLVE_TARGET,
+        STATE_INPUT_RESOLVE_METHOD,
+        STATE_INPUT_RESOLVE_RAW_INPUT,
+        STATE_INPUT_RESOLVE_CANDIDATES,
+        STATE_INPUT_RESOLVE_DECISION,
+    }:
+        return input_resolve_service.keyboard_for_state(
+            state,
+            catalog,
+            input_resolve_service.draft_from_dict(draft),
         )
     if state in {
         STATE_FERTILIZER_USED,
