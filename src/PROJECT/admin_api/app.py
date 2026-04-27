@@ -1,10 +1,12 @@
+import csv
 from dataclasses import asdict
 from datetime import UTC, datetime
 from html import escape
-from urllib.parse import parse_qs
+from io import StringIO
+from urllib.parse import parse_qs, urlencode
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field
 
 from PROJECT.admin.follow_up import FollowUpStatus, InMemoryAdminRuntime, OutboxStatus, admin_runtime
@@ -186,6 +188,18 @@ def _page(title: str, body: str) -> HTMLResponse:
 </main>
 </body>
 </html>"""
+    )
+
+
+def _csv_response(*, filename: str, header: tuple[str, ...], rows: list[tuple[object, ...]]) -> Response:
+    buffer = StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(header)
+    writer.writerows(rows)
+    return Response(
+        content=buffer.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -720,11 +734,14 @@ def create_admin_api_app(
     def outbox_page(status: str | None = None) -> HTMLResponse:
         selected_status = _parse_outbox_status(status)
         messages = runtime.list_outbox(status=selected_status)
-        filter_links = """<section class="card">
+        export_query = urlencode({"status": selected_status.value}) if selected_status else ""
+        export_href = "/admin/outbox/export" + (f"?{export_query}" if export_query else "")
+        filter_links = f"""<section class="card">
   <a href="/admin/pages/outbox">전체</a>
   <a href="/admin/pages/outbox?status=pending">대기</a>
   <a href="/admin/pages/outbox?status=failed">재시도 실패</a>
   <a href="/admin/pages/outbox?status=manual_review">운영 검토</a>
+  <a href="{escape(export_href)}">CSV 내보내기</a>
 </section>"""
         if messages:
             items = "\n".join(
@@ -940,11 +957,25 @@ def create_admin_api_app(
             created_from=selected_created_from,
             created_to=selected_created_to,
         )
+        export_query = urlencode(
+            {
+                key: value
+                for key, value in {
+                    "status": selected_status.value if selected_status else "",
+                    "query": selected_query,
+                    "created_from": selected_created_from or "",
+                    "created_to": selected_created_to or "",
+                }.items()
+                if value
+            }
+        )
+        export_href = "/admin/follow-ups/export" + (f"?{export_query}" if export_query else "")
         filter_links = f"""<section class="card">
   <a href="/admin/pages/follow-ups">전체</a>
   <a href="/admin/pages/follow-ups?status=waiting_admin_reply">답변 대기</a>
   <a href="/admin/pages/follow-ups?status=open">진행 중</a>
   <a href="/admin/pages/follow-ups?status=closed">종료</a>
+  <a href="{escape(export_href)}">CSV 내보내기</a>
   <form method="get" accept-charset="utf-8">
     <label for="query">검색</label>
     <input id="query" name="query" value="{escape(selected_query)}" placeholder="follow-up id, chat id, user id, 메시지">
@@ -1108,6 +1139,66 @@ def create_admin_api_app(
             ],
         }
 
+    @app.get("/admin/follow-ups/export")
+    def export_follow_ups(
+        include_closed: bool = True,
+        status: str | None = None,
+        query: str | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
+    ) -> Response:
+        selected_status = _parse_follow_up_status(status)
+        selected_query = (query or "").strip()
+        selected_created_from = _parse_filter_date(created_from, field_name="created_from")
+        selected_created_to = _parse_filter_date(created_to, field_name="created_to")
+        items = runtime.list_follow_ups(
+            include_closed=include_closed,
+            status=selected_status,
+            query=selected_query,
+            created_from=selected_created_from,
+            created_to=selected_created_to,
+        )
+        return _csv_response(
+            filename="admin_follow_ups.csv",
+            header=(
+                "follow_up_id",
+                "status",
+                "route_hint",
+                "reason",
+                "current_step",
+                "chat_id",
+                "user_id",
+                "locale",
+                "failure_count",
+                "created_at",
+                "updated_at",
+                "awaiting_admin_reply",
+                "admin_reply_count",
+                "latest_user_message",
+                "recent_messages_summary",
+            ),
+            rows=[
+                (
+                    item.follow_up_id,
+                    item.status.value,
+                    item.route_hint,
+                    item.reason,
+                    item.current_step or "",
+                    item.chat_id,
+                    item.user_id or "",
+                    item.locale,
+                    item.failure_count,
+                    item.created_at.isoformat(),
+                    item.updated_at.isoformat(),
+                    item.awaiting_admin_reply,
+                    item.admin_reply_count,
+                    _latest_user_message(item),
+                    item.recent_messages_summary,
+                )
+                for item in items
+            ],
+        )
+
     @app.get("/admin/follow-ups/{follow_up_id}")
     def get_follow_up(follow_up_id: str) -> dict:
         follow_up = runtime.get_follow_up(follow_up_id)
@@ -1162,6 +1253,41 @@ def create_admin_api_app(
     @app.get("/admin/outbox")
     def list_outbox(status: str | None = None) -> dict:
         return {"items": [_serialize(item) for item in runtime.list_outbox(status=_parse_outbox_status(status))]}
+
+    @app.get("/admin/outbox/export")
+    def export_outbox(status: str | None = None) -> Response:
+        selected_status = _parse_outbox_status(status)
+        items = runtime.list_outbox(status=selected_status)
+        return _csv_response(
+            filename="admin_outbox.csv",
+            header=(
+                "outbox_id",
+                "follow_up_id",
+                "chat_id",
+                "status",
+                "source",
+                "retry_count",
+                "error_message",
+                "created_at",
+                "updated_at",
+                "text",
+            ),
+            rows=[
+                (
+                    item.outbox_id,
+                    item.follow_up_id,
+                    item.chat_id,
+                    item.status.value,
+                    item.source,
+                    item.retry_count,
+                    item.error_message or "",
+                    item.created_at.isoformat(),
+                    item.updated_at.isoformat(),
+                    item.text,
+                )
+                for item in items
+            ],
+        )
 
     @app.post("/admin/outbox/{outbox_id}/requeue")
     def requeue_outbox(outbox_id: str, request: Request) -> dict:

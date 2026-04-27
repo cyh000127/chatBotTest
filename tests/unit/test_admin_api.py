@@ -176,6 +176,36 @@ def test_admin_api_can_filter_follow_ups_by_created_date(tmp_path):
         sqlite_runtime.close()
 
 
+def test_admin_api_can_export_follow_ups_as_csv():
+    runtime = InMemoryAdminRuntime()
+    runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+        user_message="사진 업로드가 안 됩니다",
+    )
+    matched = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=21,
+        user_id=11,
+        current_step="fertilizer_confirm",
+        user_message="비료 입력을 다시 확인해주세요",
+    )
+    client = TestClient(create_admin_api_app(runtime))
+
+    response = client.get("/admin/follow-ups/export?query=비료 입력")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert response.headers["content-disposition"] == 'attachment; filename="admin_follow_ups.csv"'
+    assert matched.follow_up_id in response.text
+    assert "사진 업로드가 안 됩니다" not in response.text
+    assert "follow_up_id,status,route_hint" in response.text
+
+
 def test_admin_api_follow_up_reply_writes_audit_event(tmp_path):
     sqlite_runtime = bootstrap_sqlite_runtime(
         SqliteSettings(
@@ -783,6 +813,7 @@ def test_admin_pages_can_search_follow_up_request_list():
     assert response.status_code == 200
     assert matched.follow_up_id in response.text
     assert "사진 업로드 도움 요청" not in response.text
+    assert "/admin/follow-ups/export?status=waiting_admin_reply&amp;query=%EC%88%98%ED%99%95%EB%9F%89+%EC%9E%85%EB%A0%A5" in response.text
     assert 'name="status" value="waiting_admin_reply"' in response.text
     assert 'value="수확량 입력"' in response.text
 
@@ -856,6 +887,7 @@ def test_admin_pages_show_outbox_messages():
     assert "발송 대기" in response.text
     assert "입력 내용을 확인했습니다." in response.text
     assert "/admin/pages/outbox?status=manual_review" in response.text
+    assert "/admin/outbox/export" in response.text
     assert "/admin/pages/follow-ups" in response.text
     assert "/admin/pages/invitations" in response.text
     assert "/admin/pages/onboarding/submissions" in response.text
@@ -885,6 +917,31 @@ def test_admin_outbox_api_can_filter_manual_review_messages():
     assert failed.status_code == 200
     assert failed.json()["items"] == []
     assert invalid.status_code == 400
+
+
+def test_admin_outbox_api_can_export_csv_with_status_filter():
+    runtime = InMemoryAdminRuntime()
+    follow_up = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+    _, manual_review_message = runtime.create_admin_reply(follow_up.follow_up_id, "운영 검토가 필요합니다.")
+    _, pending_message = runtime.create_admin_reply(follow_up.follow_up_id, "바로 보낼 메시지입니다.")
+    for _ in range(DEFAULT_OUTBOX_MAX_RETRY_COUNT):
+        runtime.mark_outbox_failed(manual_review_message.outbox_id, "transport down")
+    client = TestClient(create_admin_api_app(runtime))
+
+    response = client.get("/admin/outbox/export?status=manual_review")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert response.headers["content-disposition"] == 'attachment; filename="admin_outbox.csv"'
+    assert manual_review_message.outbox_id in response.text
+    assert pending_message.outbox_id not in response.text
+    assert "outbox_id,follow_up_id,chat_id,status" in response.text
 
 
 def test_admin_outbox_api_can_requeue_manual_review_messages(tmp_path):
