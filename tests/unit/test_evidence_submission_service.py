@@ -109,6 +109,11 @@ def _write_exif_jpeg(path, *, latitude: float, longitude: float, captured_at: st
     image.save(path, exif=exif)
 
 
+def _write_png(path) -> None:
+    image = Image.new("RGB", (8, 8), color="orange")
+    image.save(path, format="PNG")
+
+
 def test_evidence_repository_creates_submission_signal_and_state_log(tmp_path):
     runtime = _runtime(tmp_path)
     try:
@@ -428,6 +433,94 @@ def test_evidence_service_marks_missing_signal_rows_when_metadata_is_absent(tmp_
         assert signals["gps_longitude"].signal_status_code == "missing"
         assert signals["location_distance_meters"].signal_status_code == "not_computed"
         assert signals["upload_delay_seconds"].signal_status_code == "not_computed"
+    finally:
+        runtime.close()
+
+
+def test_evidence_service_rejects_unsupported_artifact_file_type(tmp_path):
+    runtime = _runtime(tmp_path)
+    try:
+        _approve_participant(runtime, provider_user_id="1001")
+        field_repository = SqliteFieldRegistryRepository(runtime.connection)
+        evidence_repository = SqliteEvidenceRepository(runtime.connection)
+        service = EvidenceSubmissionService(evidence_repository, field_repository)
+
+        request_context = service.create_request(
+            provider_user_id="1001",
+            request_type_code="field_photo",
+        )
+        session = service.start_submission_session(
+            provider_user_id="1001",
+            chat_id=67890,
+            request_event_id=request_context.request_event.id,
+        )
+        service.accept_location(
+            session.id,
+            latitude=37.55,
+            longitude=127.01,
+            accuracy_meters=5.0,
+        )
+        artifact_path = tmp_path / "artifact.png"
+        _write_png(artifact_path)
+        submission = service.register_document_upload(
+            session.id,
+            provider_file_id="file_123",
+            provider_file_unique_id="file_unique_123",
+            provider_message_id="msg_123",
+            file_name="artifact.png",
+            mime_type="image/png",
+            file_size_bytes=artifact_path.stat().st_size,
+            staged_artifact_uri=artifact_path.resolve().as_uri(),
+        )
+
+        decision = service.evaluate_submission(submission.id)
+
+        assert decision.outcome_code == EVIDENCE_VALIDATION_OUTCOME_RETRY_DOCUMENT
+        assert decision.reason_codes == ("unsupported_file_type",)
+    finally:
+        runtime.close()
+
+
+def test_evidence_service_rejects_unreadable_staged_artifact(tmp_path):
+    runtime = _runtime(tmp_path)
+    try:
+        _approve_participant(runtime, provider_user_id="1001")
+        field_repository = SqliteFieldRegistryRepository(runtime.connection)
+        evidence_repository = SqliteEvidenceRepository(runtime.connection)
+        service = EvidenceSubmissionService(evidence_repository, field_repository)
+
+        request_context = service.create_request(
+            provider_user_id="1001",
+            request_type_code="field_photo",
+        )
+        session = service.start_submission_session(
+            provider_user_id="1001",
+            chat_id=67890,
+            request_event_id=request_context.request_event.id,
+        )
+        service.accept_location(
+            session.id,
+            latitude=37.55,
+            longitude=127.01,
+            accuracy_meters=5.0,
+        )
+        artifact_path = tmp_path / "broken.jpg"
+        artifact_path.write_text("not-a-jpeg", encoding="utf-8")
+        submission = service.register_document_upload(
+            session.id,
+            provider_file_id="file_123",
+            provider_file_unique_id="file_unique_123",
+            provider_message_id="msg_123",
+            file_name="broken.jpg",
+            mime_type="image/jpeg",
+            file_size_bytes=artifact_path.stat().st_size,
+            staged_artifact_uri=artifact_path.resolve().as_uri(),
+        )
+
+        decision = service.evaluate_submission(submission.id)
+
+        assert decision.outcome_code == EVIDENCE_VALIDATION_OUTCOME_RETRY_DOCUMENT
+        assert decision.reason_codes == ("artifact_read_failed",)
     finally:
         runtime.close()
 

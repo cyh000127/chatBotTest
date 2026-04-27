@@ -158,6 +158,11 @@ def _write_exif_jpeg(path, *, latitude: float, longitude: float, captured_at: st
     image.save(path, exif=exif)
 
 
+def _write_png(path) -> None:
+    image = Image.new("RGB", (8, 8), color="purple")
+    image.save(path, format="PNG")
+
+
 def test_evidence_command_starts_location_first_flow(tmp_path):
     runtime, field_repository, evidence_repository, bot_data = _approved_runtime(tmp_path)
     context = _context(bot_data)
@@ -344,5 +349,48 @@ def test_evidence_flow_accepts_document_when_staged_artifact_contains_required_m
         assert session is not None
         assert session.session_status_code == "completed"
         assert "기본 검증을 통과했습니다" in document_message.replies[-1][0]
+    finally:
+        runtime.close()
+
+
+def test_evidence_flow_requests_retry_for_unsupported_document_type(tmp_path):
+    runtime, field_repository, evidence_repository, bot_data = _approved_runtime(tmp_path)
+    context = _context(bot_data)
+    message = FakeMessage()
+
+    class FakeArtifactStager:
+        def __init__(self, artifact_uri: str, checksum_sha256: str = "checksum") -> None:
+            self._artifact = StagedEvidenceArtifact(
+                artifact_uri=artifact_uri,
+                checksum_sha256=checksum_sha256,
+                local_path=tmp_path / "artifact.png",
+            )
+
+        async def stage_document(self, bot, document):
+            return self._artifact
+
+    try:
+        _bind_field(field_repository)
+        staged_artifact_path = tmp_path / "unsupported.png"
+        _write_png(staged_artifact_path)
+        bot_data["evidence_artifact_stager"] = FakeArtifactStager(staged_artifact_path.resolve().as_uri())
+
+        asyncio.run(commands.evidence_command(_message_update(message), context))
+
+        location_message = FakeMessage(
+            location=SimpleNamespace(latitude=37.05, longitude=127.05, horizontal_accuracy=8.0)
+        )
+        asyncio.run(messages.location_message(_message_update(location_message), context))
+
+        document_message = FakeMessage(document=FakeDocument(file_name="artifact.png", mime_type="image/png"))
+        asyncio.run(messages.document_message(_message_update(document_message), context))
+
+        assert current_state(context.user_data) == STATE_EVIDENCE_WAITING_DOCUMENT
+        assert "JPEG 원본 문서 파일만 제출할 수 있습니다" in document_message.replies[-1][0]
+        updated_draft = evidence_submission_draft(context.user_data)
+        assert updated_draft is not None
+        submission = evidence_repository.get_submission(updated_draft["evidence_submission_id"])
+        assert submission is not None
+        assert submission.artifact_status_code == "rejected"
     finally:
         runtime.close()

@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from PROJECT.admin.follow_up import DEFAULT_OUTBOX_MAX_RETRY_COUNT, FOLLOW_UP_CLOSED_NOTICE, InMemoryAdminRuntime, OutboxStatus
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
@@ -80,7 +81,7 @@ def create_field_binding_exception(runtime):
     return field_repository, result.exception
 
 
-def create_manual_review_evidence(runtime):
+def create_manual_review_evidence(runtime, *, staged_artifact_uri: str | None = None, checksum_sha256: str | None = None):
     invitation_repository = SqliteInvitationRepository(runtime.connection)
     onboarding_repository = SqliteOnboardingRepository(runtime.connection)
     invitation = invitation_repository.create_invitation()
@@ -127,6 +128,8 @@ def create_manual_review_evidence(runtime):
         file_name="field.jpg",
         mime_type="image/jpeg",
         file_size_bytes=2048,
+        staged_artifact_uri=staged_artifact_uri,
+        checksum_sha256=checksum_sha256,
         uploaded_at="2026-04-27T00:10:00+00:00",
         payload={
             "exif": {
@@ -144,6 +147,11 @@ def create_manual_review_evidence(runtime):
         detail={"reason_codes": list(decision.reason_codes)},
     )
     return evidence_repository, escalated
+
+
+def create_png_file(path):
+    image = Image.new("RGB", (8, 8), color="red")
+    image.save(path, format="PNG")
 
 
 def test_admin_api_lists_follow_ups_and_accepts_reply():
@@ -369,6 +377,35 @@ def test_admin_api_shows_evidence_review_detail_with_signals_and_logs(tmp_path):
         assert submission.id in page.text
         assert "location_distance_meters" in page.text
         assert "manual_review_required" in page.text
+    finally:
+        sqlite_runtime.close()
+
+
+def test_admin_page_shows_evidence_artifact_info(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        artifact_path = tmp_path / "artifact.png"
+        create_png_file(artifact_path)
+        evidence_repository, submission = create_manual_review_evidence(
+            sqlite_runtime,
+            staged_artifact_uri=artifact_path.resolve().as_uri(),
+            checksum_sha256="abc123",
+        )
+        client = TestClient(create_admin_api_app(InMemoryAdminRuntime(), evidence_repository=evidence_repository))
+
+        page = client.get(f"/admin/pages/evidence-reviews/{submission.id}")
+
+        assert page.status_code == 200
+        assert "Artifact" in page.text
+        assert artifact_path.resolve().as_uri() in page.text
+        assert "abc123" in page.text
+        assert "parser" in page.text
     finally:
         sqlite_runtime.close()
 
