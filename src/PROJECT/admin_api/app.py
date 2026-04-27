@@ -122,6 +122,14 @@ def _parse_follow_up_status(status: str | None) -> FollowUpStatus | None:
         raise HTTPException(status_code=400, detail="unknown follow-up status") from exc
 
 
+def _parse_audit_result(result: str | None) -> str | None:
+    if not result:
+        return None
+    if result in {RESULT_SUCCESS, RESULT_FAILURE}:
+        return result
+    raise HTTPException(status_code=400, detail="unknown audit result")
+
+
 def _page(title: str, body: str) -> HTMLResponse:
     return HTMLResponse(
         f"""<!doctype html>
@@ -719,14 +727,34 @@ def create_admin_api_app(
         return RedirectResponse("/admin/pages/outbox?status=manual_review", status_code=303)
 
     @app.get("/admin/pages/audit-events", response_class=HTMLResponse)
-    def audit_event_page(limit: int = 100) -> HTMLResponse:
+    def audit_event_page(
+        limit: int = 100,
+        result: str | None = None,
+        action: str | None = None,
+    ) -> HTMLResponse:
         if admin_audit_repository is None:
             return _page(
                 "감사 로그",
                 _topbar("감사 로그")
                 + '<section class="card"><p class="error">SQLite 저장소가 켜져 있지 않아 감사 로그를 조회할 수 없습니다.</p></section>',
             )
-        events = admin_audit_repository.list_events(limit=limit)
+        selected_result = _parse_audit_result(result)
+        selected_action = action.strip() if action else None
+        filter_controls = f"""<section class="card">
+  <a href="/admin/pages/audit-events">전체</a>
+  <a href="/admin/pages/audit-events?result=success">성공</a>
+  <a href="/admin/pages/audit-events?result=failure">실패</a>
+  <form method="get" accept-charset="utf-8">
+    <label for="action">action code</label>
+    <input id="action" name="action" value="{escape(selected_action or "")}" placeholder="예: admin.access.denied">
+    <button type="submit">필터 적용</button>
+  </form>
+</section>"""
+        events = admin_audit_repository.list_events(
+            limit=limit,
+            action_code=selected_action,
+            result_code=selected_result,
+        )
         if events:
             items = "\n".join(
                 f"""<section class="card">
@@ -743,7 +771,7 @@ def create_admin_api_app(
             )
         else:
             items = '<section class="card"><p class="muted">기록된 감사 로그가 없습니다.</p></section>'
-        return _page("감사 로그", _topbar("감사 로그") + items)
+        return _page("감사 로그", _topbar("감사 로그") + filter_controls + items)
 
     @app.post("/admin/pages/onboarding/submissions/{onboarding_session_id}/approve")
     async def submit_onboarding_approval_page(onboarding_session_id: str, request: Request):
@@ -1072,10 +1100,25 @@ def create_admin_api_app(
         return {"outbox_message": _serialize(outbox_message)}
 
     @app.get("/admin/audit-events")
-    def list_audit_events(limit: int = 100) -> dict:
+    def list_audit_events(
+        limit: int = 100,
+        result: str | None = None,
+        action: str | None = None,
+    ) -> dict:
         if admin_audit_repository is None:
             raise HTTPException(status_code=503, detail="admin audit repository unavailable")
-        return {"items": [_serialize_audit_event(event) for event in admin_audit_repository.list_events(limit=limit)]}
+        selected_result = _parse_audit_result(result)
+        selected_action = action.strip() if action else None
+        return {
+            "items": [
+                _serialize_audit_event(event)
+                for event in admin_audit_repository.list_events(
+                    limit=limit,
+                    action_code=selected_action,
+                    result_code=selected_result,
+                )
+            ]
+        }
 
     @app.post("/admin/invitations", status_code=201)
     def create_invitation(payload: CreateInvitationRequest, request: Request) -> dict:

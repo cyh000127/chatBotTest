@@ -1254,6 +1254,91 @@ def test_admin_audit_page_lists_admin_actions(tmp_path):
         runtime.close()
 
 
+def test_admin_audit_api_can_filter_by_result_and_action(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        audit_repository.record_event(
+            action_code="admin.follow_up.reply",
+            actor_id="admin_local_default",
+            result_code=RESULT_SUCCESS,
+            source_code="admin.api.reply",
+        )
+        audit_repository.record_event(
+            action_code="admin.access.denied",
+            actor_type_code="unknown",
+            actor_id=None,
+            result_code=RESULT_FAILURE,
+            source_code="admin.access.token_gate",
+        )
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                admin_audit_repository=audit_repository,
+            )
+        )
+
+        failed = client.get("/admin/audit-events?result=failure")
+        denied = client.get("/admin/audit-events?action=admin.access.denied")
+        invalid = client.get("/admin/audit-events?result=unknown")
+
+        assert failed.status_code == 200
+        assert [item["action_code"] for item in failed.json()["items"]] == ["admin.access.denied"]
+        assert denied.status_code == 200
+        assert [item["result_code"] for item in denied.json()["items"]] == [RESULT_FAILURE]
+        assert invalid.status_code == 400
+        assert invalid.json()["detail"] == "unknown audit result"
+    finally:
+        runtime.close()
+
+
+def test_admin_audit_page_can_filter_by_result_and_action(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        audit_repository.record_event(
+            action_code="admin.follow_up.reply",
+            actor_id="admin_local_default",
+            result_code=RESULT_SUCCESS,
+            source_code="admin.api.reply",
+        )
+        audit_repository.record_event(
+            action_code="admin.access.denied",
+            actor_type_code="unknown",
+            actor_id=None,
+            result_code=RESULT_FAILURE,
+            source_code="admin.access.token_gate",
+        )
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                admin_audit_repository=audit_repository,
+            )
+        )
+
+        response = client.get("/admin/pages/audit-events?result=failure&action=admin.access.denied")
+
+        assert response.status_code == 200
+        assert "성공" in response.text
+        assert "실패" in response.text
+        assert "admin.access.denied" in response.text
+        assert "admin.follow_up.reply" not in response.text
+    finally:
+        runtime.close()
+
+
 def test_admin_api_returns_503_when_onboarding_admin_repository_is_unavailable():
     client = TestClient(create_admin_api_app(InMemoryAdminRuntime()))
 

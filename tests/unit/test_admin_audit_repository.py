@@ -65,3 +65,35 @@ def test_admin_audit_repository_keeps_sensitive_detail_out_of_schema_contract(tm
         assert event.detail == {"attempt": 1}
     finally:
         runtime.close()
+
+
+def test_admin_audit_repository_can_filter_by_result_and_action(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+
+    try:
+        repository = SqliteAdminAuditRepository(runtime.connection)
+        success = repository.record_event(
+            action_code="admin.follow_up.reply",
+            actor_id="admin_local_default",
+            result_code=RESULT_SUCCESS,
+            source_code="admin.api.reply",
+        )
+        failure = repository.record_event(
+            action_code="admin.access.denied",
+            actor_type_code="unknown",
+            actor_id=None,
+            result_code=RESULT_FAILURE,
+            source_code="admin.access.token_gate",
+        )
+
+        assert repository.list_events(result_code=RESULT_SUCCESS) == [success]
+        assert repository.list_events(result_code=RESULT_FAILURE) == [failure]
+        assert repository.list_events(action_code="admin.access.denied") == [failure]
+    finally:
+        runtime.close()

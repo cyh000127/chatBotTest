@@ -108,17 +108,33 @@ class SqliteAdminAuditRepository:
             created_at=now,
         )
 
-    def list_events(self, *, limit: int = 100) -> list[AdminAuditEvent]:
+    def list_events(
+        self,
+        *,
+        limit: int = 100,
+        action_code: str | None = None,
+        result_code: str | None = None,
+    ) -> list[AdminAuditEvent]:
         safe_limit = max(1, min(limit, 500))
+        filters: list[str] = []
+        values: list[object] = []
+        if action_code:
+            filters.append("action_code = ?")
+            values.append(action_code)
+        if result_code:
+            filters.append("result_code = ?")
+            values.append(result_code)
+        where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
         with self._lock:
             rows = self._connection.execute(
-                """
+                f"""
                 SELECT *
                 FROM admin_audit_events
+                {where_clause}
                 ORDER BY occurred_at DESC, id DESC
                 LIMIT ?
                 """,
-                (safe_limit,),
+                (*values, safe_limit),
             ).fetchall()
         return [self._row_to_event(row) for row in rows]
 
