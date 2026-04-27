@@ -6,6 +6,7 @@ from PROJECT.admin.delivery import run_outbox_delivery_loop
 from PROJECT.admin.follow_up import admin_runtime
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.activity import SeasonActivityService
+from PROJECT.evidence.artifacts import TelegramEvidenceArtifactStager
 from PROJECT.evidence import EvidenceSubmissionService
 from PROJECT.fields.binding import FieldBindingService
 from PROJECT.llm import GeminiEditIntentResolver, GeminiRecoveryClassifier
@@ -19,6 +20,7 @@ from PROJECT.storage.invitations import SqliteInvitationRepository
 from PROJECT.storage.onboarding import SqliteOnboardingRepository
 from PROJECT.storage.reminders import SqliteReminderRepository
 from PROJECT.storage.sqlite import SqliteRuntime
+from pathlib import Path
 
 
 async def start_admin_background_tasks(application) -> None:
@@ -90,6 +92,8 @@ def create_application(settings: Settings, *, sqlite_runtime: SqliteRuntime | No
             application.bot_data["evidence_repository"],
             application.bot_data["field_registry_repository"],
         )
+        evidence_artifact_root = Path(sqlite_runtime.settings.database_path).resolve().parent / "evidence-artifacts"
+        application.bot_data["evidence_artifact_stager"] = TelegramEvidenceArtifactStager(evidence_artifact_root)
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("menu", menu_command))

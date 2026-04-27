@@ -41,6 +41,17 @@ def _draft(context):
     return evidence_conversation_service.draft_from_dict(evidence_submission_draft(context.user_data))
 
 
+async def _stage_document_if_possible(context, document):
+    stager = getattr(context, "bot_data", {}).get("evidence_artifact_stager")
+    if stager is None or document is None:
+        return None
+    bot = getattr(context, "bot", None)
+    try:
+        return await stager.stage_document(bot, document)
+    except Exception:
+        return None
+
+
 async def start_evidence_submission_flow(update, context) -> bool:
     evidence_service = _evidence_service(context)
     effective_user = update.effective_user
@@ -129,6 +140,7 @@ async def handle_evidence_document(update, context) -> bool:
     draft = _draft(context)
     if evidence_service is None or message is None or message.document is None or draft is None:
         return False
+    staged_artifact = await _stage_document_if_possible(context, message.document)
     submission = evidence_service.register_document_upload(
         draft.session_id,
         provider_file_id=message.document.file_id,
@@ -137,6 +149,8 @@ async def handle_evidence_document(update, context) -> bool:
         file_name=message.document.file_name,
         mime_type=message.document.mime_type,
         file_size_bytes=message.document.file_size,
+        staged_artifact_uri=staged_artifact.artifact_uri if staged_artifact is not None else None,
+        checksum_sha256=staged_artifact.checksum_sha256 if staged_artifact is not None else None,
         payload={"telegram_document": True},
     )
     updated = evidence_conversation_service.update_draft(

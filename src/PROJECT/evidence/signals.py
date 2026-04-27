@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from math import asin, cos, radians, sin, sqrt
 
+from PROJECT.evidence.metadata import extract_artifact_metadata
 from PROJECT.storage.evidence import EvidenceSubmission, EvidenceSubmissionSession
 
 SIGNAL_EXIF_PRESENT = "exif_present"
@@ -41,6 +42,7 @@ def extract_signal_candidates(
     session: EvidenceSubmissionSession,
 ) -> EvidenceSignalExtractionResult:
     payload = submission.payload if isinstance(submission.payload, dict) else {}
+    artifact_metadata = extract_artifact_metadata(submission.staged_artifact_uri)
     exif_payload = payload.get("exif")
     metadata_payload = payload.get("metadata")
     exif = exif_payload if isinstance(exif_payload, dict) else {}
@@ -48,13 +50,20 @@ def extract_signal_candidates(
     gps_payload = payload.get("gps")
     gps = gps_payload if isinstance(gps_payload, dict) else {}
 
-    explicit_exif_present = _parse_bool(payload.get("exif_present"))
-    if explicit_exif_present is None:
-        exif_present = bool(exif)
+    if artifact_metadata is not None and artifact_metadata.usable:
+        exif_present = artifact_metadata.exif_present
+        exif_detail = artifact_metadata.detail
     else:
-        exif_present = explicit_exif_present
+        explicit_exif_present = _parse_bool(payload.get("exif_present"))
+        if explicit_exif_present is None:
+            exif_present = bool(exif)
+        else:
+            exif_present = explicit_exif_present
+        exif_detail = artifact_metadata.detail if artifact_metadata is not None else {"source": "submission_payload"}
 
+    artifact_capture_time = artifact_metadata.captured_at if artifact_metadata is not None and artifact_metadata.usable else None
     capture_time_raw = _first_value(
+        artifact_capture_time,
         submission.captured_at,
         exif.get("captured_at"),
         exif.get("capture_time"),
@@ -64,52 +73,68 @@ def extract_signal_candidates(
     capture_time = _parse_datetime(capture_time_raw)
 
     gps_latitude = _first_float(
+        artifact_metadata.gps_latitude if artifact_metadata is not None and artifact_metadata.usable else None,
         exif.get("gps_latitude"),
         metadata.get("gps_latitude"),
         gps.get("latitude"),
         payload.get("gps_latitude"),
     )
     gps_longitude = _first_float(
+        artifact_metadata.gps_longitude if artifact_metadata is not None and artifact_metadata.usable else None,
         exif.get("gps_longitude"),
         metadata.get("gps_longitude"),
         gps.get("longitude"),
         payload.get("gps_longitude"),
     )
     gps_present = gps_latitude is not None and gps_longitude is not None
+    gps_detail = artifact_metadata.detail if artifact_metadata is not None and artifact_metadata.usable else {"source": "submission_payload"}
+    capture_detail = (
+        {"source": "staged_artifact", "raw_value": capture_time_raw.isoformat()}
+        if artifact_capture_time is not None
+        else (
+            {"source": "submission_payload", "raw_value": capture_time_raw}
+            if capture_time_raw is not None
+            else (
+                {**artifact_metadata.detail, "raw_value": None}
+                if artifact_metadata is not None
+                else {"source": "submission_payload", "raw_value": None}
+            )
+        )
+    )
 
     signals = [
         EvidenceSignalCandidate(
             signal_type_code=SIGNAL_EXIF_PRESENT,
             signal_status_code=SIGNAL_STATUS_PRESENT if exif_present else SIGNAL_STATUS_MISSING,
-            detail={"source": "submission_payload"},
+            detail=exif_detail,
         ),
         EvidenceSignalCandidate(
             signal_type_code=SIGNAL_GPS_PRESENT,
             signal_status_code=SIGNAL_STATUS_PRESENT if gps_present else SIGNAL_STATUS_MISSING,
-            detail={"source": "submission_payload"},
+            detail=gps_detail,
         ),
         EvidenceSignalCandidate(
             signal_type_code=SIGNAL_CAPTURE_TIME_PRESENT,
             signal_status_code=SIGNAL_STATUS_PRESENT if capture_time is not None else SIGNAL_STATUS_MISSING,
-            detail={"source": "submission_payload"},
+            detail=capture_detail,
         ),
         EvidenceSignalCandidate(
             signal_type_code=SIGNAL_CAPTURE_TIME,
             signal_status_code=SIGNAL_STATUS_PRESENT if capture_time is not None else SIGNAL_STATUS_MISSING,
             text_value=capture_time.isoformat() if capture_time is not None else None,
-            detail={"raw_value": capture_time_raw} if capture_time_raw is not None else {"raw_value": None},
+            detail=capture_detail,
         ),
         EvidenceSignalCandidate(
             signal_type_code=SIGNAL_GPS_LATITUDE,
             signal_status_code=SIGNAL_STATUS_PRESENT if gps_latitude is not None else SIGNAL_STATUS_MISSING,
             numeric_value=gps_latitude,
-            detail={"source": "submission_payload"},
+            detail=gps_detail,
         ),
         EvidenceSignalCandidate(
             signal_type_code=SIGNAL_GPS_LONGITUDE,
             signal_status_code=SIGNAL_STATUS_PRESENT if gps_longitude is not None else SIGNAL_STATUS_MISSING,
             numeric_value=gps_longitude,
-            detail={"source": "submission_payload"},
+            detail=gps_detail,
         ),
     ]
 
@@ -218,15 +243,20 @@ def _parse_datetime(value) -> datetime | None:
     if value is None:
         return None
     if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
         return value
     if isinstance(value, str):
         stripped = value.strip()
         if not stripped:
             return None
         try:
-            return datetime.fromisoformat(stripped.replace("Z", "+00:00"))
+            parsed = datetime.fromisoformat(stripped.replace("Z", "+00:00"))
         except ValueError:
             return None
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=UTC)
+        return parsed
     return None
 
 
