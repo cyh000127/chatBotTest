@@ -38,6 +38,47 @@ def test_sqlite_follow_up_runtime_creates_queue_item_and_messages(tmp_path):
         sqlite_runtime.close()
 
 
+def test_sqlite_follow_up_runtime_can_filter_by_status(tmp_path):
+    sqlite_runtime, runtime = bootstrap_runtime(tmp_path)
+
+    try:
+        waiting = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+        )
+        opened = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=21,
+            user_id=11,
+            current_step="main_menu",
+        )
+        closed = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=22,
+            user_id=12,
+            current_step="main_menu",
+        )
+        runtime.create_admin_reply(opened.follow_up_id, "확인했습니다.")
+        runtime.close_follow_up(closed.follow_up_id)
+
+        assert [item.follow_up_id for item in runtime.list_follow_ups(status=FollowUpStatus.WAITING_ADMIN_REPLY)] == [
+            waiting.follow_up_id,
+        ]
+        assert [item.follow_up_id for item in runtime.list_follow_ups(status=FollowUpStatus.OPEN)] == [
+            opened.follow_up_id,
+        ]
+        assert [item.follow_up_id for item in runtime.list_follow_ups(status=FollowUpStatus.CLOSED)] == [
+            closed.follow_up_id,
+        ]
+    finally:
+        sqlite_runtime.close()
+
+
 def test_sqlite_follow_up_runtime_survives_restart(tmp_path):
     database_path = tmp_path / "runtime.sqlite3"
     sqlite_runtime = bootstrap_sqlite_runtime(

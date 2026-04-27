@@ -27,6 +27,43 @@ def test_create_follow_up_records_command_request_and_queue_item():
     assert len(runtime.list_command_requests()) == 1
 
 
+def test_list_follow_ups_can_filter_by_status():
+    runtime = InMemoryAdminRuntime()
+    waiting = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+    opened = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=21,
+        user_id=11,
+        current_step="main_menu",
+    )
+    closed = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=22,
+        user_id=12,
+        current_step="main_menu",
+    )
+    runtime.create_admin_reply(opened.follow_up_id, "확인했습니다.")
+    runtime.close_follow_up(closed.follow_up_id)
+
+    assert [item.follow_up_id for item in runtime.list_follow_ups(status=FollowUpStatus.WAITING_ADMIN_REPLY)] == [
+        waiting.follow_up_id,
+    ]
+    assert [item.follow_up_id for item in runtime.list_follow_ups(status=FollowUpStatus.OPEN)] == [
+        opened.follow_up_id,
+    ]
+    assert [item.follow_up_id for item in runtime.list_follow_ups(status=FollowUpStatus.CLOSED)] == [
+        closed.follow_up_id,
+    ]
+
+
 def test_admin_reply_creates_pending_outbox_message():
     runtime = InMemoryAdminRuntime()
     follow_up = runtime.create_follow_up(

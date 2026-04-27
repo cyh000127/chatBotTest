@@ -142,9 +142,24 @@ class SqliteAdminRuntime:
     def list_command_requests(self) -> list:
         return []
 
-    def list_follow_ups(self, *, include_closed: bool = True) -> list[FollowUpItem]:
+    def list_follow_ups(
+        self,
+        *,
+        include_closed: bool = True,
+        status: FollowUpStatus | None = None,
+    ) -> list[FollowUpItem]:
         with self._lock:
-            if include_closed:
+            if status is not None:
+                rows = self._connection.execute(
+                    """
+                    SELECT *
+                    FROM admin_follow_up_queue
+                    WHERE follow_up_status_code = ?
+                    ORDER BY created_at ASC
+                    """,
+                    (status.value,),
+                ).fetchall()
+            elif include_closed:
                 rows = self._connection.execute(
                     "SELECT * FROM admin_follow_up_queue ORDER BY created_at ASC"
                 ).fetchall()

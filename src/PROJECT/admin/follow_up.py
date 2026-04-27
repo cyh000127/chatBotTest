@@ -176,10 +176,17 @@ class InMemoryAdminRuntime:
         with self._lock:
             return list(self._command_requests.values())
 
-    def list_follow_ups(self, *, include_closed: bool = True) -> list[FollowUpItem]:
+    def list_follow_ups(
+        self,
+        *,
+        include_closed: bool = True,
+        status: FollowUpStatus | None = None,
+    ) -> list[FollowUpItem]:
         with self._lock:
             follow_ups = list(self._follow_ups.values())
-        if not include_closed:
+        if status is not None:
+            follow_ups = [item for item in follow_ups if item.status == status]
+        elif not include_closed:
             follow_ups = [item for item in follow_ups if item.status != FollowUpStatus.CLOSED]
         return sorted(follow_ups, key=lambda item: item.created_at)
 

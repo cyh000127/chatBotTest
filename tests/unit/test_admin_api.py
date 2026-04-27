@@ -56,6 +56,48 @@ def test_admin_api_lists_follow_ups_and_accepts_reply():
     assert runtime.list_outbox(status=OutboxStatus.PENDING)[0].text == "사진을 다시 보내주세요."
 
 
+def test_admin_api_can_filter_follow_ups_by_status():
+    runtime = InMemoryAdminRuntime()
+    waiting = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+    opened = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=21,
+        user_id=11,
+        current_step="main_menu",
+    )
+    closed = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=22,
+        user_id=12,
+        current_step="main_menu",
+    )
+    runtime.create_admin_reply(opened.follow_up_id, "확인했습니다.")
+    runtime.close_follow_up(closed.follow_up_id)
+    client = TestClient(create_admin_api_app(runtime))
+
+    waiting_response = client.get("/admin/follow-ups?status=waiting_admin_reply")
+    open_response = client.get("/admin/follow-ups?status=open")
+    closed_response = client.get("/admin/follow-ups?status=closed")
+    invalid_response = client.get("/admin/follow-ups?status=unknown")
+
+    assert waiting_response.status_code == 200
+    assert [item["follow_up_id"] for item in waiting_response.json()["items"]] == [waiting.follow_up_id]
+    assert open_response.status_code == 200
+    assert [item["follow_up_id"] for item in open_response.json()["items"]] == [opened.follow_up_id]
+    assert closed_response.status_code == 200
+    assert [item["follow_up_id"] for item in closed_response.json()["items"]] == [closed.follow_up_id]
+    assert invalid_response.status_code == 400
+    assert invalid_response.json()["detail"] == "unknown follow-up status"
+
+
 def test_admin_api_follow_up_reply_writes_audit_event(tmp_path):
     sqlite_runtime = bootstrap_sqlite_runtime(
         SqliteSettings(
@@ -594,6 +636,48 @@ def test_admin_pages_show_follow_up_request_list():
     assert "/admin/pages/onboarding/submissions" in response.text
     assert "/admin/pages/outbox" in response.text
     assert "/admin/pages/audit-events" in response.text
+
+
+def test_admin_pages_can_filter_follow_up_request_list():
+    runtime = InMemoryAdminRuntime()
+    waiting = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+        user_message="답변 대기 요청",
+    )
+    opened = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=21,
+        user_id=11,
+        current_step="main_menu",
+        user_message="응답 완료 요청",
+    )
+    closed = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=22,
+        user_id=12,
+        current_step="main_menu",
+        user_message="종료된 요청",
+    )
+    runtime.create_admin_reply(opened.follow_up_id, "확인했습니다.")
+    runtime.close_follow_up(closed.follow_up_id)
+    client = TestClient(create_admin_api_app(runtime))
+
+    response = client.get("/admin/pages/follow-ups?status=closed")
+
+    assert response.status_code == 200
+    assert "답변 대기" in response.text
+    assert "진행 중" in response.text
+    assert "종료" in response.text
+    assert closed.follow_up_id in response.text
+    assert "종료된 요청" in response.text
+    assert waiting.follow_up_id not in response.text
+    assert opened.follow_up_id not in response.text
 
 
 def test_admin_pages_show_outbox_messages():

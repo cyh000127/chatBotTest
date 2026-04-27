@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from PROJECT.admin.follow_up import InMemoryAdminRuntime, OutboxStatus, admin_runtime
+from PROJECT.admin.follow_up import FollowUpStatus, InMemoryAdminRuntime, OutboxStatus, admin_runtime
 from PROJECT.storage.invitations import (
     DEFAULT_INVITATION_CHANNEL,
     DEFAULT_INVITATION_ROLE,
@@ -111,6 +111,15 @@ def _parse_outbox_status(status: str | None) -> OutboxStatus | None:
         return OutboxStatus(status)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="unknown outbox status") from exc
+
+
+def _parse_follow_up_status(status: str | None) -> FollowUpStatus | None:
+    if not status:
+        return None
+    try:
+        return FollowUpStatus(status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="unknown follow-up status") from exc
 
 
 def _page(title: str, body: str) -> HTMLResponse:
@@ -841,8 +850,18 @@ def create_admin_api_app(
         return RedirectResponse("/admin/pages/invitations", status_code=303)
 
     @app.get("/admin/pages/follow-ups", response_class=HTMLResponse)
-    def follow_up_request_page(include_closed: bool = True) -> HTMLResponse:
-        follow_ups = runtime.list_follow_ups(include_closed=include_closed)
+    def follow_up_request_page(include_closed: bool = True, status: str | None = None) -> HTMLResponse:
+        selected_status = _parse_follow_up_status(status)
+        follow_ups = runtime.list_follow_ups(
+            include_closed=include_closed,
+            status=selected_status,
+        )
+        filter_links = """<section class="card">
+  <a href="/admin/pages/follow-ups">전체</a>
+  <a href="/admin/pages/follow-ups?status=waiting_admin_reply">답변 대기</a>
+  <a href="/admin/pages/follow-ups?status=open">진행 중</a>
+  <a href="/admin/pages/follow-ups?status=closed">종료</a>
+</section>"""
         if follow_ups:
             items = "\n".join(
                 f"""<section class="card">
@@ -862,7 +881,7 @@ def create_admin_api_app(
             )
         else:
             items = '<section class="card"><p class="muted">들어온 지원 이관 요청이 없습니다.</p></section>'
-        return _page("지원 이관 요청 목록", _topbar("지원 이관 요청 목록") + items)
+        return _page("지원 이관 요청 목록", _topbar("지원 이관 요청 목록") + filter_links + items)
 
     @app.get("/admin/pages/follow-ups/{follow_up_id}", response_class=HTMLResponse)
     def follow_up_detail_page(follow_up_id: str) -> HTMLResponse:
@@ -971,9 +990,16 @@ def create_admin_api_app(
         return RedirectResponse(f"/admin/pages/follow-ups/{follow_up_id}", status_code=303)
 
     @app.get("/admin/follow-ups")
-    def list_follow_ups(include_closed: bool = True) -> dict:
+    def list_follow_ups(include_closed: bool = True, status: str | None = None) -> dict:
+        selected_status = _parse_follow_up_status(status)
         return {
-            "items": [_serialize(item) for item in runtime.list_follow_ups(include_closed=include_closed)],
+            "items": [
+                _serialize(item)
+                for item in runtime.list_follow_ups(
+                    include_closed=include_closed,
+                    status=selected_status,
+                )
+            ],
         }
 
     @app.get("/admin/follow-ups/{follow_up_id}")
