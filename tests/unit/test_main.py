@@ -34,6 +34,8 @@ def test_create_application_registers_sqlite_repositories_when_runtime_is_availa
 
         assert "invitation_repository" in application.bot_data
         assert "onboarding_repository" in application.bot_data
+        assert "season_activity_repository" in application.bot_data
+        assert "season_activity_service" in application.bot_data
         assert isinstance(application.bot_data["admin_runtime"], SqliteAdminRuntime)
     finally:
         runtime.close()
