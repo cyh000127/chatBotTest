@@ -95,13 +95,13 @@ def test_sqlite_follow_up_runtime_can_search_by_query(tmp_path):
             route_hint="support.escalate",
             reason="explicit_support_request",
             chat_id=55,
-            user_id=77,
+            user_id=987654321,
             current_step="yield_confirm",
             user_message="수확량 값을 다시 확인해주세요",
         )
 
         by_message = runtime.list_follow_ups(query="수확량 값")
-        by_user = runtime.list_follow_ups(query="77")
+        by_user = runtime.list_follow_ups(query="987654321")
 
         assert [item.follow_up_id for item in by_message] == [matched.follow_up_id]
         assert [item.follow_up_id for item in by_user] == [matched.follow_up_id]

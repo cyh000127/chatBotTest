@@ -130,6 +130,18 @@ def _parse_audit_result(result: str | None) -> str | None:
     raise HTTPException(status_code=400, detail="unknown audit result")
 
 
+def _parse_filter_date(value: str | None, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    try:
+        return datetime.fromisoformat(normalized).date().isoformat()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"invalid {field_name}") from exc
+
+
 def _page(title: str, body: str) -> HTMLResponse:
     return HTMLResponse(
         f"""<!doctype html>
@@ -752,6 +764,8 @@ def create_admin_api_app(
         limit: int = 100,
         result: str | None = None,
         action: str | None = None,
+        occurred_from: str | None = None,
+        occurred_to: str | None = None,
     ) -> HTMLResponse:
         if admin_audit_repository is None:
             return _page(
@@ -761,6 +775,8 @@ def create_admin_api_app(
             )
         selected_result = _parse_audit_result(result)
         selected_action = action.strip() if action else None
+        selected_occurred_from = _parse_filter_date(occurred_from, field_name="occurred_from")
+        selected_occurred_to = _parse_filter_date(occurred_to, field_name="occurred_to")
         filter_controls = f"""<section class="card">
   <a href="/admin/pages/audit-events">전체</a>
   <a href="/admin/pages/audit-events?result=success">성공</a>
@@ -768,6 +784,11 @@ def create_admin_api_app(
   <form method="get" accept-charset="utf-8">
     <label for="action">action code</label>
     <input id="action" name="action" value="{escape(selected_action or "")}" placeholder="예: admin.access.denied">
+    <label for="occurred_from">시작일</label>
+    <input id="occurred_from" name="occurred_from" type="date" value="{escape(selected_occurred_from or "")}">
+    <label for="occurred_to">종료일</label>
+    <input id="occurred_to" name="occurred_to" type="date" value="{escape(selected_occurred_to or "")}">
+    {f'<input type="hidden" name="result" value="{escape(selected_result)}">' if selected_result else ''}
     <button type="submit">필터 적용</button>
   </form>
 </section>"""
@@ -775,6 +796,8 @@ def create_admin_api_app(
             limit=limit,
             action_code=selected_action,
             result_code=selected_result,
+            occurred_from=selected_occurred_from,
+            occurred_to=selected_occurred_to,
         )
         if events:
             items = "\n".join(
@@ -903,13 +926,19 @@ def create_admin_api_app(
         include_closed: bool = True,
         status: str | None = None,
         query: str | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
     ) -> HTMLResponse:
         selected_status = _parse_follow_up_status(status)
         selected_query = (query or "").strip()
+        selected_created_from = _parse_filter_date(created_from, field_name="created_from")
+        selected_created_to = _parse_filter_date(created_to, field_name="created_to")
         follow_ups = runtime.list_follow_ups(
             include_closed=include_closed,
             status=selected_status,
             query=selected_query,
+            created_from=selected_created_from,
+            created_to=selected_created_to,
         )
         filter_links = f"""<section class="card">
   <a href="/admin/pages/follow-ups">전체</a>
@@ -919,6 +948,10 @@ def create_admin_api_app(
   <form method="get" accept-charset="utf-8">
     <label for="query">검색</label>
     <input id="query" name="query" value="{escape(selected_query)}" placeholder="follow-up id, chat id, user id, 메시지">
+    <label for="created_from">시작일</label>
+    <input id="created_from" name="created_from" type="date" value="{escape(selected_created_from or "")}">
+    <label for="created_to">종료일</label>
+    <input id="created_to" name="created_to" type="date" value="{escape(selected_created_to or "")}">
     {f'<input type="hidden" name="status" value="{escape(selected_status.value)}">' if selected_status else ''}
     <button type="submit">검색</button>
   </form>
@@ -1055,9 +1088,13 @@ def create_admin_api_app(
         include_closed: bool = True,
         status: str | None = None,
         query: str | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
     ) -> dict:
         selected_status = _parse_follow_up_status(status)
         selected_query = (query or "").strip()
+        selected_created_from = _parse_filter_date(created_from, field_name="created_from")
+        selected_created_to = _parse_filter_date(created_to, field_name="created_to")
         return {
             "items": [
                 _serialize(item)
@@ -1065,6 +1102,8 @@ def create_admin_api_app(
                     include_closed=include_closed,
                     status=selected_status,
                     query=selected_query,
+                    created_from=selected_created_from,
+                    created_to=selected_created_to,
                 )
             ],
         }
@@ -1143,11 +1182,15 @@ def create_admin_api_app(
         limit: int = 100,
         result: str | None = None,
         action: str | None = None,
+        occurred_from: str | None = None,
+        occurred_to: str | None = None,
     ) -> dict:
         if admin_audit_repository is None:
             raise HTTPException(status_code=503, detail="admin audit repository unavailable")
         selected_result = _parse_audit_result(result)
         selected_action = action.strip() if action else None
+        selected_occurred_from = _parse_filter_date(occurred_from, field_name="occurred_from")
+        selected_occurred_to = _parse_filter_date(occurred_to, field_name="occurred_to")
         return {
             "items": [
                 _serialize_audit_event(event)
@@ -1155,6 +1198,8 @@ def create_admin_api_app(
                     limit=limit,
                     action_code=selected_action,
                     result_code=selected_result,
+                    occurred_from=selected_occurred_from,
+                    occurred_to=selected_occurred_to,
                 )
             ]
         }

@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from PROJECT.admin.follow_up import DEFAULT_OUTBOX_MAX_RETRY_COUNT, FOLLOW_UP_CLOSED_NOTICE, InMemoryAdminRuntime, OutboxStatus
+from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.admin_api.app import create_admin_api_app
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.admin_audit import RESULT_FAILURE, RESULT_SUCCESS, SqliteAdminAuditRepository
@@ -112,19 +113,67 @@ def test_admin_api_can_search_follow_ups_by_query():
         route_hint="support.escalate",
         reason="explicit_support_request",
         chat_id=21,
-        user_id=77,
+        user_id=987654321,
         current_step="fertilizer_confirm",
         user_message="비료 입력을 다시 확인해주세요",
     )
     client = TestClient(create_admin_api_app(runtime))
 
     message_response = client.get("/admin/follow-ups?query=비료 입력")
-    user_response = client.get("/admin/follow-ups?query=77")
+    user_response = client.get("/admin/follow-ups?query=987654321")
 
     assert message_response.status_code == 200
     assert [item["follow_up_id"] for item in message_response.json()["items"]] == [matched.follow_up_id]
     assert user_response.status_code == 200
     assert [item["follow_up_id"] for item in user_response.json()["items"]] == [matched.follow_up_id]
+
+
+def test_admin_api_can_filter_follow_ups_by_created_date(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        runtime = SqliteAdminRuntime(sqlite_runtime.connection)
+        older = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+            user_message="이전 요청",
+        )
+        newer = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=21,
+            user_id=11,
+            current_step="main_menu",
+            user_message="최신 요청",
+        )
+        sqlite_runtime.connection.execute(
+            "UPDATE admin_follow_up_queue SET created_at = ?, updated_at = ? WHERE id = ?",
+            ("2026-04-20T09:00:00+00:00", "2026-04-20T09:00:00+00:00", older.follow_up_id),
+        )
+        sqlite_runtime.connection.execute(
+            "UPDATE admin_follow_up_queue SET created_at = ?, updated_at = ? WHERE id = ?",
+            ("2026-04-23T09:00:00+00:00", "2026-04-23T09:00:00+00:00", newer.follow_up_id),
+        )
+        sqlite_runtime.connection.commit()
+        client = TestClient(create_admin_api_app(runtime))
+
+        response = client.get("/admin/follow-ups?created_from=2026-04-22&created_to=2026-04-23")
+        invalid = client.get("/admin/follow-ups?created_from=not-a-date")
+
+        assert response.status_code == 200
+        assert [item["follow_up_id"] for item in response.json()["items"]] == [newer.follow_up_id]
+        assert invalid.status_code == 400
+        assert invalid.json()["detail"] == "invalid created_from"
+    finally:
+        sqlite_runtime.close()
 
 
 def test_admin_api_follow_up_reply_writes_audit_event(tmp_path):
@@ -736,6 +785,56 @@ def test_admin_pages_can_search_follow_up_request_list():
     assert "사진 업로드 도움 요청" not in response.text
     assert 'name="status" value="waiting_admin_reply"' in response.text
     assert 'value="수확량 입력"' in response.text
+
+
+def test_admin_pages_can_filter_follow_up_request_list_by_created_date(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        runtime = SqliteAdminRuntime(sqlite_runtime.connection)
+        older = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=20,
+            user_id=10,
+            current_step="main_menu",
+            user_message="예전 요청",
+        )
+        newer = runtime.create_follow_up(
+            route_hint="support.escalate",
+            reason="explicit_support_request",
+            chat_id=21,
+            user_id=11,
+            current_step="main_menu",
+            user_message="이번 주 요청",
+        )
+        sqlite_runtime.connection.execute(
+            "UPDATE admin_follow_up_queue SET created_at = ?, updated_at = ? WHERE id = ?",
+            ("2026-04-20T09:00:00+00:00", "2026-04-20T09:00:00+00:00", older.follow_up_id),
+        )
+        sqlite_runtime.connection.execute(
+            "UPDATE admin_follow_up_queue SET created_at = ?, updated_at = ? WHERE id = ?",
+            ("2026-04-23T09:00:00+00:00", "2026-04-23T09:00:00+00:00", newer.follow_up_id),
+        )
+        sqlite_runtime.connection.commit()
+        client = TestClient(create_admin_api_app(runtime))
+
+        response = client.get("/admin/pages/follow-ups?created_from=2026-04-22&created_to=2026-04-23")
+
+        assert response.status_code == 200
+        assert newer.follow_up_id in response.text
+        assert older.follow_up_id not in response.text
+        assert 'name="created_from"' in response.text
+        assert 'value="2026-04-22"' in response.text
+        assert 'name="created_to"' in response.text
+        assert 'value="2026-04-23"' in response.text
+    finally:
+        sqlite_runtime.close()
 
 
 def test_admin_pages_show_outbox_messages():
@@ -1405,6 +1504,49 @@ def test_admin_audit_api_can_filter_by_result_and_action(tmp_path):
         runtime.close()
 
 
+def test_admin_audit_api_can_filter_by_occurred_date(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        audit_repository.record_event(
+            action_code="admin.follow_up.reply",
+            actor_id="admin_local_default",
+            result_code=RESULT_SUCCESS,
+            source_code="admin.api.reply",
+            occurred_at="2026-04-20T10:00:00+00:00",
+        )
+        target = audit_repository.record_event(
+            action_code="admin.access.denied",
+            actor_type_code="unknown",
+            actor_id=None,
+            result_code=RESULT_FAILURE,
+            source_code="admin.access.token_gate",
+            occurred_at="2026-04-22T10:00:00+00:00",
+        )
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                admin_audit_repository=audit_repository,
+            )
+        )
+
+        response = client.get("/admin/audit-events?occurred_from=2026-04-22&occurred_to=2026-04-22")
+        invalid = client.get("/admin/audit-events?occurred_to=not-a-date")
+
+        assert response.status_code == 200
+        assert [item["id"] for item in response.json()["items"]] == [target.id]
+        assert invalid.status_code == 400
+        assert invalid.json()["detail"] == "invalid occurred_to"
+    finally:
+        runtime.close()
+
+
 def test_admin_audit_page_can_filter_by_result_and_action(tmp_path):
     runtime = bootstrap_sqlite_runtime(
         SqliteSettings(
@@ -1442,6 +1584,49 @@ def test_admin_audit_page_can_filter_by_result_and_action(tmp_path):
         assert "실패" in response.text
         assert "admin.access.denied" in response.text
         assert "admin.follow_up.reply" not in response.text
+    finally:
+        runtime.close()
+
+
+def test_admin_audit_page_can_filter_by_occurred_date(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        audit_repository.record_event(
+            action_code="admin.follow_up.reply",
+            actor_id="admin_local_default",
+            result_code=RESULT_SUCCESS,
+            source_code="admin.api.reply",
+            occurred_at="2026-04-20T10:00:00+00:00",
+        )
+        audit_repository.record_event(
+            action_code="admin.access.denied",
+            actor_type_code="unknown",
+            actor_id=None,
+            result_code=RESULT_FAILURE,
+            source_code="admin.access.token_gate",
+            occurred_at="2026-04-22T10:00:00+00:00",
+        )
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                admin_audit_repository=audit_repository,
+            )
+        )
+
+        response = client.get("/admin/pages/audit-events?result=failure&occurred_from=2026-04-22&occurred_to=2026-04-22")
+
+        assert response.status_code == 200
+        assert "admin.access.denied" in response.text
+        assert "admin.follow_up.reply" not in response.text
+        assert 'name="result" value="failure"' in response.text
+        assert 'value="2026-04-22"' in response.text
     finally:
         runtime.close()
 

@@ -182,6 +182,8 @@ class InMemoryAdminRuntime:
         include_closed: bool = True,
         status: FollowUpStatus | None = None,
         query: str | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
     ) -> list[FollowUpItem]:
         with self._lock:
             follow_ups = list(self._follow_ups.values())
@@ -209,6 +211,10 @@ class InMemoryAdminRuntime:
                     )
                 ).lower()
             ]
+        if created_from:
+            follow_ups = [item for item in follow_ups if item.created_at.date().isoformat() >= created_from]
+        if created_to:
+            follow_ups = [item for item in follow_ups if item.created_at.date().isoformat() <= created_to]
         return sorted(follow_ups, key=lambda item: item.created_at)
 
     def get_follow_up(self, follow_up_id: str) -> FollowUpItem | None:

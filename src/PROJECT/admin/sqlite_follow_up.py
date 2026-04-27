@@ -148,6 +148,8 @@ class SqliteAdminRuntime:
         include_closed: bool = True,
         status: FollowUpStatus | None = None,
         query: str | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
     ) -> list[FollowUpItem]:
         filters: list[str] = []
         values: list[object] = []
@@ -181,6 +183,12 @@ class SqliteAdminRuntime:
                 """
             )
             values.extend((like, like, like, like, like, like, like, like, like))
+        if created_from:
+            filters.append("substr(created_at, 1, 10) >= ?")
+            values.append(created_from)
+        if created_to:
+            filters.append("substr(created_at, 1, 10) <= ?")
+            values.append(created_to)
         where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
         with self._lock:
             rows = self._connection.execute(

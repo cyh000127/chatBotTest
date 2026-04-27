@@ -114,6 +114,8 @@ class SqliteAdminAuditRepository:
         limit: int = 100,
         action_code: str | None = None,
         result_code: str | None = None,
+        occurred_from: str | None = None,
+        occurred_to: str | None = None,
     ) -> list[AdminAuditEvent]:
         safe_limit = max(1, min(limit, 500))
         filters: list[str] = []
@@ -124,6 +126,12 @@ class SqliteAdminAuditRepository:
         if result_code:
             filters.append("result_code = ?")
             values.append(result_code)
+        if occurred_from:
+            filters.append("substr(occurred_at, 1, 10) >= ?")
+            values.append(occurred_from)
+        if occurred_to:
+            filters.append("substr(occurred_at, 1, 10) <= ?")
+            values.append(occurred_to)
         where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
         with self._lock:
             rows = self._connection.execute(
