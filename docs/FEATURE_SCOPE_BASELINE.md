@@ -37,7 +37,7 @@ farmer-facing runtime의 핵심 범위는 다음과 같다.
 - 언어 선택과 재진입 도움
 - `/fertilizer` 입력
 - `/yield` 입력
-- `/myfields` 진입점
+- `/myfields` 자기 조회와 농지 바인딩
 - `input.resolve.start` 진입점
 - structured confirm / edit / cancel / restart
 - unknown fallback과 state-aware recovery

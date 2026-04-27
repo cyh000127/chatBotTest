@@ -36,7 +36,7 @@
 - 언어 선택
 - 비료 입력
 - 수확량 입력
-- 자기 조회 진입점 안내
+- 자기 조회와 농지 바인딩
 - input resolve 진입점 안내
 - 상태별 fallback과 guided recovery
 - pending candidate 분리와 confirm 전 저장 금지
@@ -118,6 +118,7 @@ python -m PROJECT.main
 
 - 대시보드: `http://127.0.0.1:8000/admin`
 - 요청 목록: `http://127.0.0.1:8000/admin/pages/follow-ups`
+- 농지 바인딩 예외: `http://127.0.0.1:8000/admin/pages/field-binding-exceptions`
 - 사용자 대화 내용: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}`
 - 사용자 응답 작성: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}/reply`
 - 감사 로그: `http://127.0.0.1:8000/admin/pages/audit-events`
@@ -144,6 +145,8 @@ python -m PROJECT.main
 - `GET /admin/follow-ups/{follow_up_id}`
 - `POST /admin/follow-ups/{follow_up_id}/reply`
 - `POST /admin/follow-ups/{follow_up_id}/close`
+- `GET /admin/field-binding-exceptions`
+- `POST /admin/field-binding-exceptions/{exception_id}/resolve`
 - `GET /admin/invitations`
 - `POST /admin/invitations`
 - `POST /admin/invitations/{invitation_id}/revoke`
