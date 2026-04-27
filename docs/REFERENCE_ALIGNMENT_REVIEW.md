@@ -64,7 +64,7 @@ The plan is not a full reference implementation. It intentionally implements a s
 | Language | Locale must be canonical and user outcome must remain stable across supported languages. | Current catalogs exist for supported languages, and planned onboarding stores locale code. | Aligned with guardrail | Do not use display language labels as stored state. |
 | Local SQLite | Reference source of truth is not SQLite. | SQLite is documented as local and pilot-grade persistence only. | Aligned with guardrail | Do not present SQLite as the production source of truth. |
 | Local Admin API | Reference ownership expects API command validation, RBAC, audit, and outbox. | Local Admin API exists for verification and will back onto SQLite repositories. | Conditional | Treat local API as a runtime command surface, not production authorization. |
-| Sample profile flow | Product onboarding is name, phone, preferred language, invitation, and approval. | Existing profile sample is explicitly isolated as UX sample. | Conditional | Do not reuse residence, district, or birthdate sample as product onboarding. |
+| Sample profile flow | Product onboarding is name, phone, preferred language, invitation, and approval. | Existing profile sample code is explicitly isolated as UX sample and detached from main menu, slash command surface, global repair routing, and profile-specific fallback. | Conditional | Do not reuse residence, district, or birthdate sample as product onboarding, and do not re-expose sample profile on farmer-facing product surface. |
 | Demo weather/date | Weather/date flows are outside product scope. | Docs exclude them. | Conditional | Do not keep them in main product menu when onboarding is implemented. |
 
 ## 5. Required Corrections Applied To The Plan
@@ -108,6 +108,7 @@ The implementation should stop if any of the following becomes true:
 - Admin API sends Telegram messages directly
 - model output writes confirmed values without validator and confirm gates
 - a local sample profile field becomes part of product onboarding
+- sample profile flow returns to the main menu, `/profile`, or global text routing surface
 - demo weather or date functionality returns to the main product menu
 - support handoff is described as guaranteed real-time human chat
 - local SQLite is documented as the production source of truth
@@ -120,6 +121,7 @@ The implementation should stop if any of the following becomes true:
 Before the SQLite implementation is considered reference-aligned, verify:
 
 - `/start <invite_code>` creates or resumes onboarding, not a local login session
+- non-SQLite local runtime treats `/start` as a start gate only and does not accept legacy sample login arguments as authentication
 - invalid invitation code does not start protected service access
 - language is stored as a canonical locale code
 - name and phone are collected as onboarding draft values
@@ -132,7 +134,7 @@ Before the SQLite implementation is considered reference-aligned, verify:
 - follow-up queue items survive restart
 - pending outbox messages survive restart
 - missing model credentials keep rules-only flow operational
-- sample profile, weather, and date flows are excluded from product onboarding
+- sample profile, weather, and date flows are excluded from product onboarding and not exposed on the main product command surface
 
 ## 9. Final Interpretation
 
