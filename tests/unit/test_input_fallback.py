@@ -6,17 +6,17 @@ from PROJECT.dispatch.input_fallback import FALLBACK_CANCELLED, FALLBACK_DEFAULT
 from PROJECT.i18n.translator import get_catalog
 
 
-STATE_PROFILE_NAME = "profile_name"
-STATE_PROFILE_CONFIRM = "profile_confirm"
+LEGACY_REMOVED_STATE = "profile_name"
+LEGACY_REMOVED_CONFIRM_STATE = "profile_confirm"
 
 
 def test_default_fallback():
     assert fallback_key_for_state(STATE_MAIN_MENU) == FALLBACK_DEFAULT
 
 
-def test_profile_state_fallbacks_use_default_product_path():
-    assert fallback_key_for_state(STATE_PROFILE_NAME) == FALLBACK_DEFAULT
-    assert fallback_key_for_state(STATE_PROFILE_CONFIRM) == FALLBACK_DEFAULT
+def test_removed_profile_states_fall_back_to_default_product_path():
+    assert fallback_key_for_state(LEGACY_REMOVED_STATE) == FALLBACK_DEFAULT
+    assert fallback_key_for_state(LEGACY_REMOVED_CONFIRM_STATE) == FALLBACK_DEFAULT
 
 
 def test_cancelled_fallback():
@@ -46,17 +46,17 @@ def test_default_fallback_keyboard_uses_main_menu_buttons():
     assert hasattr(catalog, "BUTTON_PROFILE") is False
 
 
-def test_profile_fallback_keyboard_uses_default_product_navigation():
+def test_removed_profile_state_keyboard_uses_default_product_navigation():
     catalog = get_catalog("ko")
-    layout = fallback_keyboard_layout_for_state(STATE_PROFILE_NAME, catalog)
+    layout = fallback_keyboard_layout_for_state(LEGACY_REMOVED_STATE, catalog)
 
     assert layout[0][0]["text"] == catalog.BUTTON_FERTILIZER
     assert layout[0][1]["text"] == catalog.BUTTON_YIELD
 
 
-def test_profile_confirm_fallback_keyboard_uses_default_product_navigation():
+def test_removed_profile_confirm_keyboard_uses_default_product_navigation():
     catalog = get_catalog("ko")
-    layout = fallback_keyboard_layout_for_state(STATE_PROFILE_CONFIRM, catalog)
+    layout = fallback_keyboard_layout_for_state(LEGACY_REMOVED_CONFIRM_STATE, catalog)
 
     assert layout[0][0]["text"] == catalog.BUTTON_FERTILIZER
     assert layout[0][1]["text"] == catalog.BUTTON_YIELD

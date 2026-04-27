@@ -1,7 +1,7 @@
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
 from PROJECT.rule_engine import MAX_RECOVERY_ATTEMPTS, ValidationClassification, classify_cheap_gate
 
-STATE_PROFILE_CONFIRM = "profile_confirm"
+LEGACY_REMOVED_CONFIRM_STATE = "profile_confirm"
 
 
 def test_cheap_gate_marks_support_request_for_handoff():
@@ -30,7 +30,7 @@ def test_cheap_gate_reasks_for_structured_step_mismatch():
 
 
 def test_cheap_gate_reasks_for_empty_structured_input():
-    result = classify_cheap_gate("   ", current_step=STATE_PROFILE_CONFIRM)
+    result = classify_cheap_gate("   ", current_step=LEGACY_REMOVED_CONFIRM_STATE)
 
     assert result.classification == ValidationClassification.REASK
     assert result.reason == "empty_input"

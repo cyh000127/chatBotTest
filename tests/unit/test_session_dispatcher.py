@@ -149,7 +149,7 @@ def test_llm_step_call_counter_tracks_per_step():
     increment_llm_calls_in_step(user_data, "fertilizer_confirm")
 
     assert llm_calls_in_step(user_data, "fertilizer_confirm") == 2
-    assert llm_calls_in_step(user_data, "profile_confirm") == 0
+    assert llm_calls_in_step(user_data, "legacy_removed_state") == 0
 
 
 def test_llm_seen_input_tracking_marks_cache_key():

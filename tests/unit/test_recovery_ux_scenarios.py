@@ -14,7 +14,7 @@ from PROJECT.dispatch.session_dispatcher import set_confirmed_fertilizer, set_lo
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.rule_engine import RuleSource, ValidationClassification, ValidationResult, assemble_recovery_context
 
-STATE_PROFILE_NAME = "profile_name"
+LEGACY_REMOVED_STATE = "profile_name"
 
 
 def test_cancelled_repeated_failure_recovery_scenario_shows_escalation_guidance():
@@ -48,10 +48,10 @@ def test_cancelled_repeated_failure_recovery_scenario_shows_escalation_guidance(
     assert "현재 흐름이 종료되었습니다." in text
 
 
-def test_profile_input_fallback_scenario_uses_default_product_navigation():
+def test_removed_profile_input_fallback_scenario_uses_default_product_navigation():
     catalog = get_catalog("ko")
 
-    layout = fallback_keyboard_layout_for_state(STATE_PROFILE_NAME, catalog)
+    layout = fallback_keyboard_layout_for_state(LEGACY_REMOVED_STATE, catalog)
     text = render_fallback_message(
         fallback_key="default",
         catalog=catalog,

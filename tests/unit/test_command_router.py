@@ -14,7 +14,7 @@ from PROJECT.dispatch.command_router import (
     route_message,
 )
 
-def test_profile_entry_no_longer_routes_from_main_menu():
+def test_removed_profile_like_intent_stays_unknown_from_main_menu():
     decision = route_message(STATE_MAIN_MENU, "profile")
     assert decision.route == ROUTE_UNKNOWN_INPUT
 
