@@ -9,6 +9,7 @@ from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.admin_api.app import create_admin_api_app
 from PROJECT.settings import Settings
 from PROJECT.storage.admin_audit import SqliteAdminAuditRepository
+from PROJECT.storage.evidence import SqliteEvidenceRepository
 from PROJECT.storage.fields import SqliteFieldRegistryRepository
 from PROJECT.storage.invitations import SqliteInvitationRepository
 from PROJECT.storage.onboarding_admin import SqliteOnboardingAdminRepository
@@ -50,6 +51,11 @@ def start_admin_api_server(
         if sqlite_runtime is not None
         else None
     )
+    evidence_repository = (
+        SqliteEvidenceRepository(sqlite_runtime.connection)
+        if sqlite_runtime is not None
+        else None
+    )
     api_runtime = admin_runtime_for_storage(runtime, sqlite_runtime)
     config = uvicorn.Config(
         create_admin_api_app(
@@ -57,6 +63,7 @@ def start_admin_api_server(
             invitation_repository=invitation_repository,
             onboarding_admin_repository=onboarding_admin_repository,
             field_registry_repository=field_registry_repository,
+            evidence_repository=evidence_repository,
             admin_audit_repository=admin_audit_repository,
             admin_access_token=settings.admin_api.access_token,
             admin_previous_access_token=settings.admin_api.previous_access_token,

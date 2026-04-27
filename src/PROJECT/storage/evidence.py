@@ -499,6 +499,49 @@ class SqliteEvidenceRepository:
         ).fetchall()
         return tuple(EvidenceSubmission(**dict(row)) for row in rows)
 
+    def list_submissions(
+        self,
+        *,
+        artifact_status_code: str | None = None,
+        query: str | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
+    ) -> tuple[EvidenceSubmission, ...]:
+        rows = self._connection.execute(
+            """
+            SELECT *
+            FROM evidence_submissions
+            ORDER BY created_at ASC
+            """
+        ).fetchall()
+        items = [EvidenceSubmission(**dict(row)) for row in rows]
+        if artifact_status_code:
+            items = [item for item in items if item.artifact_status_code == artifact_status_code]
+        normalized_query = (query or "").strip().lower()
+        if normalized_query:
+            items = [
+                item
+                for item in items
+                if normalized_query in "\n".join(
+                    (
+                        item.id,
+                        item.evidence_submission_session_id,
+                        item.evidence_request_event_id,
+                        item.file_name or "",
+                        item.provider_file_id or "",
+                        item.provider_file_unique_id or "",
+                        item.artifact_status_code,
+                        item.field_id or "",
+                        item.field_binding_id or "",
+                    )
+                ).lower()
+            ]
+        if created_from:
+            items = [item for item in items if item.created_at[:10] >= created_from]
+        if created_to:
+            items = [item for item in items if item.created_at[:10] <= created_to]
+        return tuple(items)
+
     def update_submission_artifact_status(
         self,
         submission_id: str,

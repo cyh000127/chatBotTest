@@ -16,6 +16,14 @@ from PROJECT.storage.fields import (
     FIELD_BINDING_EXCEPTION_STATUS_RESOLVED,
     SqliteFieldRegistryRepository,
 )
+from PROJECT.storage.evidence import (
+    EVIDENCE_ARTIFACT_STATUS_ACCEPTED,
+    EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED,
+    EVIDENCE_ARTIFACT_STATUS_REJECTED,
+    EVIDENCE_ARTIFACT_STATUS_SIGNALS_READY,
+    EVIDENCE_ARTIFACT_STATUS_UPLOADED,
+    SqliteEvidenceRepository,
+)
 from PROJECT.storage.invitations import (
     DEFAULT_INVITATION_CHANNEL,
     DEFAULT_INVITATION_ROLE,
@@ -126,6 +134,36 @@ def _serialize_field_binding_exception(item) -> dict:
     }
 
 
+def _serialize_evidence_submission(item) -> dict:
+    payload = _serialize(item)
+    payload["payload"] = item.payload
+    return payload
+
+
+def _serialize_evidence_session(item) -> dict:
+    payload = _serialize(item)
+    payload["draft_payload"] = item.draft_payload
+    return payload
+
+
+def _serialize_evidence_request(item) -> dict:
+    payload = _serialize(item)
+    payload["payload"] = item.payload
+    return payload
+
+
+def _serialize_evidence_signal(item) -> dict:
+    payload = _serialize(item)
+    payload["detail"] = item.detail
+    return payload
+
+
+def _serialize_evidence_state_log(item) -> dict:
+    payload = _serialize(item)
+    payload["detail"] = item.detail
+    return payload
+
+
 def _require_invitation_repository(invitation_repository: SqliteInvitationRepository | None) -> SqliteInvitationRepository:
     if invitation_repository is None:
         raise HTTPException(status_code=503, detail="invitation repository unavailable")
@@ -146,6 +184,14 @@ def _require_field_registry_repository(
     if field_registry_repository is None:
         raise HTTPException(status_code=503, detail="field registry repository unavailable")
     return field_registry_repository
+
+
+def _require_evidence_repository(
+    evidence_repository: SqliteEvidenceRepository | None,
+) -> SqliteEvidenceRepository:
+    if evidence_repository is None:
+        raise HTTPException(status_code=503, detail="evidence repository unavailable")
+    return evidence_repository
 
 
 def _parse_outbox_status(status: str | None) -> OutboxStatus | None:
@@ -184,6 +230,20 @@ def _parse_field_binding_exception_status(status: str | None) -> str | None:
     }:
         return status
     raise HTTPException(status_code=400, detail="unknown field binding exception status")
+
+
+def _parse_evidence_artifact_status(status: str | None) -> str | None:
+    if not status:
+        return None
+    if status in {
+        EVIDENCE_ARTIFACT_STATUS_UPLOADED,
+        EVIDENCE_ARTIFACT_STATUS_SIGNALS_READY,
+        EVIDENCE_ARTIFACT_STATUS_ACCEPTED,
+        EVIDENCE_ARTIFACT_STATUS_REJECTED,
+        EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED,
+    }:
+        return status
+    raise HTTPException(status_code=400, detail="unknown evidence artifact status")
 
 
 def _parse_filter_date(value: str | None, *, field_name: str) -> str | None:
@@ -283,6 +343,7 @@ def _topbar(title: str) -> str:
     <a href="/admin/pages/invitations">초대 코드</a>
     <a href="/admin/pages/onboarding/submissions">온보딩 승인</a>
     <a href="/admin/pages/field-binding-exceptions">농지 예외</a>
+    <a href="/admin/pages/evidence-reviews">증빙 검토</a>
     <a href="/admin/pages/outbox">발송 대기</a>
     <a href="/admin/pages/audit-events">감사 로그</a>
     <a href="/admin/pages/security">보안 상태</a>
@@ -408,6 +469,7 @@ def create_admin_api_app(
     invitation_repository: SqliteInvitationRepository | None = None,
     onboarding_admin_repository: SqliteOnboardingAdminRepository | None = None,
     field_registry_repository: SqliteFieldRegistryRepository | None = None,
+    evidence_repository: SqliteEvidenceRepository | None = None,
     admin_audit_repository: SqliteAdminAuditRepository | None = None,
     admin_access_token: str = "",
     admin_previous_access_token: str = "",
@@ -666,6 +728,14 @@ def create_admin_api_app(
                 field_registry_repository.list_binding_exceptions(status=FIELD_BINDING_EXCEPTION_STATUS_OPEN)
             )
 
+        evidence_manual_review_count: str | int = "비활성"
+        if evidence_repository is not None:
+            evidence_manual_review_count = len(
+                evidence_repository.list_submissions(
+                    artifact_status_code=EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED,
+                )
+            )
+
         audit_count: str | int = "비활성"
         if admin_audit_repository is not None:
             audit_count = len(admin_audit_repository.list_events(limit=20))
@@ -679,6 +749,7 @@ def create_admin_api_app(
   {_dashboard_card("초대 코드", invitation_count, "/admin/pages/invitations", "사용자가 /start 코드로 진입할 수 있는 초대 코드를 관리합니다.")}
   {_dashboard_card("온보딩 승인", pending_onboarding_count, "/admin/pages/onboarding/submissions", "제출된 온보딩 신청을 승인하거나 반려합니다.")}
   {_dashboard_card("농지 예외", field_binding_exception_open_count, "/admin/pages/field-binding-exceptions", "농지 바인딩 실패나 충돌 예외를 확인하고 처리합니다.")}
+  {_dashboard_card("증빙 검토", evidence_manual_review_count, "/admin/pages/evidence-reviews?status=manual_review_required", "운영 검토가 필요한 증빙 제출과 signal 기록을 확인합니다.")}
   {_dashboard_card("발송 대기", f"{outbox_summary['pending']} pending / {outbox_summary['failed']} failed", "/admin/pages/outbox", "봇 전송 계층으로 전달될 메시지 상태를 확인합니다.")}
   {_dashboard_card("운영 검토", outbox_summary["manual_review"], "/admin/pages/outbox?status=manual_review", "재시도 한도를 초과한 outbox 메시지를 점검합니다.")}
   {_dashboard_card("감사 로그", audit_count, "/admin/pages/audit-events", "관리자 쓰기 작업과 접근 제어 이벤트를 확인합니다.")}
@@ -842,6 +913,112 @@ def create_admin_api_app(
             target_id=item.id,
         )
         return RedirectResponse("/admin/pages/field-binding-exceptions?status=open", status_code=303)
+
+    @app.get("/admin/pages/evidence-reviews", response_class=HTMLResponse)
+    def evidence_review_page(
+        status: str | None = None,
+        query: str | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
+    ) -> HTMLResponse:
+        if evidence_repository is None:
+            return _page(
+                "증빙 검토",
+                _topbar("증빙 검토")
+                + '<section class="card"><p class="error">SQLite 저장소가 켜져 있지 않아 증빙 검토를 조회할 수 없습니다.</p></section>',
+            )
+        selected_status = _parse_evidence_artifact_status(status)
+        selected_query = (query or "").strip()
+        selected_created_from = _parse_filter_date(created_from, field_name="created_from")
+        selected_created_to = _parse_filter_date(created_to, field_name="created_to")
+        items = evidence_repository.list_submissions(
+            artifact_status_code=selected_status,
+            query=selected_query,
+            created_from=selected_created_from,
+            created_to=selected_created_to,
+        )
+        filter_links = f"""<section class="card">
+  <a href="/admin/pages/evidence-reviews">전체</a>
+  <a href="/admin/pages/evidence-reviews?status=manual_review_required">운영 검토</a>
+  <a href="/admin/pages/evidence-reviews?status=rejected">재제출</a>
+  <a href="/admin/pages/evidence-reviews?status=accepted">승인됨</a>
+  <form method="get" accept-charset="utf-8">
+    <label for="query">검색</label>
+    <input id="query" name="query" value="{escape(selected_query)}" placeholder="submission id, file name, file id">
+    <label for="created_from">시작일</label>
+    <input id="created_from" name="created_from" type="date" value="{escape(selected_created_from or "")}">
+    <label for="created_to">종료일</label>
+    <input id="created_to" name="created_to" type="date" value="{escape(selected_created_to or "")}">
+    {f'<input type="hidden" name="status" value="{escape(selected_status)}">' if selected_status else ''}
+    <button type="submit">검색</button>
+  </form>
+</section>"""
+        if items:
+            cards = "\n".join(
+                f"""<section class="card">
+  <div>
+    <span class="badge">{escape(item.artifact_status_code)}</span>
+    <span class="muted"> {escape(item.created_at)}</span>
+  </div>
+  <h2><a href="/admin/pages/evidence-reviews/{escape(item.id)}">{escape(item.id)}</a></h2>
+  <p>파일명: {escape(item.file_name or "-")}</p>
+  <p class="muted">session: {escape(item.evidence_submission_session_id)} / request: {escape(item.evidence_request_event_id)}</p>
+  <p class="muted">field: {escape(item.field_id or "-")} / binding: {escape(item.field_binding_id or "-")}</p>
+  <a href="/admin/pages/evidence-reviews/{escape(item.id)}">상세 보기</a>
+</section>"""
+                for item in items
+            )
+        else:
+            cards = '<section class="card"><p class="muted">조회할 증빙 제출이 없습니다.</p></section>'
+        return _page("증빙 검토", _topbar("증빙 검토") + filter_links + cards)
+
+    @app.get("/admin/pages/evidence-reviews/{submission_id}", response_class=HTMLResponse)
+    def evidence_review_detail_page(submission_id: str) -> HTMLResponse:
+        repository = _require_evidence_repository(evidence_repository)
+        submission = repository.get_submission(submission_id)
+        if submission is None:
+            raise HTTPException(status_code=404, detail="evidence submission not found")
+        session = repository.get_submission_session(submission.evidence_submission_session_id)
+        request_event = repository.get_request_event(submission.evidence_request_event_id)
+        signals = repository.list_validation_signals(submission.id)
+        state_logs = repository.list_state_logs(submission.id)
+        signal_items = "\n".join(
+            f'<div class="message">{escape(signal.signal_type_code)} / {escape(signal.signal_status_code)} / {escape(str(signal.numeric_value) if signal.numeric_value is not None else signal.text_value or "-")}</div>'
+            for signal in signals
+        ) or '<p class="muted">저장된 signal이 없습니다.</p>'
+        state_log_items = "\n".join(
+            f'<div class="message">{escape(log.to_state_code)} / {escape(log.reason_code or "-")} / {escape(log.created_at)}</div>'
+            for log in state_logs
+        ) or '<p class="muted">저장된 상태 이력이 없습니다.</p>'
+        body = f"""{_topbar("증빙 상세")}
+<section class="card">
+  <h2>{escape(submission.id)}</h2>
+  <p><span class="badge">{escape(submission.artifact_status_code)}</span></p>
+  <p>파일명: {escape(submission.file_name or "-")} / mime: {escape(submission.mime_type or "-")}</p>
+  <p class="muted">file id: {escape(submission.provider_file_id or "-")} / unique id: {escape(submission.provider_file_unique_id or "-")}</p>
+  <p class="muted">uploaded_at: {escape(submission.uploaded_at)} / submitted_at: {escape(submission.submitted_at or "-")}</p>
+</section>
+<section class="card">
+  <h2>세션</h2>
+  <p>session: {escape(session.id if session is not None else "-")}</p>
+  <p class="muted">status: {escape(session.session_status_code if session is not None else "-")} / step: {escape(session.current_step_code if session is not None else "-")}</p>
+  <p class="muted">location: {escape(str(session.accepted_location_latitude) if session and session.accepted_location_latitude is not None else "-")}, {escape(str(session.accepted_location_longitude) if session and session.accepted_location_longitude is not None else "-")}</p>
+</section>
+<section class="card">
+  <h2>요청</h2>
+  <p>request: {escape(request_event.id if request_event is not None else "-")}</p>
+  <p class="muted">type: {escape(request_event.request_type_code if request_event is not None else "-")} / status: {escape(request_event.request_status_code if request_event is not None else "-")}</p>
+  <p class="muted">field: {escape((request_event.field_id if request_event is not None else None) or "-")} / binding: {escape((request_event.field_binding_id if request_event is not None else None) or "-")}</p>
+</section>
+<section class="card">
+  <h2>Validation signals</h2>
+  {signal_items}
+</section>
+<section class="card">
+  <h2>State logs</h2>
+  {state_log_items}
+</section>"""
+        return _page("증빙 상세", body)
 
     @app.get("/admin/pages/outbox", response_class=HTMLResponse)
     def outbox_page(status: str | None = None) -> HTMLResponse:
@@ -1393,6 +1570,46 @@ def create_admin_api_app(
             target_id=item.id,
         )
         return {"item": _serialize_field_binding_exception(item)}
+
+    @app.get("/admin/evidence-reviews")
+    def list_evidence_reviews(
+        status: str | None = None,
+        query: str | None = None,
+        created_from: str | None = None,
+        created_to: str | None = None,
+    ) -> dict:
+        repository = _require_evidence_repository(evidence_repository)
+        selected_status = _parse_evidence_artifact_status(status)
+        selected_query = (query or "").strip()
+        selected_created_from = _parse_filter_date(created_from, field_name="created_from")
+        selected_created_to = _parse_filter_date(created_to, field_name="created_to")
+        return {
+            "items": [
+                _serialize_evidence_submission(item)
+                for item in repository.list_submissions(
+                    artifact_status_code=selected_status,
+                    query=selected_query,
+                    created_from=selected_created_from,
+                    created_to=selected_created_to,
+                )
+            ]
+        }
+
+    @app.get("/admin/evidence-reviews/{submission_id}")
+    def get_evidence_review(submission_id: str) -> dict:
+        repository = _require_evidence_repository(evidence_repository)
+        submission = repository.get_submission(submission_id)
+        if submission is None:
+            raise HTTPException(status_code=404, detail="evidence submission not found")
+        session = repository.get_submission_session(submission.evidence_submission_session_id)
+        request_event = repository.get_request_event(submission.evidence_request_event_id)
+        return {
+            "submission": _serialize_evidence_submission(submission),
+            "session": _serialize_evidence_session(session) if session is not None else None,
+            "request_event": _serialize_evidence_request(request_event) if request_event is not None else None,
+            "signals": [_serialize_evidence_signal(item) for item in repository.list_validation_signals(submission.id)],
+            "state_logs": [_serialize_evidence_state_log(item) for item in repository.list_state_logs(submission.id)],
+        }
 
     @app.get("/admin/outbox")
     def list_outbox(status: str | None = None) -> dict:
