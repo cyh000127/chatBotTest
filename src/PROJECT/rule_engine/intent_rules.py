@@ -7,7 +7,6 @@ COMMAND_TO_INTENT = {
     "start": registry.INTENT_START,
     "help": registry.INTENT_HELP,
     "menu": registry.INTENT_MENU,
-    "profile": registry.INTENT_PROFILE,
     "myfields": registry.INTENT_FIELD_LIST,
     "fertilizer": registry.INTENT_AGRI_INPUT_START,
     "yield": registry.INTENT_YIELD_INPUT_START,
@@ -22,8 +21,6 @@ BUTTON_TO_INTENT = {
 }
 
 REPAIR_MARKERS = ("수정", "잘못", "틀렸", "다시", "변경", "고칠", "edit", "change", "fix")
-PROFILE_MARKERS = ("프로필", "정보", "내정보", "profile")
-VIEW_MARKERS = ("보여", "봐", "조회", "확인", "show", "view")
 FERTILIZER_MARKERS = ("비료", "fertilizer")
 YIELD_MARKERS = ("yield", "수확", "수확량", "harvest")
 MYFIELDS_MARKERS = ("myfields", "내농지", "농지조회", "필드조회", "내필드")
@@ -55,14 +52,6 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
                 source=RuleSource.INTENT_RULE,
                 matched_rule=f"command:{command_name}",
             )
-        if command_name == "프로필":
-            canonical_intent = registry.INTENT_PROFILE_EDIT_START if "수정" in collapsed else registry.INTENT_PROFILE_VIEW
-            return IntentDecision(
-                canonical_intent=canonical_intent,
-                current_step=current_step,
-                source=RuleSource.INTENT_RULE,
-                matched_rule="command:/프로필",
-            )
 
     button_intent = BUTTON_TO_INTENT.get(normalized_text)
     if button_intent is not None:
@@ -74,8 +63,6 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
         )
 
     has_repair = any(marker in collapsed for marker in REPAIR_MARKERS)
-    has_profile = any(marker in collapsed for marker in PROFILE_MARKERS)
-    has_view = any(marker in collapsed for marker in VIEW_MARKERS)
     has_fertilizer = any(marker in collapsed for marker in FERTILIZER_MARKERS)
     has_yield = any(marker in collapsed for marker in YIELD_MARKERS)
     has_myfields = any(marker in collapsed for marker in MYFIELDS_MARKERS)
@@ -126,65 +113,6 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
                 matched_rule="fertilizer_edit_start",
             )
 
-        if "생년월일" in collapsed or "생일" in collapsed or "birthdate" in collapsed or "birthday" in collapsed:
-            return IntentDecision(
-                canonical_intent=registry.INTENT_PROFILE_EDIT_BIRTH_DATE,
-                current_step=current_step,
-                source=RuleSource.INTENT_RULE,
-                matched_rule="profile_edit_birth_date",
-            )
-        if "거주지" in collapsed or "주소" in collapsed or "residence" in collapsed or "address" in collapsed:
-            return IntentDecision(
-                canonical_intent=registry.INTENT_PROFILE_EDIT_RESIDENCE,
-                current_step=current_step,
-                source=RuleSource.INTENT_RULE,
-                matched_rule="profile_edit_residence",
-            )
-        if "시도" in collapsed or "시/도" in normalized_text or "province" in collapsed or "cityprovince" in collapsed:
-            return IntentDecision(
-                canonical_intent=registry.INTENT_PROFILE_EDIT_CITY,
-                current_step=current_step,
-                source=RuleSource.INTENT_RULE,
-                matched_rule="profile_edit_city",
-            )
-        if "구군시" in collapsed or "구/군/시" in normalized_text or "district" in collapsed:
-            return IntentDecision(
-                canonical_intent=registry.INTENT_PROFILE_EDIT_DISTRICT,
-                current_step=current_step,
-                source=RuleSource.INTENT_RULE,
-                matched_rule="profile_edit_district",
-            )
-        if "이름" in collapsed or "name" in collapsed:
-            return IntentDecision(
-                canonical_intent=registry.INTENT_PROFILE_EDIT_NAME,
-                current_step=current_step,
-                source=RuleSource.INTENT_RULE,
-                matched_rule="profile_edit_name",
-            )
-        if has_profile:
-            return IntentDecision(
-                canonical_intent=registry.INTENT_PROFILE_EDIT_START,
-                current_step=current_step,
-                source=RuleSource.INTENT_RULE,
-                matched_rule="profile_edit_start",
-            )
-
-    if collapsed in {"프로필", "내프로필", "profile"}:
-        return IntentDecision(
-            canonical_intent=registry.INTENT_PROFILE_VIEW,
-            current_step=current_step,
-            source=RuleSource.INTENT_RULE,
-            matched_rule="profile_view_exact",
-        )
-
-    if has_profile and has_view:
-        return IntentDecision(
-            canonical_intent=registry.INTENT_PROFILE_VIEW,
-            current_step=current_step,
-            source=RuleSource.INTENT_RULE,
-            matched_rule="profile_view_phrase",
-        )
-
     if collapsed in {"myfields", "내농지", "농지조회", "내필드"}:
         return IntentDecision(
             canonical_intent=registry.INTENT_FIELD_LIST,
@@ -210,7 +138,7 @@ def classify_global_intent(normalized_input: NormalizedInput, *, current_step: s
         )
 
     has_start = any(marker in collapsed for marker in START_MARKERS)
-    if has_myfields and (has_view or "조회" in collapsed):
+    if has_myfields and ("조회" in collapsed or "봐" in collapsed or "show" in collapsed or "view" in collapsed):
         return IntentDecision(
             canonical_intent=registry.INTENT_FIELD_LIST,
             current_step=current_step,

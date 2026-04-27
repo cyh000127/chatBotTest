@@ -9,25 +9,22 @@ def test_classify_global_intent_matches_exact_button_labels():
     assert help_decision.canonical_intent == registry.INTENT_HELP
 
 
-def test_classify_global_intent_supports_profile_view_phrases():
+def test_classify_global_intent_no_longer_opens_profile_view_phrases():
     decision = classify_global_intent_text("내 프로필 보여줘")
 
-    assert decision is not None
-    assert decision.canonical_intent == registry.INTENT_PROFILE_VIEW
+    assert decision is None
 
 
-def test_classify_global_intent_supports_profile_edit_variants():
+def test_classify_global_intent_no_longer_opens_profile_edit_variants():
     decision = classify_global_intent_text("생일 잘못 입력했어 수정할래")
 
-    assert decision is not None
-    assert decision.canonical_intent == registry.INTENT_PROFILE_EDIT_BIRTH_DATE
+    assert decision is None
 
 
-def test_classify_global_intent_supports_korean_slash_profile_edit():
+def test_classify_global_intent_no_longer_supports_korean_slash_profile_edit():
     decision = classify_global_intent_text("/프로필 수정")
 
-    assert decision is not None
-    assert decision.canonical_intent == registry.INTENT_PROFILE_EDIT_START
+    assert decision is None
 
 
 def test_classify_global_intent_supports_command_routing():
@@ -93,8 +90,7 @@ def test_classify_global_intent_supports_fertilizer_repair_phrase():
     assert decision.canonical_intent == registry.INTENT_FERTILIZER_EDIT_AMOUNT
 
 
-def test_classify_global_intent_supports_korean_profile_view_command():
+def test_classify_global_intent_no_longer_supports_korean_profile_view_command():
     decision = classify_global_intent_text("/프로필")
 
-    assert decision is not None
-    assert decision.canonical_intent == registry.INTENT_PROFILE_VIEW
+    assert decision is None

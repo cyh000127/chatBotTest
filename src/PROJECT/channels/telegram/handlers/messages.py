@@ -86,7 +86,7 @@ from PROJECT.dispatch.command_router import (
     route_message,
 )
 from PROJECT.dispatch.input_fallback import fallback_key_for_state
-from PROJECT.dispatch.repair_router import detect_profile_view_intent, detect_repair_intent
+from PROJECT.dispatch.repair_router import detect_repair_intent
 from PROJECT.dispatch.session_dispatcher import (
     clear_pending_candidate,
     cancel_session,
@@ -99,7 +99,6 @@ from PROJECT.dispatch.session_dispatcher import (
     go_back,
     has_active_support_handoff,
     has_confirmed_fertilizer,
-    has_confirmed_profile,
     has_seen_llm_input,
     increment_llm_calls_in_step,
     increment_recovery_attempts,
@@ -1723,76 +1722,6 @@ async def text_message(update, context) -> None:
             reset_recovery_attempts(context.user_data)
             return
 
-    if state not in PROFILE_STATES and has_confirmed_profile(context.user_data):
-        multi_slot_changes = extract_profile_multi_slot_candidate_changes(inbound.text)
-        if multi_slot_changes is not None:
-            reset_recovery_attempts(context.user_data)
-            await send_repair_confirmation(
-                update,
-                context,
-                domain="profile",
-                target_state=STATE_PROFILE_CONFIRM,
-                use_confirmed=True,
-                candidate_changes=multi_slot_changes,
-            )
-            return
-
-        profile_direct_update = detect_profile_direct_update(inbound.text, allow_implicit=True)
-        if profile_direct_update is not None:
-            reset_recovery_attempts(context.user_data)
-            log_rule_matched(
-                rule_name=profile_direct_update.matched_rule,
-                domain="profile",
-                target_state=profile_direct_update.target_state,
-                scope="confirmed",
-            )
-            await send_repair_confirmation(
-                update,
-                context,
-                domain="profile",
-                target_state=profile_direct_update.target_state,
-                use_confirmed=True,
-                candidate_changes=profile_direct_update.changes,
-            )
-            return
-
-        repair = detect_repair_intent(
-            inbound.text,
-            current_state=STATE_PROFILE_CONFIRM,
-            domain_hint="profile",
-        )
-        if repair is not None and repair.target_state in PROFILE_STATES:
-            reset_recovery_attempts(context.user_data)
-            log_rule_matched(
-                rule_name=repair.target,
-                domain="profile",
-                target_state=repair.target_state,
-                scope="confirmed",
-            )
-            await send_repair_confirmation(
-                update,
-                context,
-                domain="profile",
-                target_state=repair.target_state,
-                use_confirmed=True,
-            )
-            return
-        if detect_profile_view_intent(inbound.text):
-            reset_recovery_attempts(context.user_data)
-            await show_current_profile(update, context)
-            return
-
-        handled_by_llm = await attempt_llm_repair_after_rules(
-            update,
-            context,
-            text=inbound.text,
-            domain="profile",
-            use_confirmed=True,
-        )
-        if handled_by_llm:
-            reset_recovery_attempts(context.user_data)
-            return
-
     if state not in FERTILIZER_STATES and has_confirmed_fertilizer(context.user_data):
         multi_slot_changes = extract_fertilizer_multi_slot_candidate_changes(inbound.text)
         if multi_slot_changes is not None:
@@ -2517,20 +2446,6 @@ async def unknown_command(update, context) -> None:
     inbound = parse_update(update)
     if not await _require_started_access(update, context):
         return
-    profile_repair = detect_repair_intent(
-        inbound.text,
-        current_state=STATE_PROFILE_CONFIRM if has_confirmed_profile(context.user_data) else current_state(context.user_data),
-        domain_hint="profile",
-    )
-    if has_confirmed_profile(context.user_data) and profile_repair is not None and profile_repair.target_state in PROFILE_STATES:
-        await send_repair_confirmation(
-            update,
-            context,
-            domain="profile",
-            target_state=profile_repair.target_state,
-            use_confirmed=True,
-        )
-        return
     fertilizer_repair = detect_repair_intent(
         inbound.text,
         current_state=STATE_FERTILIZER_CONFIRM if has_confirmed_fertilizer(context.user_data) else current_state(context.user_data),
@@ -2544,9 +2459,6 @@ async def unknown_command(update, context) -> None:
             target_state=fertilizer_repair.target_state,
             use_confirmed=True,
         )
-        return
-    if detect_profile_view_intent(inbound.text):
-        await show_current_profile(update, context)
         return
     intent = command_to_intent(inbound.command)
     if intent != INTENT_UNKNOWN_COMMAND:

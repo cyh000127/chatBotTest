@@ -16,22 +16,19 @@ from PROJECT.conversations.profile_intake.states import (
 from PROJECT.dispatch.repair_router import detect_profile_view_intent, detect_repair_intent
 
 
-def test_detect_birth_repair_intent():
+def test_detect_birth_repair_intent_is_not_global_anymore():
     decision = detect_repair_intent("생일 잘못 입력했어요")
-    assert decision is not None
-    assert decision.target_state == STATE_PROFILE_BIRTH_YEAR
+    assert decision is None
 
 
-def test_detect_name_repair_intent():
+def test_detect_name_repair_intent_is_not_global_anymore():
     decision = detect_repair_intent("이름 수정할게요")
-    assert decision is not None
-    assert decision.target_state == STATE_PROFILE_NAME
+    assert decision is None
 
 
-def test_detect_generic_profile_repair_intent():
+def test_detect_generic_profile_repair_intent_is_not_global_anymore():
     decision = detect_repair_intent("프로필 잘못된거 있어 수정할래")
-    assert decision is not None
-    assert decision.target_state == STATE_PROFILE_EDIT_SELECT
+    assert decision is None
 
 
 def test_detect_generic_fertilizer_repair_intent():
@@ -72,8 +69,8 @@ def test_field_only_repair_phrase_is_not_global_without_context():
 
 
 def test_detect_profile_view_intent():
-    assert detect_profile_view_intent("내 프로필 보여줘") is True
-    assert detect_profile_view_intent("/프로필") is True
+    assert detect_profile_view_intent("내 프로필 보여줘") is False
+    assert detect_profile_view_intent("/프로필") is False
 
 
 def test_reset_draft_for_birth_repair_clears_only_birth_fields():
