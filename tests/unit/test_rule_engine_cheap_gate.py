@@ -1,6 +1,7 @@
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
 from PROJECT.rule_engine import MAX_RECOVERY_ATTEMPTS, ValidationClassification, classify_cheap_gate
+
+STATE_PROFILE_CONFIRM = "profile_confirm"
 
 
 def test_cheap_gate_marks_support_request_for_handoff():

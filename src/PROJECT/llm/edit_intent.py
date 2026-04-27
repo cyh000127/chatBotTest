@@ -14,12 +14,6 @@ from PROJECT.settings import GeminiSettings
 
 
 class LlmEditAction(StrEnum):
-    PROFILE_EDIT_SELECT = "profile.edit.select"
-    PROFILE_EDIT_NAME = "profile.edit.name"
-    PROFILE_EDIT_RESIDENCE = "profile.edit.residence"
-    PROFILE_EDIT_CITY = "profile.edit.city"
-    PROFILE_EDIT_DISTRICT = "profile.edit.district"
-    PROFILE_EDIT_BIRTH_DATE = "profile.edit.birth_date"
     FERTILIZER_EDIT_SELECT = "fertilizer.edit.select"
     FERTILIZER_EDIT_USED = "fertilizer.edit.used"
     FERTILIZER_EDIT_KIND = "fertilizer.edit.kind"

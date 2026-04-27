@@ -1,4 +1,3 @@
-from PROJECT.conversations.profile_intake.normalization import normalize_text
 from PROJECT.rule_engine import extract_command_token, normalize_body_text, normalize_user_input
 
 
@@ -16,7 +15,3 @@ def test_normalize_user_input_preserves_command_and_normalizes_body():
     assert normalized.command == "/fertilizer"
     assert normalized.normalized_text == "/fertilizer 입력 할게요"
     assert normalized.tokens == ("/fertilizer", "입력", "할게요")
-
-
-def test_profile_normalize_text_delegates_to_shared_normalizer():
-    assert normalize_text("서울/강남-gu") == "서울 강남 gu"

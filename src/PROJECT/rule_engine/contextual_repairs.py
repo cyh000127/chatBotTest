@@ -9,18 +9,7 @@ from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_PRODUCT,
     STATE_FERTILIZER_USED,
 )
-from PROJECT.conversations.profile_intake import service as profile_service
-from PROJECT.conversations.profile_intake.states import (
-    STATE_PROFILE_BIRTH_YEAR,
-    STATE_PROFILE_CITY,
-    STATE_PROFILE_DISTRICT,
-    STATE_PROFILE_NAME,
-    STATE_PROFILE_RESIDENCE,
-)
-from PROJECT.rule_engine.correction_extractor import (
-    extract_fertilizer_correction_pattern,
-    extract_profile_correction_pattern,
-)
+from PROJECT.rule_engine.correction_extractor import extract_fertilizer_correction_pattern
 
 UPDATE_MARKERS = (
     "수정",
@@ -39,12 +28,6 @@ UPDATE_MARKERS = (
     "change",
     "fix",
 )
-
-PROFILE_NAME_MARKERS = ("이름", "성함", "name")
-PROFILE_RESIDENCE_MARKERS = ("거주지", "주소", "residence", "address")
-PROFILE_CITY_MARKERS = ("시/도", "시도", "province", "city province")
-PROFILE_DISTRICT_MARKERS = ("구/군/시", "구군시", "district")
-PROFILE_BIRTH_MARKERS = ("생년월일", "생일", "birthday", "birthdate")
 
 FERTILIZER_USED_MARKERS = ("사용 여부", "사용", "안씀", "미사용", "used")
 FERTILIZER_KIND_MARKERS = ("유형", "종류", "타입", "kind", "type")
@@ -81,124 +64,6 @@ class DirectUpdateDecision:
     target_state: str
     changes: dict[str, object]
     matched_rule: str
-
-
-def detect_profile_direct_update(text: str, *, allow_implicit: bool = False) -> DirectUpdateDecision | None:
-    if not allow_implicit and not _has_update_signal(text):
-        return None
-
-    correction_pattern = extract_profile_correction_pattern(text)
-    if correction_pattern is not None and correction_pattern.candidate_value is not None:
-        if correction_pattern.target_state == STATE_PROFILE_BIRTH_YEAR:
-            birth_date = profile_service.parse_birth_date_text(correction_pattern.candidate_value)
-            if birth_date is not None:
-                year, month, day = birth_date
-                return DirectUpdateDecision(
-                    target_state=STATE_PROFILE_BIRTH_YEAR,
-                    changes={"birth_year": year, "birth_month": month, "birth_day": day},
-                    matched_rule=correction_pattern.matched_rule,
-                )
-        if correction_pattern.target_state == STATE_PROFILE_NAME:
-            name = profile_service.parse_name(correction_pattern.candidate_value)
-            if name is not None:
-                return DirectUpdateDecision(
-                    target_state=STATE_PROFILE_NAME,
-                    changes={"name": name},
-                    matched_rule=correction_pattern.matched_rule,
-                )
-        if correction_pattern.target_state == STATE_PROFILE_RESIDENCE:
-            residence = profile_service.parse_free_text(correction_pattern.candidate_value)
-            if residence is not None:
-                return DirectUpdateDecision(
-                    target_state=STATE_PROFILE_RESIDENCE,
-                    changes={"residence": residence},
-                    matched_rule=correction_pattern.matched_rule,
-                )
-        if correction_pattern.target_state == STATE_PROFILE_CITY:
-            city = profile_service.parse_free_text(correction_pattern.candidate_value)
-            if city is not None:
-                return DirectUpdateDecision(
-                    target_state=STATE_PROFILE_CITY,
-                    changes={"city": city},
-                    matched_rule=correction_pattern.matched_rule,
-                )
-        if correction_pattern.target_state == STATE_PROFILE_DISTRICT:
-            district = profile_service.parse_free_text(correction_pattern.candidate_value)
-            if district is not None:
-                return DirectUpdateDecision(
-                    target_state=STATE_PROFILE_DISTRICT,
-                    changes={"district": district},
-                    matched_rule=correction_pattern.matched_rule,
-                )
-
-    birth_date = profile_service.parse_birth_date_text(text)
-    if birth_date and (_contains_any(text, PROFILE_BIRTH_MARKERS) or allow_implicit):
-        year, month, day = birth_date
-        return DirectUpdateDecision(
-            target_state=STATE_PROFILE_BIRTH_YEAR,
-            changes={"birth_year": year, "birth_month": month, "birth_day": day},
-            matched_rule="profile_direct_birth_date",
-        )
-
-    name_candidate = _extract_field_value(text, PROFILE_NAME_MARKERS)
-    name = profile_service.parse_name(name_candidate) if name_candidate else None
-    if name is not None:
-        return DirectUpdateDecision(
-            target_state=STATE_PROFILE_NAME,
-            changes={"name": name},
-            matched_rule="profile_direct_name",
-        )
-
-    residence_candidate = _extract_field_value(text, PROFILE_RESIDENCE_MARKERS)
-    residence = profile_service.parse_free_text(residence_candidate) if residence_candidate else None
-    if residence is not None:
-        return DirectUpdateDecision(
-            target_state=STATE_PROFILE_RESIDENCE,
-            changes={"residence": residence},
-            matched_rule="profile_direct_residence",
-        )
-
-    city_candidate = _extract_field_value(text, PROFILE_CITY_MARKERS)
-    city = profile_service.parse_free_text(city_candidate) if city_candidate else None
-    if city is not None:
-        return DirectUpdateDecision(
-            target_state=STATE_PROFILE_CITY,
-            changes={"city": city},
-            matched_rule="profile_direct_city",
-        )
-
-    district_candidate = _extract_field_value(text, PROFILE_DISTRICT_MARKERS)
-    district = profile_service.parse_free_text(district_candidate) if district_candidate else None
-    if district is not None:
-        return DirectUpdateDecision(
-            target_state=STATE_PROFILE_DISTRICT,
-            changes={"district": district},
-            matched_rule="profile_direct_district",
-        )
-
-    inferred = _extract_negated_candidate(text)
-    if inferred is None and allow_implicit:
-        inferred = _clean_value(text)
-
-    if inferred:
-        if _looks_like_district(inferred):
-            district = profile_service.parse_free_text(inferred)
-            if district is not None:
-                return DirectUpdateDecision(
-                    target_state=STATE_PROFILE_DISTRICT,
-                    changes={"district": district},
-                    matched_rule="profile_inferred_district",
-                )
-        if _looks_like_city(inferred):
-            city = profile_service.parse_free_text(inferred)
-            if city is not None:
-                return DirectUpdateDecision(
-                    target_state=STATE_PROFILE_CITY,
-                    changes={"city": city},
-                    matched_rule="profile_inferred_city",
-                )
-
-    return None
 
 
 def detect_fertilizer_direct_update(text: str, *, allow_implicit: bool = False) -> DirectUpdateDecision | None:
@@ -347,11 +212,3 @@ def _clean_value(value: str) -> str:
     if collapsed and ACTION_ONLY_PATTERN.fullmatch(collapsed):
         return ""
     return normalized
-
-
-def _looks_like_city(value: str) -> bool:
-    return bool(re.search(r"(특별시|광역시|특별자치시|특별자치도|도|시)$", value)) and not _looks_like_district(value)
-
-
-def _looks_like_district(value: str) -> bool:
-    return bool(re.search(r"(구|군|읍|면|동|리|시)$", value)) and not re.search(r"(특별시|광역시|특별자치시)$", value)

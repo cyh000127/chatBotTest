@@ -4,13 +4,15 @@ from types import SimpleNamespace
 from PROJECT.canonical_intents import registry
 from PROJECT.canonical_intents.mapping import command_to_intent, text_to_intent
 from PROJECT.channels.telegram.handlers import commands
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.keyboards import fallback_keyboard_layout_for_state, main_menu_keyboard
 from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
 from PROJECT.dispatch.command_router import ROUTE_UNKNOWN_INPUT, route_message
 from PROJECT.dispatch.input_fallback import FALLBACK_DEFAULT, fallback_key_for_state
 from PROJECT.dispatch.session_dispatcher import current_state, has_started, is_authenticated, reset_session
 from PROJECT.i18n.translator import all_button_intents, get_catalog
+
+STATE_PROFILE_NAME = "profile_name"
+STATE_PROFILE_CONFIRM = "profile_confirm"
 
 
 def _update(text: str) -> SimpleNamespace:
@@ -51,7 +53,7 @@ def test_profile_commands_and_texts_do_not_resolve_in_product_scope():
 
 
 def test_profile_intent_no_longer_routes_from_main_menu():
-    decision = route_message(STATE_MAIN_MENU, registry.INTENT_PROFILE)
+    decision = route_message(STATE_MAIN_MENU, "profile")
 
     assert decision.route == ROUTE_UNKNOWN_INPUT
 

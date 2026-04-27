@@ -8,13 +8,6 @@ from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_PRODUCT,
     STATE_FERTILIZER_USED,
 )
-from PROJECT.conversations.profile_intake.states import (
-    STATE_PROFILE_BIRTH_YEAR,
-    STATE_PROFILE_CITY,
-    STATE_PROFILE_DISTRICT,
-    STATE_PROFILE_NAME,
-    STATE_PROFILE_RESIDENCE,
-)
 
 VALUE_UPDATE_SUFFIX_PATTERN = re.compile(
     r"^\s*(?:은|는|이|가|을|를|도|:)?\s*(?P<value>.+?)\s*"
@@ -38,14 +31,6 @@ TARGET_ONLY_SUFFIX_PATTERN = re.compile(
 )
 PLAIN_VALUE_SUFFIX_PATTERN = re.compile(r"^\s*(?:은|는|이|가|을|를|도|:)?\s*(?P<value>.+?)\s*(?:이야|예요|이에요|입니다)\s*$", re.IGNORECASE)
 
-PROFILE_FIELD_CONFIGS = (
-    (STATE_PROFILE_BIRTH_YEAR, ("생년월일", "생일", "birthday", "birthdate")),
-    (STATE_PROFILE_RESIDENCE, ("거주지", "주소", "residence", "address")),
-    (STATE_PROFILE_CITY, ("시/도", "시도", "province", "city province")),
-    (STATE_PROFILE_DISTRICT, ("구/군/시", "구군시", "district")),
-    (STATE_PROFILE_NAME, ("이름", "성함", "name")),
-)
-
 FERTILIZER_FIELD_CONFIGS = (
     (STATE_FERTILIZER_AMOUNT, ("사용량", "비료량", "양", "수량", "amount", "quantity")),
     (STATE_FERTILIZER_DATE, ("사용일", "날짜", "언제", "date", "day")),
@@ -60,10 +45,6 @@ class CorrectionPatternDecision:
     target_state: str
     candidate_value: str | None
     matched_rule: str
-
-
-def extract_profile_correction_pattern(text: str) -> CorrectionPatternDecision | None:
-    return _extract_pattern(text, PROFILE_FIELD_CONFIGS, domain="profile")
 
 
 def extract_fertilizer_correction_pattern(text: str) -> CorrectionPatternDecision | None:

@@ -7,13 +7,14 @@ from PROJECT.channels.telegram.handlers.messages import (
     repair_candidate_preview_text,
 )
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.keyboards import fallback_keyboard_layout_for_state
 from PROJECT.conversations.sample_menu.recovery_messages import render_cheap_gate_message, render_fallback_message
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED
 from PROJECT.dispatch.session_dispatcher import set_confirmed_fertilizer, set_locale
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.rule_engine import RuleSource, ValidationClassification, ValidationResult, assemble_recovery_context
+
+STATE_PROFILE_NAME = "profile_name"
 
 
 def test_cancelled_repeated_failure_recovery_scenario_shows_escalation_guidance():

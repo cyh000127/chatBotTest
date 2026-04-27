@@ -31,10 +31,10 @@ def test_build_edit_intent_prompt_includes_allowed_actions():
 
 def test_build_gemini_edit_intent_request_uses_json_mode():
     payload = build_gemini_edit_intent_request(
-        text="생일 수정할래",
+        text="제품명 수정할래",
         locale="ko",
         allowed_actions=(
-            LlmEditAction.PROFILE_EDIT_BIRTH_DATE.value,
+            LlmEditAction.FERTILIZER_EDIT_PRODUCT.value,
             LlmEditAction.UNSUPPORTED.value,
         ),
     )

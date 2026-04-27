@@ -17,7 +17,6 @@ from PROJECT.policy import (
     should_handoff,
 )
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
 
 
@@ -136,28 +135,15 @@ def test_should_handoff_after_retry_limit():
     assert should_handoff(recovery_attempt_count=3) is True
 
 
-def test_unknown_input_disposition_allows_profile_and_fertilizer_confirm_contexts():
-    assert classify_unknown_input_disposition(
-        current_step=STATE_PROFILE_CONFIRM,
-        domain_hint="profile",
-        use_confirmed=False,
-    ) == UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
-
-
 def test_evaluate_unknown_input_policy_returns_contextual_reason():
     decision = evaluate_unknown_input_policy(
-        current_step=STATE_PROFILE_CONFIRM,
-        domain_hint="profile",
+        current_step=STATE_FERTILIZER_CONFIRM,
+        domain_hint="fertilizer",
         use_confirmed=False,
     )
 
     assert decision.disposition == UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
-    assert decision.reason == "profile_confirm_context_allowed"
-    assert classify_unknown_input_disposition(
-        current_step=STATE_PROFILE_EDIT_SELECT,
-        domain_hint="profile",
-        use_confirmed=False,
-    ) == UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
+    assert decision.reason == "fertilizer_confirm_context_allowed"
     assert classify_unknown_input_disposition(
         current_step=STATE_FERTILIZER_CONFIRM,
         domain_hint="fertilizer",
@@ -166,11 +152,6 @@ def test_evaluate_unknown_input_policy_returns_contextual_reason():
 
 
 def test_unknown_input_disposition_stays_fallback_only_outside_confirm_context():
-    assert classify_unknown_input_disposition(
-        current_step=STATE_PROFILE_NAME,
-        domain_hint="profile",
-        use_confirmed=False,
-    ) == UnknownInputDisposition.FALLBACK_ONLY
     assert classify_unknown_input_disposition(
         current_step=STATE_MAIN_MENU,
         domain_hint=None,
@@ -202,7 +183,7 @@ def test_evaluate_unknown_input_policy_marks_confirmed_snapshot_reason():
 def test_unknown_input_disposition_marks_support_requests_as_handoff():
     disposition = classify_unknown_input_disposition(
         current_step=STATE_MAIN_MENU,
-        domain_hint="profile",
+        domain_hint="fertilizer",
         validation_reason="explicit_support_request",
     )
 
@@ -212,7 +193,7 @@ def test_unknown_input_disposition_marks_support_requests_as_handoff():
 def test_evaluate_unknown_input_policy_marks_handoff_reason_explicitly():
     decision = evaluate_unknown_input_policy(
         current_step=STATE_MAIN_MENU,
-        domain_hint="profile",
+        domain_hint="fertilizer",
         validation_reason="explicit_support_request",
     )
 

@@ -15,7 +15,7 @@ from PROJECT.dispatch.command_router import (
 )
 
 def test_profile_entry_no_longer_routes_from_main_menu():
-    decision = route_message(STATE_MAIN_MENU, registry.INTENT_PROFILE)
+    decision = route_message(STATE_MAIN_MENU, "profile")
     assert decision.route == ROUTE_UNKNOWN_INPUT
 
 

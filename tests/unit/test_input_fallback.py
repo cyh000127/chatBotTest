@@ -1,10 +1,13 @@
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_PRODUCT, STATE_FERTILIZER_USED
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.keyboards import fallback_keyboard_layout_for_state
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_CONFIRM, STATE_YIELD_FIELD
 from PROJECT.dispatch.input_fallback import FALLBACK_CANCELLED, FALLBACK_DEFAULT, fallback_key_for_state
 from PROJECT.i18n.translator import get_catalog
+
+
+STATE_PROFILE_NAME = "profile_name"
+STATE_PROFILE_CONFIRM = "profile_confirm"
 
 
 def test_default_fallback():

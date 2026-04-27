@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT
 
 
 class LocalAiGate(StrEnum):
@@ -43,7 +42,6 @@ MAX_LLM_CALLS_PER_CONFIRM_STEP = 1
 MAX_RECOVERY_ATTEMPTS_BEFORE_HANDOFF = 3
 
 UNKNOWN_HANDOFF_REASONS = frozenset({"explicit_support_request", "manual_handoff_request"})
-PROFILE_UNKNOWN_LLM_STATES = frozenset({STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT})
 FERTILIZER_UNKNOWN_LLM_STATES = frozenset({STATE_FERTILIZER_CONFIRM})
 
 
@@ -168,18 +166,6 @@ def evaluate_unknown_input_policy(
         return UnknownInputPolicyDecision(
             disposition=UnknownInputDisposition.HANDOFF_REQUIRED,
             reason="explicit_handoff_reason",
-        )
-
-    if domain_hint == "profile":
-        if use_confirmed or current_step in PROFILE_UNKNOWN_LLM_STATES:
-            reason = "confirmed_snapshot_repair_allowed" if use_confirmed else "profile_confirm_context_allowed"
-            return UnknownInputPolicyDecision(
-                disposition=UnknownInputDisposition.REPAIR_ASSIST_ALLOWED,
-                reason=reason,
-            )
-        return UnknownInputPolicyDecision(
-            disposition=UnknownInputDisposition.FALLBACK_ONLY,
-            reason="profile_outside_allowed_unknown_context",
         )
 
     if domain_hint == "fertilizer":
