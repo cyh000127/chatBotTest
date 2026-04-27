@@ -48,13 +48,17 @@ Tables included in the current local SQLite migrations:
 - `seasonal_events`
 - `fertilizer_application_records`
 - `yield_records`
+- `reminder_deliveries`
+- `input_resolution_sessions`
+- `input_resolution_attempts`
+- `input_resolution_candidates`
+- `input_resolution_decisions`
 
 Tables intentionally not included in the current local SQLite migrations:
 
 - `ai_follow_up_attempts`
 - `participant_identity_link_reviews`
 - `participant_reachability_states`
-- `reminder_deliveries`
 - `escalations`
 - evidence submission and review tables
 - production-grade governance access tables
@@ -891,3 +895,107 @@ Season activity subset rules:
 - field season rows are created only when a field binding is resolved
 - seasonal event rows provide the append-only context for confirmed structured input
 - fertilizer and yield rows may preserve unresolved field linkage state in structured payload metadata
+
+## 16. Reminder And Input Resolution Tables
+
+```sql
+CREATE TABLE reminder_deliveries (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  field_season_id TEXT,
+  seasonal_event_id TEXT,
+  input_resolution_session_id TEXT,
+  provider_user_id TEXT NOT NULL,
+  chat_id INTEGER NOT NULL,
+  reminder_type_code TEXT NOT NULL,
+  reminder_status_code TEXT NOT NULL DEFAULT 'pending',
+  resume_token TEXT NOT NULL UNIQUE,
+  resume_target_code TEXT NOT NULL,
+  message_text TEXT NOT NULL,
+  due_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  sent_at TEXT,
+  completed_at TEXT
+);
+```
+
+```sql
+CREATE TABLE input_resolution_sessions (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  provider_user_id TEXT NOT NULL,
+  chat_id INTEGER NOT NULL,
+  target_type_code TEXT,
+  method_code TEXT,
+  session_status_code TEXT NOT NULL,
+  current_step_code TEXT NOT NULL,
+  raw_input_text TEXT,
+  selected_candidate_id TEXT,
+  resolved_value_json TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  resolved_at TEXT,
+  escalated_at TEXT
+);
+```
+
+```sql
+CREATE TABLE input_resolution_attempts (
+  id TEXT PRIMARY KEY,
+  input_resolution_session_id TEXT NOT NULL,
+  method_code TEXT NOT NULL,
+  raw_input_text TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+```
+
+```sql
+CREATE TABLE input_resolution_candidates (
+  id TEXT PRIMARY KEY,
+  input_resolution_session_id TEXT NOT NULL,
+  input_resolution_attempt_id TEXT NOT NULL,
+  candidate_rank INTEGER NOT NULL,
+  candidate_type_code TEXT NOT NULL,
+  raw_value TEXT NOT NULL,
+  normalized_value_json TEXT NOT NULL DEFAULT '{}',
+  confidence_score REAL,
+  created_at TEXT NOT NULL
+);
+```
+
+```sql
+CREATE TABLE input_resolution_decisions (
+  id TEXT PRIMARY KEY,
+  input_resolution_session_id TEXT NOT NULL,
+  selected_candidate_id TEXT,
+  decision_code TEXT NOT NULL,
+  note TEXT,
+  created_at TEXT NOT NULL
+);
+```
+
+Reminder vocabulary baseline:
+
+- `pending`
+- `sent`
+- `completed`
+- `cancelled`
+
+Input-resolution session vocabulary baseline:
+
+- `collecting_target`
+- `collecting_method`
+- `collecting_raw_input`
+- `candidate_review`
+- `decision_pending`
+- `resolved`
+- `manual_review_required`
+
+Rules:
+
+- a reminder token must reopen only the linked unresolved session
+- candidate rows are append-only per attempt
+- final resolution and manual review escalation must be written as decision rows

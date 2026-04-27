@@ -34,13 +34,17 @@ REQUIRED_TABLES = {
     "seasonal_events",
     "fertilizer_application_records",
     "yield_records",
+    "reminder_deliveries",
+    "input_resolution_sessions",
+    "input_resolution_attempts",
+    "input_resolution_candidates",
+    "input_resolution_decisions",
 }
 
 DEFERRED_TABLES = {
     "ai_follow_up_attempts",
     "participant_identity_link_reviews",
     "participant_reachability_states",
-    "reminder_deliveries",
     "escalations",
 }
 
@@ -69,6 +73,13 @@ REQUIRED_INDEXES = {
     "idx_seasonal_events_field_season",
     "idx_fertilizer_records_participant_date",
     "idx_yield_records_participant_date",
+    "idx_reminder_deliveries_status_due",
+    "idx_reminder_deliveries_resume_token",
+    "idx_input_resolution_sessions_status_updated",
+    "idx_input_resolution_sessions_participant",
+    "idx_input_resolution_attempts_session",
+    "idx_input_resolution_candidates_session_rank",
+    "idx_input_resolution_decisions_session",
 }
 
 
@@ -108,6 +119,7 @@ def test_initial_schema_migration_creates_required_tables_and_indexes(tmp_path):
             "002_admin_audit_events",
             "003_field_registry",
             "004_season_activity",
+            "005_reminder_input_resolution",
         )
         existing_tables = table_names(runtime.connection)
         existing_indexes = index_names(runtime.connection)
@@ -119,6 +131,7 @@ def test_initial_schema_migration_creates_required_tables_and_indexes(tmp_path):
             "002_admin_audit_events",
             "003_field_registry",
             "004_season_activity",
+            "005_reminder_input_resolution",
         }
     finally:
         runtime.close()
@@ -201,6 +214,31 @@ def test_initial_schema_contains_reference_alignment_columns(tmp_path):
             "field_name",
             "harvest_date",
         } <= column_names(runtime.connection, "yield_records")
+        assert {
+            "resume_token",
+            "resume_target_code",
+            "input_resolution_session_id",
+        } <= column_names(runtime.connection, "reminder_deliveries")
+        assert {
+            "target_type_code",
+            "method_code",
+            "selected_candidate_id",
+            "resolved_value_json",
+        } <= column_names(runtime.connection, "input_resolution_sessions")
+        assert {"input_resolution_session_id", "method_code", "raw_input_text"} <= column_names(
+            runtime.connection,
+            "input_resolution_attempts",
+        )
+        assert {
+            "input_resolution_session_id",
+            "input_resolution_attempt_id",
+            "candidate_rank",
+            "normalized_value_json",
+        } <= column_names(runtime.connection, "input_resolution_candidates")
+        assert {"input_resolution_session_id", "decision_code"} <= column_names(
+            runtime.connection,
+            "input_resolution_decisions",
+        )
     finally:
         runtime.close()
 
