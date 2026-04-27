@@ -15,11 +15,7 @@ from PROJECT.channels.telegram.handlers.commands import (
     menu_command,
     myfields_command,
     open_fertilizer_target_edit,
-    open_profile_edit_selector,
-    open_profile_target_edit,
-    profile_command,
     show_support_guidance,
-    show_current_profile,
     start_command,
     yield_command,
 )
@@ -76,10 +72,7 @@ from PROJECT.dispatch.command_router import (
     ROUTE_OPEN_FERTILIZER,
     ROUTE_OPEN_INPUT_RESOLVE,
     ROUTE_OPEN_MYFIELDS,
-    ROUTE_OPEN_PROFILE,
     ROUTE_OPEN_YIELD,
-    ROUTE_PROFILE_EDIT,
-    ROUTE_PROFILE_FINALIZE,
     ROUTE_SUPPORT_GUIDANCE,
     ROUTE_YIELD_EDIT,
     ROUTE_YIELD_FINALIZE,
@@ -657,12 +650,6 @@ def repair_candidate_preview_text(context, *, domain: str, target_state: str, ch
 async def continue_repair_flow(update, context, *, domain: str, target_state: str, use_confirmed: bool) -> None:
     discard_pending_candidate(context, reason="repair_flow_continued")
     if domain == "profile":
-        if use_confirmed:
-            if target_state == STATE_PROFILE_EDIT_SELECT:
-                await open_profile_edit_selector(update, context)
-            else:
-                await open_profile_target_edit(update, context, target_state)
-            return
         if target_state == STATE_PROFILE_EDIT_SELECT:
             await open_current_profile_edit_selector(update, context)
         else:
@@ -1810,11 +1797,6 @@ async def text_message(update, context) -> None:
         )
         return
 
-    if decision.route == ROUTE_OPEN_PROFILE:
-        reset_recovery_attempts(context.user_data)
-        await profile_command(update, context)
-        return
-
     if decision.route == ROUTE_OPEN_YIELD:
         reset_recovery_attempts(context.user_data)
         await yield_command(update, context)
@@ -1869,33 +1851,10 @@ async def text_message(update, context) -> None:
         )
         return
 
-    if decision.route == ROUTE_PROFILE_EDIT:
-        set_state(context.user_data, decision.next_state or STATE_PROFILE_EDIT_SELECT, push_history=decision.push_history)
-        set_pending_slot(context.user_data, None)
-        reset_recovery_attempts(context.user_data)
-        await send_text(
-            update,
-            profile_service.edit_text(catalog),
-            keyboard_layout=profile_service.keyboard_for_state(current_state(context.user_data), current_profile(context), catalog),
-        )
-        return
-
     if decision.route == ROUTE_YIELD_EDIT:
         set_state(context.user_data, decision.next_state or STATE_YIELD_EDIT_SELECT, push_history=decision.push_history)
         reset_recovery_attempts(context.user_data)
         await send_yield_prompt(update, context, current_state(context.user_data))
-        return
-
-    if decision.route == ROUTE_PROFILE_FINALIZE:
-        set_confirmed_profile(context.user_data, profile_draft(context.user_data))
-        set_state(context.user_data, STATE_MAIN_MENU)
-        set_pending_slot(context.user_data, None)
-        reset_recovery_attempts(context.user_data)
-        await send_text(
-            update,
-            profile_service.confirmed_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
-        )
         return
 
     if decision.route == ROUTE_FERTILIZER_FINALIZE:
@@ -2333,10 +2292,6 @@ async def button_callback(update, context) -> None:
         await menu_command(update, context)
         return
 
-    if decision.route == ROUTE_OPEN_PROFILE:
-        await profile_command(update, context)
-        return
-
     if decision.route == ROUTE_OPEN_MYFIELDS:
         await myfields_command(update, context)
         return
@@ -2374,30 +2329,9 @@ async def button_callback(update, context) -> None:
         )
         return
 
-    if decision.route == ROUTE_PROFILE_EDIT:
-        set_state(context.user_data, decision.next_state or STATE_PROFILE_EDIT_SELECT, push_history=decision.push_history)
-        set_pending_slot(context.user_data, None)
-        await send_text(
-            update,
-            profile_service.edit_text(catalog),
-            keyboard_layout=profile_service.keyboard_for_state(current_state(context.user_data), current_profile(context), catalog),
-        )
-        return
-
     if decision.route == ROUTE_YIELD_EDIT:
         set_state(context.user_data, decision.next_state or STATE_YIELD_EDIT_SELECT, push_history=decision.push_history)
         await send_yield_prompt(update, context, current_state(context.user_data))
-        return
-
-    if decision.route == ROUTE_PROFILE_FINALIZE:
-        set_confirmed_profile(context.user_data, profile_draft(context.user_data))
-        set_state(context.user_data, STATE_MAIN_MENU)
-        set_pending_slot(context.user_data, None)
-        await send_text(
-            update,
-            profile_service.confirmed_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
-        )
         return
 
     if decision.route == ROUTE_FERTILIZER_FINALIZE:
