@@ -10,6 +10,12 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from pydantic import BaseModel, Field
 
 from PROJECT.admin.follow_up import FollowUpStatus, InMemoryAdminRuntime, OutboxStatus, admin_runtime
+from PROJECT.storage.fields import (
+    FIELD_BINDING_EXCEPTION_STATUS_CLOSED,
+    FIELD_BINDING_EXCEPTION_STATUS_OPEN,
+    FIELD_BINDING_EXCEPTION_STATUS_RESOLVED,
+    SqliteFieldRegistryRepository,
+)
 from PROJECT.storage.invitations import (
     DEFAULT_INVITATION_CHANNEL,
     DEFAULT_INVITATION_ROLE,
@@ -53,6 +59,10 @@ class OnboardingRejectionRequest(BaseModel):
     message: str = "온보딩 신청이 반려되었습니다. 필요한 경우 지원을 요청해주세요."
 
 
+class ResolveFieldBindingExceptionRequest(BaseModel):
+    pass
+
+
 ADMIN_ACCESS_ROLE_VIEWER = "viewer"
 ADMIN_ACCESS_ROLE_OPERATOR = "operator"
 ADMIN_WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -92,6 +102,30 @@ def _serialize_audit_event(event) -> dict:
     }
 
 
+def _serialize_field_binding_exception(item) -> dict:
+    return {
+        "id": item.id,
+        "project_id": item.project_id,
+        "participant_id": item.participant_id,
+        "onboarding_session_id": item.onboarding_session_id,
+        "provider_user_id": item.provider_user_id,
+        "chat_id": item.chat_id,
+        "field_registry_version_id": item.field_registry_version_id,
+        "exception_type_code": item.exception_type_code,
+        "exception_status_code": item.exception_status_code,
+        "route_hint": item.route_hint,
+        "requested_field_code": item.requested_field_code,
+        "location_latitude": item.location_latitude,
+        "location_longitude": item.location_longitude,
+        "location_accuracy_meters": item.location_accuracy_meters,
+        "candidate_field_ids": list(item.candidate_field_ids),
+        "detail": item.detail,
+        "created_at": item.created_at,
+        "updated_at": item.updated_at,
+        "resolved_at": item.resolved_at,
+    }
+
+
 def _require_invitation_repository(invitation_repository: SqliteInvitationRepository | None) -> SqliteInvitationRepository:
     if invitation_repository is None:
         raise HTTPException(status_code=503, detail="invitation repository unavailable")
@@ -104,6 +138,14 @@ def _require_onboarding_admin_repository(
     if onboarding_admin_repository is None:
         raise HTTPException(status_code=503, detail="onboarding admin repository unavailable")
     return onboarding_admin_repository
+
+
+def _require_field_registry_repository(
+    field_registry_repository: SqliteFieldRegistryRepository | None,
+) -> SqliteFieldRegistryRepository:
+    if field_registry_repository is None:
+        raise HTTPException(status_code=503, detail="field registry repository unavailable")
+    return field_registry_repository
 
 
 def _parse_outbox_status(status: str | None) -> OutboxStatus | None:
@@ -130,6 +172,18 @@ def _parse_audit_result(result: str | None) -> str | None:
     if result in {RESULT_SUCCESS, RESULT_FAILURE}:
         return result
     raise HTTPException(status_code=400, detail="unknown audit result")
+
+
+def _parse_field_binding_exception_status(status: str | None) -> str | None:
+    if not status:
+        return None
+    if status in {
+        FIELD_BINDING_EXCEPTION_STATUS_OPEN,
+        FIELD_BINDING_EXCEPTION_STATUS_RESOLVED,
+        FIELD_BINDING_EXCEPTION_STATUS_CLOSED,
+    }:
+        return status
+    raise HTTPException(status_code=400, detail="unknown field binding exception status")
 
 
 def _parse_filter_date(value: str | None, *, field_name: str) -> str | None:
@@ -228,6 +282,7 @@ def _topbar(title: str) -> str:
     <a href="/admin/pages/follow-ups">지원 이관</a>
     <a href="/admin/pages/invitations">초대 코드</a>
     <a href="/admin/pages/onboarding/submissions">온보딩 승인</a>
+    <a href="/admin/pages/field-binding-exceptions">농지 예외</a>
     <a href="/admin/pages/outbox">발송 대기</a>
     <a href="/admin/pages/audit-events">감사 로그</a>
     <a href="/admin/pages/security">보안 상태</a>
@@ -352,6 +407,7 @@ def create_admin_api_app(
     *,
     invitation_repository: SqliteInvitationRepository | None = None,
     onboarding_admin_repository: SqliteOnboardingAdminRepository | None = None,
+    field_registry_repository: SqliteFieldRegistryRepository | None = None,
     admin_audit_repository: SqliteAdminAuditRepository | None = None,
     admin_access_token: str = "",
     admin_previous_access_token: str = "",
@@ -604,6 +660,12 @@ def create_admin_api_app(
         if onboarding_admin_repository is not None:
             pending_onboarding_count = len(onboarding_admin_repository.list_pending_submissions())
 
+        field_binding_exception_open_count: str | int = "비활성"
+        if field_registry_repository is not None:
+            field_binding_exception_open_count = len(
+                field_registry_repository.list_binding_exceptions(status=FIELD_BINDING_EXCEPTION_STATUS_OPEN)
+            )
+
         audit_count: str | int = "비활성"
         if admin_audit_repository is not None:
             audit_count = len(admin_audit_repository.list_events(limit=20))
@@ -616,6 +678,7 @@ def create_admin_api_app(
   {_dashboard_card("지원 이관", f"{follow_up_summary['active']} open / {follow_up_summary['waiting_admin_reply']} waiting", "/admin/pages/follow-ups", "사용자 지원 이관 요청과 대화 내역을 확인합니다.")}
   {_dashboard_card("초대 코드", invitation_count, "/admin/pages/invitations", "사용자가 /start 코드로 진입할 수 있는 초대 코드를 관리합니다.")}
   {_dashboard_card("온보딩 승인", pending_onboarding_count, "/admin/pages/onboarding/submissions", "제출된 온보딩 신청을 승인하거나 반려합니다.")}
+  {_dashboard_card("농지 예외", field_binding_exception_open_count, "/admin/pages/field-binding-exceptions", "농지 바인딩 실패나 충돌 예외를 확인하고 처리합니다.")}
   {_dashboard_card("발송 대기", f"{outbox_summary['pending']} pending / {outbox_summary['failed']} failed", "/admin/pages/outbox", "봇 전송 계층으로 전달될 메시지 상태를 확인합니다.")}
   {_dashboard_card("운영 검토", outbox_summary["manual_review"], "/admin/pages/outbox?status=manual_review", "재시도 한도를 초과한 outbox 메시지를 점검합니다.")}
   {_dashboard_card("감사 로그", audit_count, "/admin/pages/audit-events", "관리자 쓰기 작업과 접근 제어 이벤트를 확인합니다.")}
@@ -729,6 +792,56 @@ def create_admin_api_app(
         else:
             items = '<section class="card"><p class="muted">승인 대기 중인 온보딩 신청이 없습니다.</p></section>'
         return _page("온보딩 승인", _topbar("온보딩 승인") + items)
+
+    @app.get("/admin/pages/field-binding-exceptions", response_class=HTMLResponse)
+    def field_binding_exceptions_page(status: str | None = None) -> HTMLResponse:
+        repository = _require_field_registry_repository(field_registry_repository)
+        selected_status = _parse_field_binding_exception_status(status)
+        items = repository.list_binding_exceptions(status=selected_status)
+        filter_links = """<section class="card">
+  <a href="/admin/pages/field-binding-exceptions">전체</a>
+  <a href="/admin/pages/field-binding-exceptions?status=open">open</a>
+  <a href="/admin/pages/field-binding-exceptions?status=resolved">resolved</a>
+  <a href="/admin/pages/field-binding-exceptions?status=closed">closed</a>
+</section>"""
+        if items:
+            cards = "\n".join(
+                f"""<section class="card">
+  <div>
+    <span class="badge{' closed' if item.exception_status_code != FIELD_BINDING_EXCEPTION_STATUS_OPEN else ''}">{escape(item.exception_status_code)}</span>
+    <span class="muted"> {escape(item.created_at)}</span>
+  </div>
+  <h2>{escape(item.id)}</h2>
+  <p>유형: {escape(item.exception_type_code)} / route: {escape(item.route_hint)}</p>
+  <p class="muted">participant: {escape(item.participant_id or "-")} / user: {escape(item.provider_user_id or "-")} / code: {escape(item.requested_field_code or "-")}</p>
+  <p class="muted">candidate ids: {escape(", ".join(item.candidate_field_ids) or "-")}</p>
+  {(
+      f'<form method="post" action="/admin/pages/field-binding-exceptions/{escape(item.id)}/resolve" accept-charset="utf-8"><button type="submit">처리 완료</button></form>'
+      if item.exception_status_code == FIELD_BINDING_EXCEPTION_STATUS_OPEN
+      else '<p class="muted">이미 처리된 항목입니다.</p>'
+  )}
+</section>"""
+                for item in items
+            )
+        else:
+            cards = '<section class="card"><p class="muted">저장된 농지 바인딩 예외가 없습니다.</p></section>'
+        return _page("농지 바인딩 예외", _topbar("농지 바인딩 예외") + filter_links + cards)
+
+    @app.post("/admin/pages/field-binding-exceptions/{exception_id}/resolve")
+    def resolve_field_binding_exception_page(exception_id: str, request: Request):
+        repository = _require_field_registry_repository(field_registry_repository)
+        try:
+            item = repository.resolve_binding_exception(exception_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail="field binding exception not found") from exc
+        record_admin_audit(
+            request,
+            action_code="admin.field_binding_exception.resolve",
+            source_code="admin.web.field_binding_exception.resolve",
+            target_type_code="field_binding_exception",
+            target_id=item.id,
+        )
+        return RedirectResponse("/admin/pages/field-binding-exceptions?status=open", status_code=303)
 
     @app.get("/admin/pages/outbox", response_class=HTMLResponse)
     def outbox_page(status: str | None = None) -> HTMLResponse:
@@ -1249,6 +1362,37 @@ def create_admin_api_app(
             detail={"reason": payload.reason},
         )
         return {"follow_up": _serialize(follow_up), "reason": payload.reason}
+
+    @app.get("/admin/field-binding-exceptions")
+    def list_field_binding_exceptions(status: str | None = None) -> dict:
+        repository = _require_field_registry_repository(field_registry_repository)
+        selected_status = _parse_field_binding_exception_status(status)
+        return {
+            "items": [
+                _serialize_field_binding_exception(item)
+                for item in repository.list_binding_exceptions(status=selected_status)
+            ]
+        }
+
+    @app.post("/admin/field-binding-exceptions/{exception_id}/resolve")
+    def resolve_field_binding_exception(
+        exception_id: str,
+        payload: ResolveFieldBindingExceptionRequest,
+        request: Request,
+    ) -> dict:
+        repository = _require_field_registry_repository(field_registry_repository)
+        try:
+            item = repository.resolve_binding_exception(exception_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail="field binding exception not found") from exc
+        record_admin_audit(
+            request,
+            action_code="admin.field_binding_exception.resolve",
+            source_code="admin.api.field_binding_exception.resolve",
+            target_type_code="field_binding_exception",
+            target_id=item.id,
+        )
+        return {"item": _serialize_field_binding_exception(item)}
 
     @app.get("/admin/outbox")
     def list_outbox(status: str | None = None) -> dict:

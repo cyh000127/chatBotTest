@@ -3,8 +3,10 @@ from fastapi.testclient import TestClient
 from PROJECT.admin.follow_up import DEFAULT_OUTBOX_MAX_RETRY_COUNT, FOLLOW_UP_CLOSED_NOTICE, InMemoryAdminRuntime, OutboxStatus
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.admin_api.app import create_admin_api_app
+from PROJECT.fields.binding import FieldBindingService
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.admin_audit import RESULT_FAILURE, RESULT_SUCCESS, SqliteAdminAuditRepository
+from PROJECT.storage.fields import FIELD_BINDING_EXCEPTION_STATUS_OPEN, FIELD_BINDING_EXCEPTION_STATUS_RESOLVED, SqliteFieldRegistryRepository
 from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED, INVITATION_STATUS_REVOKED, SqliteInvitationRepository
 from PROJECT.storage.onboarding import ONBOARDING_STATUS_APPROVED, ONBOARDING_STATUS_REJECTED, SqliteOnboardingRepository
 from PROJECT.storage.onboarding_admin import OUTBOX_STATUS_PENDING, SqliteOnboardingAdminRepository
@@ -30,6 +32,50 @@ def create_pending_onboarding_submission(runtime):
         phone_normalized="+85512345678",
     )
     return onboarding_repository.submit_pending_approval(session.id)
+
+
+def create_field_binding_exception(runtime):
+    invitation_repository = SqliteInvitationRepository(runtime.connection)
+    onboarding_repository = SqliteOnboardingRepository(runtime.connection)
+    invitation = invitation_repository.create_invitation()
+    session = onboarding_repository.create_or_resume_from_invitation(
+        invitation=invitation,
+        provider_user_id="12345",
+        provider_handle="farmer_user",
+        preferred_locale_code="ko",
+        chat_id=67890,
+    )
+    session = onboarding_repository.update_locale(session.id, "ko")
+    session = onboarding_repository.update_name(session.id, "홍길동")
+    session = onboarding_repository.update_phone(
+        session.id,
+        phone_raw="+855 12 345 678",
+        phone_normalized="+85512345678",
+    )
+    session = onboarding_repository.submit_pending_approval(session.id)
+    SqliteOnboardingAdminRepository(runtime.connection).approve_submission(session.id)
+
+    field_repository = SqliteFieldRegistryRepository(runtime.connection)
+    version = field_repository.create_registry_version(version_label="v1")
+    field_repository.import_field(
+        field_registry_version_id=version.id,
+        field_code="FIELD-001",
+        display_name="논 1",
+        polygon=[(37.0, 127.0), (37.0, 127.1), (37.1, 127.1), (37.1, 127.0)],
+    )
+    field_repository.publish_version(version.id)
+
+    service = FieldBindingService(field_repository)
+    result = service.lookup_location(
+        provider_user_id="12345",
+        latitude=35.0,
+        longitude=128.0,
+        accuracy_meters=12.0,
+        onboarding_session_id=session.id,
+        chat_id=67890,
+    )
+    assert result.exception is not None
+    return field_repository, result.exception
 
 
 def test_admin_api_lists_follow_ups_and_accepts_reply():
@@ -1897,5 +1943,94 @@ def test_admin_onboarding_page_rejects_submission_and_creates_outbox(tmp_path):
         assert response.status_code == 303
         assert response.headers["location"] == "/admin/pages/onboarding/submissions"
         assert outbox["message_text"] == "반려되었습니다."
+    finally:
+        runtime.close()
+
+
+def test_admin_api_lists_and_resolves_field_binding_exceptions(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        field_repository, exception = create_field_binding_exception(runtime)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                field_registry_repository=field_repository,
+            )
+        )
+
+        listed = client.get("/admin/field-binding-exceptions?status=open")
+        resolved = client.post(f"/admin/field-binding-exceptions/{exception.id}/resolve", json={})
+
+        assert listed.status_code == 200
+        assert listed.json()["items"][0]["id"] == exception.id
+        assert listed.json()["items"][0]["exception_status_code"] == FIELD_BINDING_EXCEPTION_STATUS_OPEN
+        assert resolved.status_code == 200
+        assert resolved.json()["item"]["exception_status_code"] == FIELD_BINDING_EXCEPTION_STATUS_RESOLVED
+    finally:
+        runtime.close()
+
+
+def test_admin_field_binding_exception_page_can_mark_item_resolved(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        field_repository, exception = create_field_binding_exception(runtime)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                field_registry_repository=field_repository,
+            )
+        )
+
+        page = client.get("/admin/pages/field-binding-exceptions")
+        response = client.post(
+            f"/admin/pages/field-binding-exceptions/{exception.id}/resolve",
+            follow_redirects=False,
+        )
+
+        assert page.status_code == 200
+        assert exception.id in page.text
+        assert response.status_code == 303
+        assert response.headers["location"] == "/admin/pages/field-binding-exceptions?status=open"
+    finally:
+        runtime.close()
+
+
+def test_admin_api_field_binding_exception_resolution_writes_audit_event(tmp_path):
+    runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert runtime is not None
+    try:
+        field_repository, exception = create_field_binding_exception(runtime)
+        audit_repository = SqliteAdminAuditRepository(runtime.connection)
+        client = TestClient(
+            create_admin_api_app(
+                InMemoryAdminRuntime(),
+                field_registry_repository=field_repository,
+                admin_audit_repository=audit_repository,
+            )
+        )
+
+        response = client.post(f"/admin/field-binding-exceptions/{exception.id}/resolve", json={})
+        events = audit_repository.list_events(action_code="admin.field_binding_exception.resolve")
+
+        assert response.status_code == 200
+        assert events
+        assert events[0].target_id == exception.id
     finally:
         runtime.close()
