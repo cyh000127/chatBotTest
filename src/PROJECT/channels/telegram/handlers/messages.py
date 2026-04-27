@@ -109,7 +109,6 @@ from PROJECT.dispatch.session_dispatcher import (
     set_confirmed_yield,
     set_fertilizer_draft,
     set_last_recovery_context,
-    set_confirmed_profile,
     set_locale,
     set_pending_candidate,
     set_pending_repair_confirmation,
@@ -139,7 +138,6 @@ from PROJECT.rule_engine import (
     assemble_recovery_context,
     classify_cheap_gate,
     detect_fertilizer_direct_update,
-    detect_profile_direct_update,
     extract_birth_date_candidate,
     extract_korean_name_candidate,
 )
@@ -194,14 +192,6 @@ YIELD_STATES = {
     STATE_YIELD_DATE,
     STATE_YIELD_CONFIRM,
     STATE_YIELD_EDIT_SELECT,
-}
-
-PROFILE_EDIT_CALLBACK_TO_STATE = {
-    "name": STATE_PROFILE_NAME,
-    "residence": STATE_PROFILE_RESIDENCE,
-    "city": STATE_PROFILE_CITY,
-    "district": STATE_PROFILE_DISTRICT,
-    "birth_date": STATE_PROFILE_BIRTH_YEAR,
 }
 
 FERTILIZER_EDIT_CALLBACK_TO_STATE = {
@@ -1187,8 +1177,6 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "profile_month", {"month": int(data.rsplit(":", 1)[1])}
     if data.startswith("profile:day:"):
         return "profile_day", {"day": int(data.rsplit(":", 1)[1])}
-    if data.startswith("profile:edit:"):
-        return "profile_edit_select", {"target": data.rsplit(":", 1)[1]}
     if data.startswith("fertilizer:edit:"):
         return "fertilizer_edit_select", {"target": data.rsplit(":", 1)[1]}
     if data.startswith("fertilizer:used:"):
@@ -1568,76 +1556,6 @@ async def text_message(update, context) -> None:
             keyboard_layout=language_keyboard(),
         )
         return
-
-    if state in PROFILE_STATES:
-        if state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}:
-            multi_slot_changes = extract_profile_multi_slot_candidate_changes(inbound.text)
-            if multi_slot_changes is not None:
-                reset_recovery_attempts(context.user_data)
-                await send_repair_confirmation(
-                    update,
-                    context,
-                    domain="profile",
-                    target_state=STATE_PROFILE_CONFIRM,
-                    use_confirmed=False,
-                    candidate_changes=multi_slot_changes,
-                )
-                return
-
-        profile_direct_update = detect_profile_direct_update(
-            inbound.text,
-            allow_implicit=state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT},
-        )
-        if profile_direct_update is not None:
-            reset_recovery_attempts(context.user_data)
-            log_rule_matched(
-                rule_name=profile_direct_update.matched_rule,
-                domain="profile",
-                target_state=profile_direct_update.target_state,
-                scope="draft",
-            )
-            await send_repair_confirmation(
-                update,
-                context,
-                domain="profile",
-                target_state=profile_direct_update.target_state,
-                use_confirmed=False,
-                candidate_changes=profile_direct_update.changes if state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT} else None,
-            )
-            return
-
-        repair = detect_repair_intent(
-            inbound.text,
-            current_state=state,
-            domain_hint="profile",
-        )
-        if repair is not None and repair.target_state in PROFILE_STATES:
-            reset_recovery_attempts(context.user_data)
-            log_rule_matched(
-                rule_name=repair.target,
-                domain="profile",
-                target_state=repair.target_state,
-                scope="draft",
-            )
-            await send_repair_confirmation(
-                update,
-                context,
-                domain="profile",
-                target_state=repair.target_state,
-                use_confirmed=False,
-            )
-            return
-
-        handled_by_llm = await attempt_llm_repair_after_rules(
-            update,
-            context,
-            text=inbound.text,
-            domain="profile",
-            use_confirmed=False,
-        )
-        if handled_by_llm:
-            reset_recovery_attempts(context.user_data)
-            return
 
     if state in FERTILIZER_STATES:
         if state == STATE_FERTILIZER_CONFIRM:
@@ -2175,23 +2093,6 @@ async def button_callback(update, context) -> None:
             return
         set_state(context.user_data, STATE_PROFILE_CONFIRM, push_history=True)
         await send_profile_confirmation(update, context)
-        return
-
-    if action == "profile_edit_select":
-        await clear_callback_markup(update)
-        target_state = PROFILE_EDIT_CALLBACK_TO_STATE.get(payload["target"])
-        if target_state is None:
-            await send_profile_prompt(update, context, STATE_PROFILE_EDIT_SELECT)
-            return
-        draft = profile_service.reset_draft_for_repair(current_profile(context), target_state)
-        set_profile_draft(context.user_data, draft.to_dict())
-        set_pending_slot(context.user_data, target_state)
-        set_state(context.user_data, target_state, push_history=True)
-        await send_text(
-            update,
-            profile_service.repair_message(target_state, current_catalog(context)),
-            keyboard_layout=profile_service.keyboard_for_state(target_state, draft, current_catalog(context)),
-        )
         return
 
     if action == "fertilizer_edit_select":

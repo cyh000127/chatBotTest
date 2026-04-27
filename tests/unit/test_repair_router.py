@@ -8,12 +8,10 @@ from PROJECT.conversations.profile_intake import service
 from PROJECT.conversations.profile_intake.states import (
     STATE_PROFILE_BIRTH_YEAR,
     STATE_PROFILE_CITY,
-    STATE_PROFILE_CONFIRM,
-    STATE_PROFILE_EDIT_SELECT,
     STATE_PROFILE_NAME,
     STATE_PROFILE_RESIDENCE,
 )
-from PROJECT.dispatch.repair_router import detect_profile_view_intent, detect_repair_intent
+from PROJECT.dispatch.repair_router import detect_repair_intent
 
 
 def test_detect_birth_repair_intent_is_not_global_anymore():
@@ -53,24 +51,9 @@ def test_detect_contextual_fertilizer_product_repair_intent_in_confirm_state():
     assert decision.target_state == STATE_FERTILIZER_PRODUCT
 
 
-def test_detect_contextual_profile_birth_repair_intent_in_confirm_state():
-    decision = detect_repair_intent(
-        "생일 수정할래",
-        current_state=STATE_PROFILE_CONFIRM,
-        domain_hint="profile",
-    )
-    assert decision is not None
-    assert decision.target_state == STATE_PROFILE_BIRTH_YEAR
-
-
 def test_field_only_repair_phrase_is_not_global_without_context():
     decision = detect_repair_intent("제품명 수정할래")
     assert decision is None
-
-
-def test_detect_profile_view_intent():
-    assert detect_profile_view_intent("내 프로필 보여줘") is False
-    assert detect_profile_view_intent("/프로필") is False
 
 
 def test_reset_draft_for_birth_repair_clears_only_birth_fields():

@@ -1,6 +1,5 @@
 from PROJECT.canonical_intents import registry
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_USED
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT
 from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_CONFIRM, STATE_YIELD_EDIT_SELECT, STATE_YIELD_READY
 from PROJECT.dispatch.command_router import (
@@ -9,7 +8,6 @@ from PROJECT.dispatch.command_router import (
     ROUTE_OPEN_INPUT_RESOLVE,
     ROUTE_OPEN_MYFIELDS,
     ROUTE_OPEN_YIELD,
-    ROUTE_PROFILE_EDIT,
     ROUTE_YIELD_EDIT,
     ROUTE_SUPPORT_GUIDANCE,
     ROUTE_UNKNOWN_INPUT,
@@ -46,13 +44,6 @@ def test_input_resolve_entry_routes_to_resolve_entry():
 def test_support_entry_routes_to_support_guidance():
     decision = route_message(STATE_MAIN_MENU, registry.INTENT_SUPPORT_ESCALATE)
     assert decision.route == ROUTE_SUPPORT_GUIDANCE
-
-
-def test_profile_confirm_edit_routes_to_edit_selection():
-    decision = route_message(STATE_PROFILE_CONFIRM, registry.INTENT_EDIT)
-    assert decision.route == ROUTE_PROFILE_EDIT
-    assert decision.next_state == STATE_PROFILE_EDIT_SELECT
-    assert decision.push_history is True
 
 
 def test_yield_confirm_edit_routes_to_edit_selection_entry():
