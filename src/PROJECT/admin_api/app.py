@@ -1,5 +1,6 @@
 import csv
 from dataclasses import asdict
+import json
 from datetime import UTC, datetime
 from html import escape
 from io import StringIO
@@ -1106,8 +1107,16 @@ def create_admin_api_app(
         request_event = repository.get_request_event(submission.evidence_request_event_id)
         signals = repository.list_validation_signals(submission.id)
         state_logs = repository.list_state_logs(submission.id)
+        parser_status = next(
+            (
+                str(signal.detail.get("parser_status"))
+                for signal in signals
+                if isinstance(signal.detail.get("parser_status"), str)
+            ),
+            "-",
+        )
         signal_items = "\n".join(
-            f'<div class="message">{escape(signal.signal_type_code)} / {escape(signal.signal_status_code)} / {escape(str(signal.numeric_value) if signal.numeric_value is not None else signal.text_value or "-")}</div>'
+            f'<div class="message">{escape(signal.signal_type_code)} / {escape(signal.signal_status_code)} / {escape(str(signal.numeric_value) if signal.numeric_value is not None else signal.text_value or "-")}<br><span class="muted">{escape(json.dumps(signal.detail, ensure_ascii=False, sort_keys=True))}</span></div>'
             for signal in signals
         ) or '<p class="muted">저장된 signal이 없습니다.</p>'
         state_log_items = "\n".join(
@@ -1136,6 +1145,11 @@ def create_admin_api_app(
   <p>파일명: {escape(submission.file_name or "-")} / mime: {escape(submission.mime_type or "-")}</p>
   <p class="muted">file id: {escape(submission.provider_file_id or "-")} / unique id: {escape(submission.provider_file_unique_id or "-")}</p>
   <p class="muted">uploaded_at: {escape(submission.uploaded_at)} / submitted_at: {escape(submission.submitted_at or "-")}</p>
+</section>
+<section class="card">
+  <h2>Artifact</h2>
+  <p>uri: {escape(submission.staged_artifact_uri or "-")}</p>
+  <p class="muted">checksum: {escape(submission.checksum_sha256 or "-")} / parser: {escape(parser_status)}</p>
 </section>
 <section class="card">
   <h2>세션</h2>

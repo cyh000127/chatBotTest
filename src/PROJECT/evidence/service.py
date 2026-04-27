@@ -27,10 +27,14 @@ EVIDENCE_REASON_MISSING_EXIF = "missing_exif"
 EVIDENCE_REASON_MISSING_GPS = "missing_gps"
 EVIDENCE_REASON_MISSING_CAPTURE_TIME = "missing_capture_time"
 EVIDENCE_REASON_LOCATION_DISTANCE_TOO_FAR = "location_distance_too_far"
+EVIDENCE_REASON_UNSUPPORTED_FILE_TYPE = "unsupported_file_type"
+EVIDENCE_REASON_ARTIFACT_READ_FAILED = "artifact_read_failed"
 EVIDENCE_MANUAL_REVIEW_REASON_DISTANCE_CONFLICT = "distance_conflict"
 EVIDENCE_MANUAL_REVIEW_REASON_RETRY_LIMIT = "retry_limit"
 MAX_EVIDENCE_LOCATION_DISTANCE_METERS = 500.0
 MAX_EVIDENCE_RETRY_BEFORE_MANUAL_REVIEW = 2
+SUPPORTED_EVIDENCE_MIME_TYPES = {"image/jpeg", "image/jpg"}
+SUPPORTED_EVIDENCE_FILE_SUFFIXES = {".jpg", ".jpeg"}
 
 
 @dataclass(frozen=True)
@@ -246,16 +250,22 @@ class EvidenceSubmissionService:
 
         missing_signal_codes: list[str] = []
         reason_codes: list[str] = []
+        parser_status = self._artifact_parser_status(signals_by_type)
 
-        if self._signal_status(signals_by_type, "exif_present") != "present":
-            missing_signal_codes.append("exif_present")
-            reason_codes.append(EVIDENCE_REASON_MISSING_EXIF)
-        if self._signal_status(signals_by_type, "gps_present") != "present":
-            missing_signal_codes.append("gps_present")
-            reason_codes.append(EVIDENCE_REASON_MISSING_GPS)
-        if self._signal_status(signals_by_type, "capture_time_present") != "present":
-            missing_signal_codes.append("capture_time_present")
-            reason_codes.append(EVIDENCE_REASON_MISSING_CAPTURE_TIME)
+        if self._has_staged_artifact(submission) and not self._is_supported_artifact_file(submission):
+            reason_codes.append(EVIDENCE_REASON_UNSUPPORTED_FILE_TYPE)
+        elif self._has_staged_artifact(submission) and parser_status in {"missing_file", "read_failed", "unsupported_uri"}:
+            reason_codes.append(EVIDENCE_REASON_ARTIFACT_READ_FAILED)
+        else:
+            if self._signal_status(signals_by_type, "exif_present") != "present":
+                missing_signal_codes.append("exif_present")
+                reason_codes.append(EVIDENCE_REASON_MISSING_EXIF)
+            if self._signal_status(signals_by_type, "gps_present") != "present":
+                missing_signal_codes.append("gps_present")
+                reason_codes.append(EVIDENCE_REASON_MISSING_GPS)
+            if self._signal_status(signals_by_type, "capture_time_present") != "present":
+                missing_signal_codes.append("capture_time_present")
+                reason_codes.append(EVIDENCE_REASON_MISSING_CAPTURE_TIME)
 
         distance_signal = signals_by_type.get("location_distance_meters")
         distance_meters = distance_signal.numeric_value if distance_signal is not None else None
@@ -425,3 +435,31 @@ class EvidenceSubmissionService:
                 EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED,
             }
         )
+
+    @staticmethod
+    def _artifact_parser_status(signals_by_type: dict) -> str | None:
+        for signal_type_code in ("exif_present", "gps_present", "capture_time_present"):
+            signal = signals_by_type.get(signal_type_code)
+            if signal is None:
+                continue
+            parser_status = signal.detail.get("parser_status")
+            if isinstance(parser_status, str) and parser_status:
+                return parser_status
+        return None
+
+    @staticmethod
+    def _has_staged_artifact(submission: EvidenceSubmission) -> bool:
+        return bool(submission.staged_artifact_uri)
+
+    @staticmethod
+    def _is_supported_artifact_file(submission: EvidenceSubmission) -> bool:
+        mime_type = (submission.mime_type or "").strip().lower()
+        if mime_type and mime_type not in SUPPORTED_EVIDENCE_MIME_TYPES:
+            return False
+        file_name = (submission.file_name or "").strip().lower()
+        if "." not in file_name:
+            return True
+        suffix = "." + file_name.rsplit(".", 1)[-1]
+        if suffix not in SUPPORTED_EVIDENCE_FILE_SUFFIXES:
+            return False
+        return True
