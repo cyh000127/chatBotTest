@@ -34,18 +34,6 @@ from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_PRODUCT,
     STATE_FERTILIZER_USED,
 )
-from PROJECT.conversations.profile_intake import service as profile_service
-from PROJECT.conversations.profile_intake.states import (
-    STATE_PROFILE_BIRTH_DAY,
-    STATE_PROFILE_BIRTH_MONTH,
-    STATE_PROFILE_BIRTH_YEAR,
-    STATE_PROFILE_CITY,
-    STATE_PROFILE_CONFIRM,
-    STATE_PROFILE_EDIT_SELECT,
-    STATE_PROFILE_DISTRICT,
-    STATE_PROFILE_NAME,
-    STATE_PROFILE_RESIDENCE,
-)
 from PROJECT.conversations.yield_intake import service as yield_service
 from PROJECT.conversations.yield_intake.states import (
     STATE_YIELD_AMOUNT,
@@ -84,7 +72,6 @@ from PROJECT.dispatch.session_dispatcher import (
     clear_pending_candidate,
     cancel_session,
     confirmed_fertilizer,
-    confirmed_profile,
     confirmed_yield,
     current_locale,
     current_state,
@@ -101,7 +88,6 @@ from PROJECT.dispatch.session_dispatcher import (
     pending_candidate,
     pending_repair_confirmation,
     pending_slot,
-    profile_draft,
     recovery_attempts,
     reset_session,
     reset_recovery_attempts,
@@ -113,7 +99,6 @@ from PROJECT.dispatch.session_dispatcher import (
     set_pending_candidate,
     set_pending_repair_confirmation,
     set_pending_slot,
-    set_profile_draft,
     set_state,
     set_yield_draft,
     yield_draft,
@@ -138,8 +123,6 @@ from PROJECT.rule_engine import (
     assemble_recovery_context,
     classify_cheap_gate,
     detect_fertilizer_direct_update,
-    extract_birth_date_candidate,
-    extract_korean_name_candidate,
 )
 from PROJECT.rule_engine.normalizer import normalize_body_text
 from PROJECT.policy import same_input_cache_key
@@ -163,18 +146,6 @@ from PROJECT.telemetry.events import (
     RULE_MATCHED,
     RULE_REPAIR_SIGNAL_DETECTED,
 )
-
-PROFILE_STATES = {
-    STATE_PROFILE_NAME,
-    STATE_PROFILE_RESIDENCE,
-    STATE_PROFILE_CITY,
-    STATE_PROFILE_DISTRICT,
-    STATE_PROFILE_BIRTH_YEAR,
-    STATE_PROFILE_BIRTH_MONTH,
-    STATE_PROFILE_BIRTH_DAY,
-    STATE_PROFILE_CONFIRM,
-    STATE_PROFILE_EDIT_SELECT,
-}
 
 FERTILIZER_STATES = {
     STATE_FERTILIZER_USED,
@@ -210,12 +181,6 @@ YIELD_EDIT_CALLBACK_TO_STATE = {
 }
 
 LLM_EDIT_ACTION_TO_TARGET = {
-    LlmEditAction.PROFILE_EDIT_SELECT.value: ("profile", STATE_PROFILE_EDIT_SELECT),
-    LlmEditAction.PROFILE_EDIT_NAME.value: ("profile", STATE_PROFILE_NAME),
-    LlmEditAction.PROFILE_EDIT_RESIDENCE.value: ("profile", STATE_PROFILE_RESIDENCE),
-    LlmEditAction.PROFILE_EDIT_CITY.value: ("profile", STATE_PROFILE_CITY),
-    LlmEditAction.PROFILE_EDIT_DISTRICT.value: ("profile", STATE_PROFILE_DISTRICT),
-    LlmEditAction.PROFILE_EDIT_BIRTH_DATE.value: ("profile", STATE_PROFILE_BIRTH_YEAR),
     LlmEditAction.FERTILIZER_EDIT_SELECT.value: ("fertilizer", STATE_FERTILIZER_CONFIRM),
     LlmEditAction.FERTILIZER_EDIT_USED.value: ("fertilizer", STATE_FERTILIZER_USED),
     LlmEditAction.FERTILIZER_EDIT_KIND.value: ("fertilizer", STATE_FERTILIZER_KIND),
@@ -225,15 +190,6 @@ LLM_EDIT_ACTION_TO_TARGET = {
 }
 
 LLM_MIN_CONFIDENCE = 0.6
-PROFILE_REPAIR_ALLOWED_ACTIONS = (
-    LlmEditAction.PROFILE_EDIT_SELECT.value,
-    LlmEditAction.PROFILE_EDIT_NAME.value,
-    LlmEditAction.PROFILE_EDIT_RESIDENCE.value,
-    LlmEditAction.PROFILE_EDIT_CITY.value,
-    LlmEditAction.PROFILE_EDIT_DISTRICT.value,
-    LlmEditAction.PROFILE_EDIT_BIRTH_DATE.value,
-    LlmEditAction.UNSUPPORTED.value,
-)
 FERTILIZER_REPAIR_ALLOWED_ACTIONS = (
     LlmEditAction.FERTILIZER_EDIT_SELECT.value,
     LlmEditAction.FERTILIZER_EDIT_USED.value,
@@ -265,18 +221,8 @@ HANDOFF_SAFE_EXIT_INTENTS = {
 def current_catalog(context):
     return get_catalog(current_locale(context.user_data))
 
-
-def current_profile(context) -> profile_service.ProfileDraft:
-    return profile_service.draft_from_dict(profile_draft(context.user_data))
-
-
 def current_fertilizer(context) -> fertilizer_service.FertilizerDraft:
     return fertilizer_service.draft_from_dict(fertilizer_draft(context.user_data))
-
-
-def confirmed_profile_draft(context) -> profile_service.ProfileDraft:
-    return profile_service.draft_from_dict(confirmed_profile(context.user_data))
-
 
 def confirmed_fertilizer_draft(context) -> fertilizer_service.FertilizerDraft:
     return fertilizer_service.draft_from_dict(confirmed_fertilizer(context.user_data))
@@ -380,26 +326,6 @@ def discard_pending_candidate(context, *, reason: str) -> None:
     clear_pending_candidate(context.user_data)
 
 
-async def send_profile_prompt(update, context, state: str, text: str | None = None) -> None:
-    catalog = current_catalog(context)
-    draft = current_profile(context)
-    await send_text(
-        update,
-        text or profile_service.prompt_for_state(state, catalog),
-        keyboard_layout=profile_service.keyboard_for_state(state, draft, catalog),
-    )
-
-
-async def send_profile_confirmation(update, context) -> None:
-    catalog = current_catalog(context)
-    draft = current_profile(context)
-    await send_text(
-        update,
-        profile_service.confirmation_text(draft, catalog),
-        keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, draft, catalog),
-    )
-
-
 async def send_fertilizer_prompt(update, context, state: str, text: str | None = None) -> None:
     catalog = current_catalog(context)
     await send_text(
@@ -435,33 +361,6 @@ async def send_yield_confirmation(update, context) -> None:
     )
 
 
-async def open_current_profile_edit_selector(update, context) -> None:
-    catalog = current_catalog(context)
-    set_pending_slot(context.user_data, None)
-    set_state(context.user_data, STATE_PROFILE_EDIT_SELECT)
-    await send_text(
-        update,
-        profile_service.edit_selection_text(current_profile(context), catalog),
-        keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_EDIT_SELECT, current_profile(context), catalog),
-    )
-
-
-async def open_current_profile_target_edit(update, context, target_state: str) -> None:
-    catalog = current_catalog(context)
-    draft = profile_service.reset_draft_for_repair(current_profile(context), target_state)
-    set_profile_draft(context.user_data, draft.to_dict())
-    if current_state(context.user_data) in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT}:
-        set_pending_slot(context.user_data, target_state)
-    else:
-        set_pending_slot(context.user_data, None)
-    set_state(context.user_data, target_state)
-    await send_text(
-        update,
-        profile_service.repair_message(target_state, catalog),
-        keyboard_layout=profile_service.keyboard_for_state(target_state, draft, catalog),
-    )
-
-
 async def open_current_fertilizer_edit_selector(update, context) -> None:
     catalog = current_catalog(context)
     set_state(context.user_data, STATE_FERTILIZER_CONFIRM)
@@ -481,31 +380,6 @@ async def open_current_fertilizer_target_edit(update, context, target_state: str
         fertilizer_service.repair_message(target_state, current_catalog(context)),
         keyboard_layout=fertilizer_service.keyboard_for_state(target_state, current_catalog(context)),
     )
-
-
-def parse_profile_candidate_changes(target_state: str, candidate_value: str) -> dict | None:
-    if target_state == STATE_PROFILE_NAME:
-        name = profile_service.parse_name(candidate_value)
-        return {"name": name} if name is not None else None
-    if target_state == STATE_PROFILE_RESIDENCE:
-        residence = profile_service.parse_free_text(candidate_value)
-        return {"residence": residence} if residence is not None else None
-    if target_state == STATE_PROFILE_CITY:
-        city = profile_service.parse_free_text(candidate_value)
-        return {"city": city} if city is not None else None
-    if target_state == STATE_PROFILE_DISTRICT:
-        district = profile_service.parse_free_text(candidate_value)
-        return {"district": district} if district is not None else None
-    if target_state == STATE_PROFILE_BIRTH_YEAR:
-        birth_date = profile_service.parse_birth_date_text(candidate_value)
-        if birth_date is None:
-            return None
-        return {
-            "birth_year": birth_date[0],
-            "birth_month": birth_date[1],
-            "birth_day": birth_date[2],
-        }
-    return None
 
 
 def parse_fertilizer_candidate_changes(target_state: str, candidate_value: str) -> dict | None:
@@ -532,8 +406,6 @@ def parse_fertilizer_candidate_changes(target_state: str, candidate_value: str) 
 def parse_candidate_changes(domain: str, target_state: str, candidate_value: str | None) -> dict | None:
     if not candidate_value:
         return None
-    if domain == "profile":
-        return parse_profile_candidate_changes(target_state, candidate_value)
     if domain == "fertilizer":
         return parse_fertilizer_candidate_changes(target_state, candidate_value)
     return None
@@ -562,20 +434,6 @@ def logical_slot_count(changes: dict) -> int:
         else:
             grouped_slots.add(key)
     return len(grouped_slots)
-
-
-def extract_profile_multi_slot_candidate_changes(text: str) -> dict | None:
-    changes: dict[str, object] = {}
-    birth_candidate, remaining = extract_birth_date_candidate(text)
-    if birth_candidate is not None:
-        year, month, day = map(int, str(birth_candidate.normalized_value).split("-"))
-        changes.update({"birth_year": year, "birth_month": month, "birth_day": day})
-
-    name_candidate, _ = extract_korean_name_candidate(remaining)
-    if name_candidate is not None:
-        changes["name"] = str(name_candidate.normalized_value)
-
-    return changes if logical_slot_count(changes) >= 2 else None
 
 
 def extract_fertilizer_multi_slot_candidate_changes(text: str) -> dict | None:
@@ -614,13 +472,6 @@ def extract_fertilizer_multi_slot_candidate_changes(text: str) -> dict | None:
 
 def repair_candidate_preview_text(context, *, domain: str, target_state: str, changes: dict, use_confirmed: bool) -> str:
     catalog = current_catalog(context)
-    if domain == "profile":
-        base_draft = confirmed_profile_draft(context) if use_confirmed else current_profile(context)
-        updated = profile_service.update_draft(base_draft, **changes)
-        if logical_slot_count(changes) >= 2:
-            return f"{catalog.RECOVERY_MULTI_SLOT_CANDIDATE_HINT}\n\n{profile_service.summary_text(updated, catalog)}"
-        return profile_service.change_preview_text(base_draft, updated, target_state, catalog)
-
     base_draft = confirmed_fertilizer_draft(context) if use_confirmed else current_fertilizer(context)
     updated = fertilizer_service.update_draft(base_draft, **changes)
     if target_state == STATE_FERTILIZER_USED and changes.get("used") is False:
@@ -639,13 +490,6 @@ def repair_candidate_preview_text(context, *, domain: str, target_state: str, ch
 
 async def continue_repair_flow(update, context, *, domain: str, target_state: str, use_confirmed: bool) -> None:
     discard_pending_candidate(context, reason="repair_flow_continued")
-    if domain == "profile":
-        if target_state == STATE_PROFILE_EDIT_SELECT:
-            await open_current_profile_edit_selector(update, context)
-        else:
-            await open_current_profile_target_edit(update, context, target_state)
-        return
-
     if use_confirmed:
         if target_state == STATE_FERTILIZER_CONFIRM:
             await open_fertilizer_edit_selector(update, context)
@@ -656,51 +500,6 @@ async def continue_repair_flow(update, context, *, domain: str, target_state: st
         await open_current_fertilizer_edit_selector(update, context)
     else:
         await open_current_fertilizer_target_edit(update, context, target_state)
-
-
-async def apply_profile_changes(update, context, *, changes: dict, use_confirmed: bool) -> None:
-    base_draft = confirmed_profile_draft(context) if use_confirmed else current_profile(context)
-    updated = profile_service.update_draft(base_draft, **changes)
-    target_state = next(iter(changes.keys()), "")
-    state_by_change = {
-        "name": STATE_PROFILE_NAME,
-        "residence": STATE_PROFILE_RESIDENCE,
-        "city": STATE_PROFILE_CITY,
-        "district": STATE_PROFILE_DISTRICT,
-        "birth_year": STATE_PROFILE_BIRTH_YEAR,
-    }
-    if logical_slot_count(changes) >= 2:
-        preview_text = current_catalog(context).RECOVERY_MULTI_SLOT_APPLIED_MESSAGE
-    else:
-        preview_text = profile_service.change_preview_text(
-            base_draft,
-            updated,
-            state_by_change.get(target_state, STATE_PROFILE_EDIT_SELECT),
-            current_catalog(context),
-        )
-
-    if use_confirmed:
-        reset_session(context.user_data)
-    set_profile_draft(context.user_data, updated.to_dict())
-    set_pending_slot(context.user_data, None)
-    set_state(context.user_data, STATE_PROFILE_CONFIRM)
-    await send_text(
-        update,
-        f"{preview_text}\n\n{profile_service.confirmation_text(updated, current_catalog(context))}",
-        keyboard_layout=profile_service.keyboard_for_state(STATE_PROFILE_CONFIRM, updated, current_catalog(context)),
-    )
-    log_event(
-        PENDING_CANDIDATE_CONFIRMED,
-        domain="profile",
-        target_state=state_by_change.get(target_state, STATE_PROFILE_EDIT_SELECT),
-        scope="confirmed" if use_confirmed else "draft",
-    )
-    log_event(
-        REPAIR_CANDIDATE_APPLIED,
-        domain="profile",
-        target_state=state_by_change.get(target_state, STATE_PROFILE_EDIT_SELECT),
-        scope="confirmed" if use_confirmed else "draft",
-    )
 
 
 async def apply_fertilizer_changes(update, context, *, target_state: str, changes: dict, use_confirmed: bool) -> None:
@@ -757,10 +556,7 @@ async def send_repair_confirmation(
 ) -> None:
     catalog = current_catalog(context)
     scope = "confirmed" if use_confirmed else "draft"
-    if domain == "profile":
-        text = profile_service.repair_confirmation_text(target_state, catalog)
-    else:
-        text = fertilizer_service.repair_confirmation_text(target_state, catalog)
+    text = fertilizer_service.repair_confirmation_text(target_state, catalog)
     parsed_candidate = candidate_changes or parse_candidate_changes(domain, target_state, candidate_value)
     if parsed_candidate is not None:
         preview_text = repair_candidate_preview_text(
@@ -876,8 +672,6 @@ def llm_edit_intent_policy_skip_reason(context) -> str:
 
 
 def repair_allowed_actions(domain: str) -> tuple[str, ...]:
-    if domain == "profile":
-        return PROFILE_REPAIR_ALLOWED_ACTIONS
     if domain == "fertilizer":
         return FERTILIZER_REPAIR_ALLOWED_ACTIONS
     raise ValueError(f"지원하지 않는 repair domain 입니다: {domain}")
@@ -920,8 +714,8 @@ async def maybe_send_llm_repair_confirmation(
         local_ai_gate=context.bot_data["settings"].local_ai_gate,
         invocation_type="repair",
         current_step=state,
-        is_structured_step=state in PROFILE_STATES or state in FERTILIZER_STATES,
-        is_confirm_step=use_confirmed or state in {STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT, STATE_FERTILIZER_CONFIRM},
+        is_structured_step=state in FERTILIZER_STATES,
+        is_confirm_step=use_confirmed or state == STATE_FERTILIZER_CONFIRM,
         is_free_text=True,
         llm_calls_in_step=llm_call_count,
         same_input_seen=same_input_seen,
@@ -969,7 +763,7 @@ async def maybe_send_llm_repair_confirmation(
             keyboard_layout=fallback_keyboard_layout_for_state(
                 current_state(context.user_data),
                 current_catalog(context),
-                profile_draft(context.user_data),
+                None,
             ),
         )
         log_event(
@@ -995,7 +789,7 @@ async def maybe_send_llm_repair_confirmation(
             keyboard_layout=fallback_keyboard_layout_for_state(
                 current_state(context.user_data),
                 current_catalog(context),
-                profile_draft(context.user_data),
+                None,
             ),
         )
         reason = (
@@ -1115,44 +909,6 @@ async def attempt_llm_repair_after_rules(
     )
 
 
-async def finish_profile_edit_if_needed(update, context, edited_state: str) -> bool:
-    edit_target = pending_slot(context.user_data)
-    if edit_target is None:
-        return False
-
-    if edited_state == STATE_PROFILE_NAME and edit_target == STATE_PROFILE_NAME:
-        set_pending_slot(context.user_data, None)
-        set_state(context.user_data, STATE_PROFILE_CONFIRM)
-        await send_profile_confirmation(update, context)
-        return True
-
-    if edited_state == STATE_PROFILE_RESIDENCE and edit_target == STATE_PROFILE_RESIDENCE:
-        set_pending_slot(context.user_data, None)
-        set_state(context.user_data, STATE_PROFILE_CONFIRM)
-        await send_profile_confirmation(update, context)
-        return True
-
-    if edited_state == STATE_PROFILE_CITY and edit_target == STATE_PROFILE_CITY:
-        set_pending_slot(context.user_data, None)
-        set_state(context.user_data, STATE_PROFILE_CONFIRM)
-        await send_profile_confirmation(update, context)
-        return True
-
-    if edited_state == STATE_PROFILE_DISTRICT and edit_target == STATE_PROFILE_DISTRICT:
-        set_pending_slot(context.user_data, None)
-        set_state(context.user_data, STATE_PROFILE_CONFIRM)
-        await send_profile_confirmation(update, context)
-        return True
-
-    if edited_state == STATE_PROFILE_BIRTH_DAY and edit_target == STATE_PROFILE_BIRTH_YEAR:
-        set_pending_slot(context.user_data, None)
-        set_state(context.user_data, STATE_PROFILE_CONFIRM)
-        await send_profile_confirmation(update, context)
-        return True
-
-    return False
-
-
 def parse_callback_data(data: str) -> tuple[str, dict]:
     if data.startswith("intent:"):
         return data.split(":", 1)[1], {}
@@ -1169,14 +925,6 @@ def parse_callback_data(data: str) -> tuple[str, dict]:
         return "onboarding_confirm", {}
     if data.startswith("onboarding:edit:"):
         return "onboarding_edit", {"target": data.rsplit(":", 1)[1]}
-    if data.startswith("profile:year_nav:"):
-        return "profile_year_nav", {"direction": data.rsplit(":", 1)[1]}
-    if data.startswith("profile:year:"):
-        return "profile_year", {"year": int(data.rsplit(":", 1)[1])}
-    if data.startswith("profile:month:"):
-        return "profile_month", {"month": int(data.rsplit(":", 1)[1])}
-    if data.startswith("profile:day:"):
-        return "profile_day", {"day": int(data.rsplit(":", 1)[1])}
     if data.startswith("fertilizer:edit:"):
         return "fertilizer_edit_select", {"target": data.rsplit(":", 1)[1]}
     if data.startswith("fertilizer:used:"):
@@ -1201,112 +949,6 @@ async def clear_callback_markup(update) -> None:
         await query.message.edit_reply_markup(reply_markup=None)
     except Exception:
         return
-
-
-async def handle_profile_state(update, context, state: str, text: str) -> bool:
-    catalog = current_catalog(context)
-    draft = current_profile(context)
-
-    if state == STATE_PROFILE_NAME:
-        name = profile_service.parse_name(text)
-        if name is None:
-            await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
-            return True
-        set_profile_draft(context.user_data, profile_service.update_draft(draft, name=name).to_dict())
-        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_NAME):
-            return True
-        set_state(context.user_data, STATE_PROFILE_RESIDENCE, push_history=True)
-        await send_profile_prompt(update, context, STATE_PROFILE_RESIDENCE)
-        return True
-
-    if state == STATE_PROFILE_RESIDENCE:
-        residence = profile_service.parse_free_text(text)
-        if residence is None:
-            await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
-            return True
-        set_profile_draft(context.user_data, profile_service.update_draft(draft, residence=residence).to_dict())
-        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_RESIDENCE):
-            return True
-        set_state(context.user_data, STATE_PROFILE_CITY, push_history=True)
-        await send_profile_prompt(update, context, STATE_PROFILE_CITY)
-        return True
-
-    if state == STATE_PROFILE_CITY:
-        city = profile_service.parse_free_text(text)
-        if city is None:
-            await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
-            return True
-        set_profile_draft(context.user_data, profile_service.update_draft(draft, city=city).to_dict())
-        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_CITY):
-            return True
-        set_state(context.user_data, STATE_PROFILE_DISTRICT, push_history=True)
-        await send_profile_prompt(update, context, STATE_PROFILE_DISTRICT)
-        return True
-
-    if state == STATE_PROFILE_DISTRICT:
-        district = profile_service.parse_free_text(text)
-        if district is None:
-            await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
-            return True
-        set_profile_draft(context.user_data, profile_service.update_draft(draft, district=district).to_dict())
-        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_DISTRICT):
-            return True
-        set_state(context.user_data, STATE_PROFILE_BIRTH_YEAR, push_history=True)
-        await send_profile_prompt(update, context, STATE_PROFILE_BIRTH_YEAR)
-        return True
-
-    if state == STATE_PROFILE_BIRTH_YEAR:
-        if text == catalog.BUTTON_PREV_YEARS:
-            updated = profile_service.update_draft(draft, year_page_start=draft.year_page_start - 12)
-            set_profile_draft(context.user_data, updated.to_dict())
-            await send_profile_prompt(update, context, state)
-            return True
-        if text == catalog.BUTTON_NEXT_YEARS:
-            updated = profile_service.update_draft(draft, year_page_start=draft.year_page_start + 12)
-            set_profile_draft(context.user_data, updated.to_dict())
-            await send_profile_prompt(update, context, state)
-            return True
-
-        year = profile_service.parse_year_button(text)
-        current_year = profile_service.datetime.now().year
-        if year is None or year < 1900 or year > current_year:
-            await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
-            return True
-        updated = profile_service.update_draft(draft, birth_year=year, birth_month=None, birth_day=None)
-        set_profile_draft(context.user_data, updated.to_dict())
-        set_state(context.user_data, STATE_PROFILE_BIRTH_MONTH, push_history=True)
-        await send_profile_prompt(update, context, STATE_PROFILE_BIRTH_MONTH)
-        return True
-
-    if state == STATE_PROFILE_BIRTH_MONTH:
-        month = profile_service.parse_month_button(text)
-        if month is None:
-            await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
-            return True
-        updated = profile_service.update_draft(draft, birth_month=month, birth_day=None)
-        set_profile_draft(context.user_data, updated.to_dict())
-        set_state(context.user_data, STATE_PROFILE_BIRTH_DAY, push_history=True)
-        await send_profile_prompt(update, context, STATE_PROFILE_BIRTH_DAY)
-        return True
-
-    if state == STATE_PROFILE_BIRTH_DAY:
-        day = profile_service.parse_day_button(text)
-        if day is None:
-            await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
-            return True
-        updated = profile_service.update_draft(draft, birth_day=day)
-        set_profile_draft(context.user_data, updated.to_dict())
-        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_BIRTH_DAY):
-            return True
-        set_state(context.user_data, STATE_PROFILE_CONFIRM, push_history=True)
-        await send_profile_confirmation(update, context)
-        return True
-
-    if state == STATE_PROFILE_CONFIRM:
-        await send_profile_prompt(update, context, state, profile_service.fallback_text_for_state(state, catalog))
-        return True
-
-    return False
 
 
 async def handle_fertilizer_state(update, context, state: str, text: str) -> bool:
@@ -1455,7 +1097,7 @@ async def text_message(update, context) -> None:
         await send_text(
             update,
             current_catalog(context).SUPPORT_HANDOFF_MESSAGE_RECORDED,
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), current_catalog(context), profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), current_catalog(context), None),
         )
         return
 
@@ -1503,9 +1145,7 @@ async def text_message(update, context) -> None:
             canonical_intent=registry.INTENT_UNKNOWN_TEXT,
             validation_result=early_gate,
             fallback_key=fallback_key_for_state(state),
-            profile_draft_data=profile_draft(context.user_data),
             fertilizer_draft_data=fertilizer_draft(context.user_data),
-            confirmed_profile_data=None,
             pending_slot=pending_slot(context.user_data),
         )
         set_last_recovery_context(context.user_data, recovery_context.to_dict())
@@ -1530,7 +1170,7 @@ async def text_message(update, context) -> None:
                 catalog,
                 recovery_context.to_dict(),
             ),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return
 
@@ -1547,7 +1187,7 @@ async def text_message(update, context) -> None:
             await send_text(
                 update,
                 service.language_changed_text(catalog),
-                keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+                keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
             )
             return
         await send_text(
@@ -1701,7 +1341,7 @@ async def text_message(update, context) -> None:
         await send_text(
             update,
             service.help_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return
 
@@ -1758,14 +1398,11 @@ async def text_message(update, context) -> None:
     if decision.route == ROUTE_GO_BACK:
         previous_state = go_back(context.user_data)
         reset_recovery_attempts(context.user_data)
-        if previous_state in PROFILE_STATES:
-            await send_profile_prompt(update, context, previous_state)
-            return
         message = service.back_text(previous_state, catalog)
         await send_text(
             update,
             message,
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return
 
@@ -1782,7 +1419,7 @@ async def text_message(update, context) -> None:
         await send_text(
             update,
             fertilizer_service.confirmed_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return
 
@@ -1793,18 +1430,12 @@ async def text_message(update, context) -> None:
         await send_text(
             update,
             yield_service.confirmed_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return
 
     if state in ONBOARDING_STATES:
         if await handle_onboarding_text(update, context, state=state, text=inbound.text, intent=intent):
-            reset_recovery_attempts(context.user_data)
-            return
-
-    if state in PROFILE_STATES:
-        handled = await handle_profile_state(update, context, state, inbound.text)
-        if handled:
             reset_recovery_attempts(context.user_data)
             return
 
@@ -1854,9 +1485,7 @@ async def text_message(update, context) -> None:
             canonical_intent=intent,
             validation_result=late_gate,
             fallback_key=fallback_key,
-            profile_draft_data=profile_draft(context.user_data),
             fertilizer_draft_data=fertilizer_draft(context.user_data),
-            confirmed_profile_data=None,
             pending_slot=pending_slot(context.user_data),
         )
         set_last_recovery_context(context.user_data, recovery_context.to_dict())
@@ -1884,7 +1513,7 @@ async def text_message(update, context) -> None:
             keyboard_layout=fallback_keyboard_layout_for_state(
                 current_state(context.user_data),
                 catalog,
-                profile_draft(context.user_data),
+                None,
             ),
         )
         log_event(
@@ -1913,7 +1542,7 @@ async def text_message(update, context) -> None:
         keyboard_layout=fallback_keyboard_layout_for_state(
             current_state(context.user_data),
             catalog,
-            profile_draft(context.user_data),
+            None,
         ),
     )
     log_event(
@@ -1950,7 +1579,7 @@ async def button_callback(update, context) -> None:
         await send_text(
             update,
             service.language_changed_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return
 
@@ -1993,7 +1622,7 @@ async def button_callback(update, context) -> None:
                 keyboard_layout=fallback_keyboard_layout_for_state(
                     current_state(context.user_data),
                     current_catalog(context),
-                    profile_draft(context.user_data),
+                    None,
                 ),
             )
             return
@@ -2014,9 +1643,6 @@ async def button_callback(update, context) -> None:
             return
 
         discard_pending_candidate(context, reason="candidate_promoted_to_apply")
-        if domain == "profile":
-            await apply_profile_changes(update, context, changes=changes, use_confirmed=use_confirmed)
-            return
         await apply_fertilizer_changes(
             update,
             context,
@@ -2040,59 +1666,9 @@ async def button_callback(update, context) -> None:
             keyboard_layout=fallback_keyboard_layout_for_state(
                 current_state(context.user_data),
                 current_catalog(context),
-                profile_draft(context.user_data),
+                None,
             ),
         )
-        return
-
-    if action == "profile_year_nav":
-        await clear_callback_markup(update)
-        if state != STATE_PROFILE_BIRTH_YEAR:
-            await send_profile_prompt(update, context, current_state(context.user_data))
-            return
-        draft = current_profile(context)
-        delta = -12 if payload["direction"] == "prev" else 12
-        updated = profile_service.update_draft(draft, year_page_start=draft.year_page_start + delta)
-        set_profile_draft(context.user_data, updated.to_dict())
-        await send_profile_prompt(update, context, STATE_PROFILE_BIRTH_YEAR)
-        return
-
-    if action == "profile_year":
-        await clear_callback_markup(update)
-        if state != STATE_PROFILE_BIRTH_YEAR:
-            await send_profile_prompt(update, context, current_state(context.user_data))
-            return
-        draft = current_profile(context)
-        updated = profile_service.update_draft(draft, birth_year=payload["year"], birth_month=None, birth_day=None)
-        set_profile_draft(context.user_data, updated.to_dict())
-        set_state(context.user_data, STATE_PROFILE_BIRTH_MONTH, push_history=True)
-        await send_profile_prompt(update, context, STATE_PROFILE_BIRTH_MONTH)
-        return
-
-    if action == "profile_month":
-        await clear_callback_markup(update)
-        if state != STATE_PROFILE_BIRTH_MONTH:
-            await send_profile_prompt(update, context, current_state(context.user_data))
-            return
-        draft = current_profile(context)
-        updated = profile_service.update_draft(draft, birth_month=payload["month"], birth_day=None)
-        set_profile_draft(context.user_data, updated.to_dict())
-        set_state(context.user_data, STATE_PROFILE_BIRTH_DAY, push_history=True)
-        await send_profile_prompt(update, context, STATE_PROFILE_BIRTH_DAY)
-        return
-
-    if action == "profile_day":
-        await clear_callback_markup(update)
-        if state != STATE_PROFILE_BIRTH_DAY:
-            await send_profile_prompt(update, context, current_state(context.user_data))
-            return
-        draft = current_profile(context)
-        updated = profile_service.update_draft(draft, birth_day=payload["day"])
-        set_profile_draft(context.user_data, updated.to_dict())
-        if await finish_profile_edit_if_needed(update, context, STATE_PROFILE_BIRTH_DAY):
-            return
-        set_state(context.user_data, STATE_PROFILE_CONFIRM, push_history=True)
-        await send_profile_confirmation(update, context)
         return
 
     if action == "fertilizer_edit_select":
@@ -2219,14 +1795,11 @@ async def button_callback(update, context) -> None:
 
     if decision.route == ROUTE_GO_BACK:
         previous_state = go_back(context.user_data)
-        if previous_state in PROFILE_STATES:
-            await send_profile_prompt(update, context, previous_state)
-            return
         message = service.back_text(previous_state, catalog)
         await send_text(
             update,
             message,
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return
 
@@ -2241,7 +1814,7 @@ async def button_callback(update, context) -> None:
         await send_text(
             update,
             fertilizer_service.confirmed_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return
 
@@ -2251,7 +1824,7 @@ async def button_callback(update, context) -> None:
         await send_text(
             update,
             yield_service.confirmed_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return
 
@@ -2265,7 +1838,7 @@ async def button_callback(update, context) -> None:
         keyboard_layout=fallback_keyboard_layout_for_state(
             current_state(context.user_data),
             catalog,
-            profile_draft(context.user_data),
+            None,
         ),
     )
     log_event(
@@ -2304,7 +1877,7 @@ async def unknown_command(update, context) -> None:
         keyboard_layout=fallback_keyboard_layout_for_state(
             current_state(context.user_data),
             catalog,
-            profile_draft(context.user_data),
+            None,
         ),
     )
     log_event(

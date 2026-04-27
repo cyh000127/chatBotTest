@@ -3,11 +3,9 @@ from types import SimpleNamespace
 
 from PROJECT.channels.telegram.handlers.messages import (
     FERTILIZER_REPAIR_ALLOWED_ACTIONS,
-    PROFILE_REPAIR_ALLOWED_ACTIONS,
     candidate_changes_from_payload,
     classify_llm_runtime_failure,
     extract_fertilizer_multi_slot_candidate_changes,
-    extract_profile_multi_slot_candidate_changes,
     llm_edit_intent_policy_enabled,
     logical_slot_count,
     llm_repair_guidance_text,
@@ -16,7 +14,6 @@ from PROJECT.channels.telegram.handlers.messages import (
     repair_allowed_actions,
 )
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT, STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_PRODUCT
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_BIRTH_YEAR, STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT, STATE_PROFILE_NAME
 from PROJECT.conversations.sample_menu.keyboards import repair_confirmation_keyboard
 from PROJECT.dispatch.session_dispatcher import (
     pending_candidate,
@@ -45,16 +42,6 @@ def test_repair_confirmation_keyboard_switches_to_candidate_buttons():
 
     assert layout[0][0]["text"] == catalog.BUTTON_APPLY_SUGGESTED_VALUE
     assert layout[1][0]["text"] == catalog.BUTTON_ENTER_VALUE_DIRECTLY
-
-
-def test_parse_profile_birth_candidate_changes():
-    changes = parse_candidate_changes("profile", STATE_PROFILE_BIRTH_YEAR, "1998년 4월 20일")
-
-    assert changes == {
-        "birth_year": 1998,
-        "birth_month": 4,
-        "birth_day": 20,
-    }
 
 
 def test_parse_fertilizer_amount_candidate_changes():
@@ -146,26 +133,10 @@ def test_llm_edit_intent_policy_enabled_requires_explicit_flag():
 
 
 def test_repair_allowed_actions_are_centralized_by_domain():
-    assert repair_allowed_actions("profile") == PROFILE_REPAIR_ALLOWED_ACTIONS
     assert repair_allowed_actions("fertilizer") == FERTILIZER_REPAIR_ALLOWED_ACTIONS
 
 
 def test_unknown_repair_policy_is_centralized_in_ai_policy():
-    assert classify_unknown_input_disposition(
-        current_step=STATE_PROFILE_CONFIRM,
-        domain_hint="profile",
-        use_confirmed=False,
-    ) == UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
-    assert classify_unknown_input_disposition(
-        current_step=STATE_PROFILE_EDIT_SELECT,
-        domain_hint="profile",
-        use_confirmed=False,
-    ) == UnknownInputDisposition.REPAIR_ASSIST_ALLOWED
-    assert classify_unknown_input_disposition(
-        current_step=STATE_PROFILE_NAME,
-        domain_hint="profile",
-        use_confirmed=False,
-    ) == UnknownInputDisposition.FALLBACK_ONLY
     assert classify_unknown_input_disposition(
         current_step=STATE_FERTILIZER_CONFIRM,
         domain_hint="fertilizer",
@@ -251,16 +222,6 @@ def test_extract_fertilizer_multi_slot_candidate_changes_from_free_text():
     assert changes["amount_unit"] == "kg"
     assert "applied_date" in changes
     assert logical_slot_count(changes) >= 3
-
-
-def test_extract_profile_multi_slot_candidate_changes_from_free_text():
-    changes = extract_profile_multi_slot_candidate_changes("김민수 1998년 4월 20일")
-
-    assert changes is not None
-    assert changes["name"] == "김민수"
-    assert changes["birth_year"] == 1998
-    assert changes["birth_month"] == 4
-    assert changes["birth_day"] == 20
 
 
 def test_repair_candidate_preview_text_switches_to_multi_slot_summary():

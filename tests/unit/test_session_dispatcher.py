@@ -2,11 +2,9 @@ from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_LANG
 from PROJECT.dispatch.session_dispatcher import (
     auth_failures,
     cancel_session,
-    confirmed_profile,
     confirmed_yield,
     current_state,
     go_back,
-    has_confirmed_profile,
     has_confirmed_yield,
     has_active_support_handoff,
     has_seen_llm_input,
@@ -22,7 +20,6 @@ from PROJECT.dispatch.session_dispatcher import (
     set_last_recovery_context,
     set_pending_candidate,
     set_pending_repair_confirmation,
-    set_confirmed_profile,
     set_confirmed_yield,
     set_state,
     set_yield_draft,
@@ -59,19 +56,6 @@ def test_reset_session_clears_auth_failures():
     increment_auth_failures(user_data)
     reset_session(user_data)
     assert auth_failures(user_data) == 0
-
-
-def test_confirmed_profile_helpers_do_not_survive_reset():
-    user_data = {}
-    assert has_confirmed_profile(user_data) is False
-    set_confirmed_profile(user_data, {"name": "홍길동"})
-    assert has_confirmed_profile(user_data) is True
-    assert confirmed_profile(user_data) == {"name": "홍길동"}
-    reset_session(user_data)
-    assert has_confirmed_profile(user_data) is False
-    assert confirmed_profile(user_data) is None
-
-
 def test_yield_draft_and_confirmed_helpers_work():
     user_data = {}
     set_yield_draft(user_data, {"field_name": "A-1"})

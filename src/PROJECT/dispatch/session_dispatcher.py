@@ -9,10 +9,8 @@ def _default_session() -> dict:
         "state": STATE_MAIN_MENU,
         "history": [],
         "selected_city": None,
-        "profile_draft": None,
         "fertilizer_draft": None,
         "yield_draft": None,
-        "confirmed_profile": None,
         "confirmed_fertilizer": None,
         "confirmed_yield": None,
         "pending_slot": None,
@@ -118,15 +116,6 @@ def set_selected_city(user_data: dict, city: str) -> None:
 def selected_city(user_data: dict) -> str | None:
     return get_session(user_data)["selected_city"]
 
-
-def set_profile_draft(user_data: dict, draft: dict | None) -> None:
-    get_session(user_data)["profile_draft"] = draft
-
-
-def profile_draft(user_data: dict) -> dict | None:
-    return get_session(user_data)["profile_draft"]
-
-
 def set_fertilizer_draft(user_data: dict, draft: dict | None) -> None:
     get_session(user_data)["fertilizer_draft"] = draft
 
@@ -141,19 +130,6 @@ def set_yield_draft(user_data: dict, draft: dict | None) -> None:
 
 def yield_draft(user_data: dict) -> dict | None:
     return get_session(user_data)["yield_draft"]
-
-
-def set_confirmed_profile(user_data: dict, draft: dict | None) -> None:
-    get_session(user_data)["confirmed_profile"] = draft
-
-
-def confirmed_profile(user_data: dict) -> dict | None:
-    return get_session(user_data)["confirmed_profile"]
-
-
-def has_confirmed_profile(user_data: dict) -> bool:
-    return confirmed_profile(user_data) is not None
-
 
 def set_confirmed_fertilizer(user_data: dict, draft: dict | None) -> None:
     get_session(user_data)["confirmed_fertilizer"] = draft

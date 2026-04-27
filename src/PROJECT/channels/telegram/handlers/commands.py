@@ -20,7 +20,6 @@ from PROJECT.dispatch.session_dispatcher import (
     current_state,
     has_started,
     mark_started,
-    profile_draft,
     reset_session,
     set_fertilizer_draft,
     set_onboarding_session,
@@ -210,7 +209,7 @@ async def show_myfields_entry(update, context) -> None:
     await send_text(
         update,
         service.myfields_entry_text(catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
 
 
@@ -221,7 +220,7 @@ async def start_input_resolve_entry(update, context) -> None:
     await send_text(
         update,
         service.input_resolve_entry_text(catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
 
 
@@ -254,7 +253,7 @@ async def show_support_guidance(
     await send_text(
         update,
         service.support_escalation_text(catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
 
 
@@ -270,7 +269,7 @@ async def relay_support_admin_reply(update, context, *, admin_message: str) -> b
     await send_text(
         update,
         service.support_admin_reply_text(catalog, admin_message),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
     return True
 
@@ -288,7 +287,7 @@ async def close_support_handoff_from_admin(update, context, *, reason: str = "ad
     await send_text(
         update,
         catalog.SUPPORT_HANDOFF_CLOSED_MESSAGE,
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
     return True
 
@@ -299,7 +298,7 @@ async def open_fertilizer_target_edit(update, context, target_state: str) -> boo
         await send_text(
             update,
             fertilizer_service.no_fertilizer_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return False
 
@@ -322,7 +321,7 @@ async def open_fertilizer_edit_selector(update, context) -> bool:
         await send_text(
             update,
             fertilizer_service.no_fertilizer_text(catalog),
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
         )
         return False
 
@@ -415,7 +414,7 @@ async def start_command(update, context) -> None:
     await send_text(
         update,
         service.main_menu_text(catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
 
 
@@ -426,7 +425,7 @@ async def help_command(update, context) -> None:
     await send_text(
         update,
         service.help_text(catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
 
 
@@ -444,7 +443,7 @@ async def menu_command(update, context) -> None:
     await send_text(
         update,
         service.main_menu_text(catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
 
 
@@ -462,7 +461,7 @@ async def cancel_command(update, context) -> None:
     await send_text(
         update,
         service.cancel_text(catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
 
 
