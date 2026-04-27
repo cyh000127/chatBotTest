@@ -1,4 +1,5 @@
 import pytest
+from PIL import Image, TiffImagePlugin
 
 from PROJECT.evidence import (
     EVIDENCE_BINDING_RESOLUTION_SINGLE_ACTIVE_BINDING,
@@ -81,6 +82,31 @@ def _bind_field(repository, *, provider_user_id: str, field_code: str, display_n
         chat_id=67890,
         requested_field_code=field_code,
     )
+
+
+def _gps_dms(value: float):
+    degrees = int(value)
+    minutes_full = (value - degrees) * 60
+    minutes = int(minutes_full)
+    seconds = round((minutes_full - minutes) * 60 * 10000)
+    return (
+        TiffImagePlugin.IFDRational(degrees, 1),
+        TiffImagePlugin.IFDRational(minutes, 1),
+        TiffImagePlugin.IFDRational(seconds, 10000),
+    )
+
+
+def _write_exif_jpeg(path, *, latitude: float, longitude: float, captured_at: str) -> None:
+    image = Image.new("RGB", (8, 8), color="green")
+    exif = Image.Exif()
+    exif[36867] = captured_at
+    exif[34853] = {
+        1: "N" if latitude >= 0 else "S",
+        2: _gps_dms(abs(latitude)),
+        3: "E" if longitude >= 0 else "W",
+        4: _gps_dms(abs(longitude)),
+    }
+    image.save(path, exif=exif)
 
 
 def test_evidence_repository_creates_submission_signal_and_state_log(tmp_path):
@@ -296,6 +322,63 @@ def test_evidence_service_extracts_signal_rows_from_submission_metadata(tmp_path
         assert signals["location_distance_meters"].signal_status_code == "computed"
         assert signals["location_distance_meters"].numeric_value is not None
         assert signals["upload_delay_seconds"].signal_status_code == "computed"
+        assert signals["upload_delay_seconds"].numeric_value == 600.0
+    finally:
+        runtime.close()
+
+
+def test_evidence_service_extracts_signal_rows_from_staged_artifact(tmp_path):
+    runtime = _runtime(tmp_path)
+    try:
+        _approve_participant(runtime, provider_user_id="1001")
+        field_repository = SqliteFieldRegistryRepository(runtime.connection)
+        evidence_repository = SqliteEvidenceRepository(runtime.connection)
+        service = EvidenceSubmissionService(evidence_repository, field_repository)
+
+        request_context = service.create_request(
+            provider_user_id="1001",
+            request_type_code="field_photo",
+        )
+        session = service.start_submission_session(
+            provider_user_id="1001",
+            chat_id=67890,
+            request_event_id=request_context.request_event.id,
+        )
+        service.accept_location(
+            session.id,
+            latitude=37.55,
+            longitude=127.01,
+            accuracy_meters=5.0,
+        )
+        artifact_path = tmp_path / "artifact-with-exif.jpg"
+        _write_exif_jpeg(
+            artifact_path,
+            latitude=37.5505,
+            longitude=127.0105,
+            captured_at="2026:04:27 09:30:00",
+        )
+        submission = service.register_document_upload(
+            session.id,
+            provider_file_id="file_123",
+            provider_file_unique_id="file_unique_123",
+            provider_message_id="msg_123",
+            file_name="field.jpg",
+            mime_type="image/jpeg",
+            file_size_bytes=artifact_path.stat().st_size,
+            staged_artifact_uri=artifact_path.resolve().as_uri(),
+            uploaded_at="2026-04-27T09:40:00+00:00",
+            payload={},
+        )
+
+        signals = {signal.signal_type_code: signal for signal in evidence_repository.list_validation_signals(submission.id)}
+
+        assert submission.staged_artifact_uri == artifact_path.resolve().as_uri()
+        assert signals["exif_present"].signal_status_code == "present"
+        assert signals["exif_present"].detail["source"] == "staged_artifact"
+        assert signals["gps_present"].signal_status_code == "present"
+        assert round(signals["gps_latitude"].numeric_value, 4) == 37.5505
+        assert round(signals["gps_longitude"].numeric_value, 4) == 127.0105
+        assert signals["capture_time"].text_value == "2026-04-27T09:30:00+00:00"
         assert signals["upload_delay_seconds"].numeric_value == 600.0
     finally:
         runtime.close()

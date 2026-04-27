@@ -1,8 +1,11 @@
 import asyncio
 from types import SimpleNamespace
 
+from PIL import Image, TiffImagePlugin
+
 from PROJECT.admin.follow_up import InMemoryAdminRuntime
 from PROJECT.channels.telegram.handlers import commands, messages
+from PROJECT.evidence.artifacts import StagedEvidenceArtifact
 from PROJECT.evidence import EvidenceSubmissionService
 from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
 from PROJECT.conversations.evidence_submission.states import STATE_EVIDENCE_WAITING_DOCUMENT, STATE_EVIDENCE_WAITING_LOCATION
@@ -128,6 +131,31 @@ def _bind_field(field_repository: SqliteFieldRegistryRepository):
         chat_id=67890,
         requested_field_code="FIELD-001",
     )
+
+
+def _gps_dms(value: float):
+    degrees = int(value)
+    minutes_full = (value - degrees) * 60
+    minutes = int(minutes_full)
+    seconds = round((minutes_full - minutes) * 60 * 10000)
+    return (
+        TiffImagePlugin.IFDRational(degrees, 1),
+        TiffImagePlugin.IFDRational(minutes, 1),
+        TiffImagePlugin.IFDRational(seconds, 10000),
+    )
+
+
+def _write_exif_jpeg(path, *, latitude: float, longitude: float, captured_at: str) -> None:
+    image = Image.new("RGB", (8, 8), color="blue")
+    exif = Image.Exif()
+    exif[36867] = captured_at
+    exif[34853] = {
+        1: "N" if latitude >= 0 else "S",
+        2: _gps_dms(abs(latitude)),
+        3: "E" if longitude >= 0 else "W",
+        4: _gps_dms(abs(longitude)),
+    }
+    image.save(path, exif=exif)
 
 
 def test_evidence_command_starts_location_first_flow(tmp_path):
@@ -264,5 +292,57 @@ def test_evidence_repeated_retry_escalates_to_manual_review(tmp_path):
         assert len(submissions) == 2
         logs = evidence_repository.list_state_logs(submissions[-1].id)
         assert logs[-1].to_state_code == "manual_review_required"
+    finally:
+        runtime.close()
+
+
+def test_evidence_flow_accepts_document_when_staged_artifact_contains_required_metadata(tmp_path):
+    runtime, field_repository, evidence_repository, bot_data = _approved_runtime(tmp_path)
+    context = _context(bot_data)
+    message = FakeMessage()
+
+    class FakeArtifactStager:
+        def __init__(self, artifact_uri: str, checksum_sha256: str = "checksum") -> None:
+            self._artifact = StagedEvidenceArtifact(
+                artifact_uri=artifact_uri,
+                checksum_sha256=checksum_sha256,
+                local_path=tmp_path / "staged.jpg",
+            )
+
+        async def stage_document(self, bot, document):
+            return self._artifact
+
+    try:
+        _bind_field(field_repository)
+        staged_artifact_path = tmp_path / "staged-evidence.jpg"
+        _write_exif_jpeg(
+            staged_artifact_path,
+            latitude=37.0505,
+            longitude=127.0505,
+            captured_at="2026:04:27 09:30:00",
+        )
+        bot_data["evidence_artifact_stager"] = FakeArtifactStager(staged_artifact_path.resolve().as_uri())
+
+        asyncio.run(commands.evidence_command(_message_update(message), context))
+
+        location_message = FakeMessage(
+            location=SimpleNamespace(latitude=37.05, longitude=127.05, horizontal_accuracy=8.0)
+        )
+        asyncio.run(messages.location_message(_message_update(location_message), context))
+
+        document_message = FakeMessage(document=FakeDocument())
+        asyncio.run(messages.document_message(_message_update(document_message), context))
+
+        assert current_state(context.user_data) == STATE_MAIN_MENU
+        updated_draft = evidence_submission_draft(context.user_data)
+        assert updated_draft is not None
+        submission = evidence_repository.get_submission(updated_draft["evidence_submission_id"])
+        session = evidence_repository.get_submission_session(updated_draft["session_id"])
+        assert submission is not None
+        assert submission.artifact_status_code == "accepted"
+        assert submission.staged_artifact_uri == staged_artifact_path.resolve().as_uri()
+        assert session is not None
+        assert session.session_status_code == "completed"
+        assert "기본 검증을 통과했습니다" in document_message.replies[-1][0]
     finally:
         runtime.close()
