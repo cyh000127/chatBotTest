@@ -29,6 +29,11 @@ REQUIRED_TABLES = {
     "field_registry_boundaries",
     "participant_field_bindings",
     "field_binding_exceptions",
+    "project_seasons",
+    "field_seasons",
+    "seasonal_events",
+    "fertilizer_application_records",
+    "yield_records",
 }
 
 DEFERRED_TABLES = {
@@ -58,6 +63,12 @@ REQUIRED_INDEXES = {
     "idx_field_binding_exceptions_status_created",
     "idx_participant_field_bindings_active_participant_field",
     "idx_participant_field_bindings_active_field",
+    "idx_project_seasons_project_year",
+    "idx_field_seasons_project_binding",
+    "idx_seasonal_events_participant_date",
+    "idx_seasonal_events_field_season",
+    "idx_fertilizer_records_participant_date",
+    "idx_yield_records_participant_date",
 }
 
 
@@ -92,7 +103,12 @@ def test_initial_schema_migration_creates_required_tables_and_indexes(tmp_path):
 
     assert runtime is not None
     try:
-        assert runtime.applied_migrations == ("001_initial_schema", "002_admin_audit_events", "003_field_registry")
+        assert runtime.applied_migrations == (
+            "001_initial_schema",
+            "002_admin_audit_events",
+            "003_field_registry",
+            "004_season_activity",
+        )
         existing_tables = table_names(runtime.connection)
         existing_indexes = index_names(runtime.connection)
         assert REQUIRED_TABLES <= existing_tables
@@ -102,6 +118,7 @@ def test_initial_schema_migration_creates_required_tables_and_indexes(tmp_path):
             "001_initial_schema",
             "002_admin_audit_events",
             "003_field_registry",
+            "004_season_activity",
         }
     finally:
         runtime.close()
@@ -160,6 +177,30 @@ def test_initial_schema_contains_reference_alignment_columns(tmp_path):
             "exception_status_code",
             "candidate_field_ids_json",
         } <= column_names(runtime.connection, "field_binding_exceptions")
+        assert {"season_year", "season_status_code"} <= column_names(runtime.connection, "project_seasons")
+        assert {
+            "project_season_id",
+            "field_binding_id",
+            "field_season_status_code",
+        } <= column_names(runtime.connection, "field_seasons")
+        assert {
+            "field_season_id",
+            "event_type_code",
+            "input_source_code",
+            "occurred_on",
+        } <= column_names(runtime.connection, "seasonal_events")
+        assert {
+            "seasonal_event_id",
+            "used_flag",
+            "fertilizer_kind_code",
+            "applied_date",
+        } <= column_names(runtime.connection, "fertilizer_application_records")
+        assert {
+            "seasonal_event_id",
+            "ready_flag",
+            "field_name",
+            "harvest_date",
+        } <= column_names(runtime.connection, "yield_records")
     finally:
         runtime.close()
 

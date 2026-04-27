@@ -43,6 +43,11 @@ Tables included in the current local SQLite migrations:
 - `field_registry_boundaries`
 - `participant_field_bindings`
 - `field_binding_exceptions`
+- `project_seasons`
+- `field_seasons`
+- `seasonal_events`
+- `fertilizer_application_records`
+- `yield_records`
 
 Tables intentionally not included in the current local SQLite migrations:
 
@@ -765,3 +770,124 @@ Rules:
 - one field may have at most one active binding
 - one participant may not hold duplicate active bindings to the same field
 - ambiguous, missing, or conflicting inputs must create a binding exception instead of silently guessing
+
+## 15. Season Activity Subset Tables
+
+```sql
+CREATE TABLE project_seasons (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  season_year INTEGER NOT NULL,
+  season_label TEXT NOT NULL,
+  season_status_code TEXT NOT NULL DEFAULT 'open',
+  season_start_date TEXT,
+  season_end_date TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id),
+  UNIQUE(project_id, season_year)
+);
+```
+
+```sql
+CREATE TABLE field_seasons (
+  id TEXT PRIMARY KEY,
+  project_season_id TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  field_binding_id TEXT NOT NULL,
+  field_id TEXT NOT NULL,
+  field_season_status_code TEXT NOT NULL DEFAULT 'open',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (project_season_id) REFERENCES project_seasons(id),
+  FOREIGN KEY (participant_id) REFERENCES participants(id),
+  FOREIGN KEY (field_binding_id) REFERENCES participant_field_bindings(id),
+  FOREIGN KEY (field_id) REFERENCES field_registry_fields(id),
+  UNIQUE(project_season_id, field_binding_id)
+);
+```
+
+```sql
+CREATE TABLE seasonal_events (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  field_season_id TEXT,
+  field_binding_id TEXT,
+  field_id TEXT,
+  event_type_code TEXT NOT NULL,
+  event_status_code TEXT NOT NULL,
+  input_source_code TEXT NOT NULL,
+  occurred_on TEXT NOT NULL,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id),
+  FOREIGN KEY (participant_id) REFERENCES participants(id),
+  FOREIGN KEY (field_season_id) REFERENCES field_seasons(id),
+  FOREIGN KEY (field_binding_id) REFERENCES participant_field_bindings(id),
+  FOREIGN KEY (field_id) REFERENCES field_registry_fields(id)
+);
+```
+
+```sql
+CREATE TABLE fertilizer_application_records (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  field_season_id TEXT,
+  seasonal_event_id TEXT NOT NULL,
+  field_binding_id TEXT,
+  field_id TEXT,
+  input_source_code TEXT NOT NULL,
+  used_flag INTEGER NOT NULL,
+  fertilizer_kind_code TEXT,
+  product_name TEXT,
+  amount_value REAL,
+  amount_unit TEXT,
+  applied_date TEXT NOT NULL,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id),
+  FOREIGN KEY (participant_id) REFERENCES participants(id),
+  FOREIGN KEY (field_season_id) REFERENCES field_seasons(id),
+  FOREIGN KEY (seasonal_event_id) REFERENCES seasonal_events(id),
+  FOREIGN KEY (field_binding_id) REFERENCES participant_field_bindings(id),
+  FOREIGN KEY (field_id) REFERENCES field_registry_fields(id)
+);
+```
+
+```sql
+CREATE TABLE yield_records (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  field_season_id TEXT,
+  seasonal_event_id TEXT NOT NULL,
+  field_binding_id TEXT,
+  field_id TEXT,
+  input_source_code TEXT NOT NULL,
+  ready_flag INTEGER NOT NULL,
+  field_name TEXT,
+  amount_value REAL,
+  amount_unit TEXT,
+  harvest_date TEXT NOT NULL,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id),
+  FOREIGN KEY (participant_id) REFERENCES participants(id),
+  FOREIGN KEY (field_season_id) REFERENCES field_seasons(id),
+  FOREIGN KEY (seasonal_event_id) REFERENCES seasonal_events(id),
+  FOREIGN KEY (field_binding_id) REFERENCES participant_field_bindings(id),
+  FOREIGN KEY (field_id) REFERENCES field_registry_fields(id)
+);
+```
+
+Season activity subset rules:
+
+- project season resolution uses calendar year in the local runtime
+- field season rows are created only when a field binding is resolved
+- seasonal event rows provide the append-only context for confirmed structured input
+- fertilizer and yield rows may preserve unresolved field linkage state in structured payload metadata
