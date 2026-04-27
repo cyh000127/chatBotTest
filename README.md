@@ -25,6 +25,7 @@
 - `Structured Interaction Policy`: confirm, edit, fallback UX 원칙
 - `Support Handoff Chatbot Relay`: 기존 챗봇 대화창 안에서 운영자 후속 답변을 중계하는 기준
 - `SQLite Backup And Recovery Runbook`: 로컬 SQLite 백업, 복구, 검증 절차
+- `Target Runtime Integration Guide`: 다른 런타임으로 옮길 때 재사용 범위와 금지 범위를 정리한 이식 기준
 
 ## 현재 구현 범위
 
