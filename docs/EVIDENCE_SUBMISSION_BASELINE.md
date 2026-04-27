@@ -8,6 +8,7 @@
 
 - 증빙 요청 문맥을 저장한다.
 - 위치 확인 이후에만 원본 document 업로드를 받는다.
+- local artifact stage 경로와 checksum을 저장한다.
 - EXIF, GPS, 촬영 시각 같은 기본 검증 신호를 저장한다.
 - 자동 승인 불가 상황을 재제출 또는 운영 검토로 보낸다.
 
@@ -19,6 +20,7 @@
 - 증빙 제출 session 저장
 - 위치 선행 수집 상태 저장
 - document 업로드 메타데이터 저장
+- local artifact uri, checksum 저장
 - EXIF, GPS, 촬영 시각 signal 저장
 - validation state log 저장
 
@@ -36,6 +38,8 @@
 - 위치 수락 전에는 업로드 완료 상태로 처리하지 않는다.
 - 압축 이미지보다 document 업로드 경로를 우선 사용한다.
 - 업로드 성공은 검증 성공과 같은 의미가 아니다.
+- 원본 JPEG document를 우선 사용하고, 비JPEG 파일은 자동 완료 대상으로 취급하지 않는다.
+- staged artifact를 실제로 읽을 수 없으면 조용히 통과시키지 않는다.
 - EXIF, GPS, 촬영 시각이 없으면 조용히 통과시키지 않는다.
 - 자동 확정이 어려우면 재제출 또는 운영 검토로 내려간다.
 
@@ -57,13 +61,15 @@
 
 1. 사용자는 원본 document로 파일을 올린다.
 2. 런타임은 파일 식별자, 파일명, mime type, 업로드 시각을 저장한다.
-3. 이후 EXIF, GPS, 촬영 시각 signal 계산 단계로 이동한다.
+3. 가능하면 local artifact stage 경로와 checksum도 함께 저장한다.
+4. 이후 EXIF, GPS, 촬영 시각 signal 계산 단계로 이동한다.
 
 ### 4.4 검증 결과 처리
 
 1. 런타임은 저장된 signal을 바탕으로 validation state를 기록한다.
 2. 자동 승인 가능하면 제출을 완료한다.
-3. 신호가 부족하거나 충돌하면 재제출 안내 또는 운영 검토로 보낸다.
+3. 비JPEG 파일, 파손 파일, staged artifact read failure는 별도 실패 사유로 기록한다.
+4. 신호가 부족하거나 충돌하면 재제출 안내 또는 운영 검토로 보낸다.
 
 ## 5. 저장 구조 기준
 
@@ -74,7 +80,7 @@
 - `evidence_submission_sessions`
   - 위치 선행 여부와 현재 제출 단계를 저장
 - `evidence_submissions`
-  - document 업로드 메타데이터와 artifact 상태를 저장
+  - document 업로드 메타데이터, staged artifact uri, checksum, artifact 상태를 저장
 - `evidence_validation_signals`
   - EXIF, GPS, 촬영 시각, 거리 같은 기본 검증 신호를 저장
 - `evidence_validation_state_logs`
@@ -99,6 +105,13 @@
 
 이 signal 이름은 사용자 노출 문구가 아니라 내부 저장 vocabulary다.
 
+signal detail에는 최소한 아래 성격의 메타데이터를 남길 수 있어야 한다.
+
+- signal source
+- parser status
+- accepted location 참조값
+- raw capture time
+
 ## 7. 자동 판정 규칙
 
 자동 완료는 아래 조건을 모두 만족할 때만 허용한다.
@@ -110,6 +123,12 @@
 
 하나라도 만족하지 못하면 `재제출 안내` 또는 `운영 검토`로 내려간다.
 
+추가 강제 규칙:
+
+- `image/jpeg`, `image/jpg`, `.jpg`, `.jpeg` 외 형식은 자동 완료 대상으로 보지 않는다.
+- staged artifact가 있으나 파서를 통과하지 못하면 `artifact_read_failed` 성격의 실패로 처리한다.
+- staged artifact가 없을 때만 payload fallback을 보조적으로 사용한다.
+
 ## 8. 운영 검토 기준
 
 아래 상황은 운영 검토 대상으로 본다.
@@ -117,6 +136,8 @@
 - EXIF 없음
 - GPS 없음
 - 촬영 시각 없음
+- 비JPEG 파일
+- staged artifact read failure
 - 위치와 사진 좌표가 허용 범위를 벗어남
 - 반복 재제출 후에도 같은 실패가 누적됨
 
@@ -129,5 +150,7 @@
 - 증빙 요청 event와 제출 session이 SQLite에 남는다.
 - 위치 수락 전에는 업로드 완료 상태가 되지 않는다.
 - document 업로드 메타데이터와 validation signal이 분리 저장된다.
+- staged artifact uri와 checksum을 저장할 수 있다.
 - validation state log가 append-only로 남는다.
 - 자동 확정 불가 상황이 재제출 또는 운영 검토로 이어진다.
+- 비JPEG, 파손 파일, parser failure가 메타데이터 부족과 구분된 실패 사유로 남는다.

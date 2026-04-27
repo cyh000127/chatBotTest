@@ -122,13 +122,17 @@ python -m PROJECT.main
 - 대시보드: `http://127.0.0.1:8000/admin`
 - 요청 목록: `http://127.0.0.1:8000/admin/pages/follow-ups`
 - 농지 바인딩 예외: `http://127.0.0.1:8000/admin/pages/field-binding-exceptions`
+- 증빙 검토 목록: `http://127.0.0.1:8000/admin/pages/evidence-reviews`
 - 사용자 대화 내용: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}`
 - 사용자 응답 작성: `http://127.0.0.1:8000/admin/pages/follow-ups/{follow_up_id}/reply`
+- 증빙 검토 상세: `http://127.0.0.1:8000/admin/pages/evidence-reviews/{submission_id}`
 - 감사 로그: `http://127.0.0.1:8000/admin/pages/audit-events`
 - 보안 상태: `http://127.0.0.1:8000/admin/pages/security`
 
 대시보드는 지원 이관, 초대 코드, 온보딩 승인, outbox, 감사 로그, 보안 상태 화면으로 이동하는 로컬 운영 홈이다.
 이 화면에서 응답을 보내면 admin reply가 follow-up 항목에 기록되고 outbox에 메시지가 생성된다. 상세 화면에서는 답변 없이 요청을 종료할 수 있으며, 종료 안내도 outbox를 통해 봇 delivery loop가 전송한다.
+
+증빙 검토 화면에서는 artifact 상태, staged artifact uri, checksum, parser status, signal detail, state log를 함께 확인할 수 있다. JPEG 원본 문서가 아니거나 파일을 읽지 못한 경우에는 메타데이터 부족과 별도 실패 사유로 기록된다.
 
 `ADMIN_API_ACCESS_TOKEN`이 설정되어 있으면 관리자 화면은 `/admin/login`에서 access token을 입력한 뒤 접근할 수 있다. 이 값은 실제 환경 파일에만 두고 코드나 문서 예시에 실제 토큰을 남기지 않는다.
 관리자 화면의 `로그아웃` 버튼은 브라우저 로그인 쿠키를 삭제하고 다시 `/admin/login`으로 이동한다.

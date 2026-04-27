@@ -94,6 +94,7 @@
 | 완전한 잡담/도메인 불명 입력 | guided fallback | 금지 | 관련 항목 버튼 제시 |
 | 공격적/민감/운영 이관 필요 입력 | safety gate | 금지 | 지원 이관 또는 운영 안내 |
 | 반복 실패 누적 | recovery/handoff | 제한적 또는 금지 | 버튼 유도 강화 또는 지원 이관 |
+| 증빙 파일 형식 불일치 또는 staged artifact read failure | parser/validator | 금지 | 재제출 안내 또는 운영 검토 |
 
 ## 5. Unknown / Fallback 규칙
 
@@ -277,7 +278,17 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 - 이관 상태에서 사용자의 추가 메시지는 이관 항목의 대화 이력으로 누적한다.
 - 명시적 restart는 이관 상태에서도 우선 처리한다.
 
-## 17. 정책 코드 분리 원칙
+## 17. 증빙 파일 품질 규칙
+
+- 증빙 업로드는 자유 형식 파일 수집이 아니다.
+- 원본 JPEG document를 우선 허용 형식으로 본다.
+- staged artifact가 존재하면 실제 파일 메타데이터 파서를 우선 사용한다.
+- staged artifact가 없을 때만 payload fallback을 보조적으로 사용한다.
+- 비JPEG 형식, 파손 파일, staged artifact read failure는 `메타데이터 없음`과 다른 실패 사유로 남겨야 한다.
+- 파일 품질 실패는 즉시 재제출 안내 대상으로 보되, 반복되면 운영 검토로 승격할 수 있다.
+- 관리자 상세에서는 최소한 staged artifact uri, checksum, parser status, signal detail을 확인할 수 있어야 한다.
+
+## 18. 정책 코드 분리 원칙
 
 정책 판단 로직은 메시지 핸들러 안에 분산하지 않는다.
 
@@ -289,7 +300,7 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 - `should_handoff(...)`
 - `same_input_cache_key(...)`
 
-## 18. 런타임 강제 순서
+## 19. 런타임 강제 순서
 
 1. command/button
 2. step parser
@@ -300,7 +311,7 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 7. validator + state machine 재검증
 8. confirm 또는 fallback 또는 handoff
 
-## 19. 구현 순서
+## 20. 구현 순서
 
 1. vocabulary와 정책을 문서에 먼저 고정한다.
 2. 정책 판단 로직을 중앙화한다.
@@ -309,7 +320,7 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 5. telemetry 최소 이벤트 세트를 붙인다.
 6. 모든 모델 호출을 정책 함수 뒤로 이동시킨다.
 
-## 20. 최종 요약
+## 21. 최종 요약
 
 - 메인 경로는 룰베이스로 유지한다.
 - unknown 입력은 guided fallback으로 회수한다.
