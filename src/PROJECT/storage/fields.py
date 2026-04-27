@@ -282,6 +282,16 @@ class SqliteFieldRegistryRepository:
         ).fetchall()
         return tuple(_field_record_from_row(row) for row in rows)
 
+    def list_published_fields(
+        self,
+        *,
+        project_id: str = DEFAULT_LOCAL_PROJECT_ID,
+    ) -> tuple[FieldRegistryFieldRecord, ...]:
+        version = self.latest_published_version(project_id=project_id)
+        if version is None:
+            return ()
+        return self.list_fields_for_version(version.id)
+
     def get_field_record(self, field_id: str) -> FieldRegistryFieldRecord:
         row = self._connection.execute(
             """
