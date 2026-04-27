@@ -135,6 +135,8 @@ from PROJECT.rule_engine.normalizer import normalize_body_text
 from PROJECT.policy import same_input_cache_key
 from PROJECT.telemetry.event_logger import log_event
 from PROJECT.telemetry.events import (
+    CANONICAL_RECORD_CREATED,
+    CANONICAL_RECORD_FAILED,
     CHEAP_GATE_BLOCKED,
     FALLBACK_SHOWN,
     LLM_FAILED,
@@ -237,6 +239,84 @@ def confirmed_fertilizer_draft(context) -> fertilizer_service.FertilizerDraft:
 
 def current_yield(context) -> yield_service.YieldDraft:
     return yield_service.draft_from_dict(yield_draft(context.user_data))
+
+
+async def persist_fertilizer_canonical_record(update, context) -> bool:
+    seasonal_activity_service = context.bot_data.get("season_activity_service")
+    if seasonal_activity_service is None or update.effective_user is None:
+        return True
+    try:
+        result = seasonal_activity_service.record_fertilizer(
+            provider_user_id=str(update.effective_user.id),
+            draft=current_fertilizer(context),
+        )
+    except Exception as exc:
+        log_event(
+            CANONICAL_RECORD_FAILED,
+            domain="fertilizer",
+            state=current_state(context.user_data),
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )
+        catalog = current_catalog(context)
+        await send_text(
+            update,
+            catalog.CANONICAL_WRITE_FAILURE_MESSAGE,
+            keyboard_layout=fertilizer_service.keyboard_for_state(
+                current_state(context.user_data),
+                catalog,
+            ),
+        )
+        return False
+    log_event(
+        CANONICAL_RECORD_CREATED,
+        domain="fertilizer",
+        state=current_state(context.user_data),
+        record_id=result.record_id,
+        seasonal_event_id=result.seasonal_event_id,
+        field_season_id=result.field_season_id,
+        binding_resolution_code=result.binding_resolution_code,
+    )
+    return True
+
+
+async def persist_yield_canonical_record(update, context) -> bool:
+    seasonal_activity_service = context.bot_data.get("season_activity_service")
+    if seasonal_activity_service is None or update.effective_user is None:
+        return True
+    try:
+        result = seasonal_activity_service.record_yield(
+            provider_user_id=str(update.effective_user.id),
+            draft=current_yield(context),
+        )
+    except Exception as exc:
+        log_event(
+            CANONICAL_RECORD_FAILED,
+            domain="yield",
+            state=current_state(context.user_data),
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )
+        catalog = current_catalog(context)
+        await send_text(
+            update,
+            catalog.CANONICAL_WRITE_FAILURE_MESSAGE,
+            keyboard_layout=yield_service.keyboard_for_state(
+                current_state(context.user_data),
+                catalog,
+            ),
+        )
+        return False
+    log_event(
+        CANONICAL_RECORD_CREATED,
+        domain="yield",
+        state=current_state(context.user_data),
+        record_id=result.record_id,
+        seasonal_event_id=result.seasonal_event_id,
+        field_season_id=result.field_season_id,
+        binding_resolution_code=result.binding_resolution_code,
+    )
+    return True
 
 
 def log_rule_matched(*, rule_name: str, domain: str, target_state: str, scope: str) -> None:
@@ -1458,6 +1538,8 @@ async def text_message(update, context) -> None:
         return
 
     if decision.route == ROUTE_FERTILIZER_FINALIZE:
+        if not await persist_fertilizer_canonical_record(update, context):
+            return
         set_confirmed_fertilizer(context.user_data, fertilizer_draft(context.user_data))
         set_state(context.user_data, STATE_MAIN_MENU)
         reset_recovery_attempts(context.user_data)
@@ -1469,6 +1551,8 @@ async def text_message(update, context) -> None:
         return
 
     if decision.route == ROUTE_YIELD_FINALIZE:
+        if not await persist_yield_canonical_record(update, context):
+            return
         set_confirmed_yield(context.user_data, yield_draft(context.user_data))
         set_state(context.user_data, STATE_MAIN_MENU)
         reset_recovery_attempts(context.user_data)
@@ -1879,6 +1963,8 @@ async def button_callback(update, context) -> None:
         return
 
     if decision.route == ROUTE_FERTILIZER_FINALIZE:
+        if not await persist_fertilizer_canonical_record(update, context):
+            return
         set_confirmed_fertilizer(context.user_data, fertilizer_draft(context.user_data))
         set_state(context.user_data, STATE_MAIN_MENU)
         await send_text(
@@ -1889,6 +1975,8 @@ async def button_callback(update, context) -> None:
         return
 
     if decision.route == ROUTE_YIELD_FINALIZE:
+        if not await persist_yield_canonical_record(update, context):
+            return
         set_confirmed_yield(context.user_data, yield_draft(context.user_data))
         set_state(context.user_data, STATE_MAIN_MENU)
         await send_text(

@@ -121,6 +121,7 @@ INPUT_RESOLVE_ENTRY_MESSAGE = "입력 해석 화면입니다.\n현재는 정할 
 SUPPORT_ESCALATION_MESSAGE = "지원 요청이 접수되었습니다.\n새 채팅방은 만들지 않습니다. 이 대화창에서 후속 안내를 받을 수 있습니다.\n필요하면 /help, /menu, /start 로 이동하세요."
 SUPPORT_HANDOFF_MESSAGE_RECORDED = "추가 내용이 지원 이관 이력에 저장되었습니다.\n새 채팅방은 만들지 않습니다. 이 대화창에서 후속 안내를 받을 수 있습니다.\n처음부터 다시 진행하려면 /start 를 입력하세요."
 SUPPORT_HANDOFF_CLOSED_MESSAGE = "지원 이관이 종료되었습니다.\n필요하면 이 대화창에서 다시 도움을 요청할 수 있습니다."
+CANONICAL_WRITE_FAILURE_MESSAGE = "입력을 저장하는 중 문제가 발생했습니다.\n다시 시도하거나 /support 를 사용해 주세요."
 
 HELP_MESSAGE = (
     "사용할 수 있는 명령어입니다.\n"

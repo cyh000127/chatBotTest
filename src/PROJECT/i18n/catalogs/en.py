@@ -116,6 +116,7 @@ INPUT_RESOLVE_ENTRY_MESSAGE = "This is the input resolve entry.\nFor now, the ru
 SUPPORT_ESCALATION_MESSAGE = "Your support request was sent.\nNo new chat will open. We will keep replying here.\nUse /help, /menu, or /start to go back."
 SUPPORT_HANDOFF_MESSAGE_RECORDED = "The extra note was saved to the support thread.\nReplies will stay in this chat.\nUse /start to start over."
 SUPPORT_HANDOFF_CLOSED_MESSAGE = "The support thread is closed.\nYou can ask for help again in this chat."
+CANONICAL_WRITE_FAILURE_MESSAGE = "There was a problem saving your input.\nTry again or use /support."
 
 HELP_MESSAGE = (
     "Available commands:\n"
