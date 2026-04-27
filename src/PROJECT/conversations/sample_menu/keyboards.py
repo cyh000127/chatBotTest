@@ -43,18 +43,17 @@ def _button(text: str, data: str) -> dict[str, str]:
 def main_menu_keyboard(catalog) -> list[list[dict[str, str]]]:
     return [
         [
-            _button(catalog.BUTTON_PROFILE, "intent:profile"),
             _button(catalog.BUTTON_FERTILIZER, "intent:agri.input.start"),
-        ],
-        [
             _button(catalog.BUTTON_YIELD, "intent:yield.input.start"),
-            _button(catalog.BUTTON_MYFIELDS, "intent:field.list"),
         ],
         [
+            _button(catalog.BUTTON_MYFIELDS, "intent:field.list"),
             _button(catalog.BUTTON_INPUT_RESOLVE, "intent:input.resolve.start"),
-            _button(catalog.BUTTON_SUPPORT, "intent:support.escalate"),
         ],
-        [_button(catalog.BUTTON_HELP, "intent:help")],
+        [
+            _button(catalog.BUTTON_SUPPORT, "intent:support.escalate"),
+            _button(catalog.BUTTON_HELP, "intent:help"),
+        ],
         [_button(catalog.BUTTON_RESTART, "intent:restart")],
     ]
 

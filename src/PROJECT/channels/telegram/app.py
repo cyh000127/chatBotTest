@@ -1,6 +1,6 @@
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
-from PROJECT.channels.telegram.handlers.commands import cancel_command, fertilizer_command, help_command, input_resolve_command, language_command, menu_command, myfields_command, profile_command, start_command, support_command, yield_command
+from PROJECT.channels.telegram.handlers.commands import cancel_command, fertilizer_command, help_command, input_resolve_command, language_command, menu_command, myfields_command, start_command, support_command, yield_command
 from PROJECT.channels.telegram.handlers.messages import button_callback, text_message, unknown_command
 from PROJECT.admin.delivery import run_outbox_delivery_loop
 from PROJECT.admin.follow_up import admin_runtime
@@ -56,7 +56,6 @@ def create_application(settings: Settings, *, sqlite_runtime: SqliteRuntime | No
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("menu", menu_command))
-    application.add_handler(CommandHandler("profile", profile_command))
     application.add_handler(CommandHandler("myfields", myfields_command))
     application.add_handler(CommandHandler("fertilizer", fertilizer_command))
     application.add_handler(CommandHandler("yield", yield_command))

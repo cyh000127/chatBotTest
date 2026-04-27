@@ -47,7 +47,6 @@ def all_button_intents() -> dict[str, str]:
     for catalog in CATALOGS.values():
         mapping.update(
             {
-                catalog.BUTTON_PROFILE: registry.INTENT_PROFILE,
                 catalog.BUTTON_FERTILIZER: registry.INTENT_AGRI_INPUT_START,
                 catalog.BUTTON_YIELD: registry.INTENT_YIELD_INPUT_START,
                 catalog.BUTTON_MYFIELDS: registry.INTENT_FIELD_LIST,

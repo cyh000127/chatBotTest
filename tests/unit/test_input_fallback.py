@@ -29,12 +29,13 @@ def test_default_fallback_keyboard_uses_main_menu_buttons():
     catalog = get_catalog("ko")
     layout = fallback_keyboard_layout_for_state(STATE_MAIN_MENU, catalog)
 
-    assert layout[0][0]["text"] == catalog.BUTTON_PROFILE
-    assert layout[0][1]["text"] == catalog.BUTTON_FERTILIZER
-    assert layout[1][0]["text"] == catalog.BUTTON_YIELD
-    assert layout[1][1]["text"] == catalog.BUTTON_MYFIELDS
-    assert layout[2][0]["text"] == catalog.BUTTON_INPUT_RESOLVE
-    assert layout[2][1]["text"] == catalog.BUTTON_SUPPORT
+    assert layout[0][0]["text"] == catalog.BUTTON_FERTILIZER
+    assert layout[0][1]["text"] == catalog.BUTTON_YIELD
+    assert layout[1][0]["text"] == catalog.BUTTON_MYFIELDS
+    assert layout[1][1]["text"] == catalog.BUTTON_INPUT_RESOLVE
+    assert layout[2][0]["text"] == catalog.BUTTON_SUPPORT
+    assert layout[2][1]["text"] == catalog.BUTTON_HELP
+    assert all(button["text"] != catalog.BUTTON_PROFILE for row in layout for button in row)
 
 
 def test_profile_fallback_keyboard_uses_current_step_navigation():
