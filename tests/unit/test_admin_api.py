@@ -373,6 +373,85 @@ def test_admin_api_shows_evidence_review_detail_with_signals_and_logs(tmp_path):
         sqlite_runtime.close()
 
 
+def test_admin_api_can_approve_manual_review_evidence_and_enqueue_user_notice(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        evidence_repository, submission = create_manual_review_evidence(sqlite_runtime)
+        runtime = InMemoryAdminRuntime()
+        client = TestClient(create_admin_api_app(runtime, evidence_repository=evidence_repository))
+
+        response = client.post(
+            f"/admin/evidence-reviews/{submission.id}/approve",
+            json={"message": "운영 검토 결과 증빙이 확인되었습니다."},
+        )
+
+        updated_submission = evidence_repository.get_submission(submission.id)
+        updated_session = evidence_repository.get_submission_session(submission.evidence_submission_session_id)
+        updated_request = evidence_repository.get_request_event(submission.evidence_request_event_id)
+        follow_ups = runtime.list_follow_ups(include_closed=True)
+        outbox = runtime.list_outbox()
+
+        assert response.status_code == 200
+        assert updated_submission is not None
+        assert updated_submission.artifact_status_code == "accepted"
+        assert updated_session is not None
+        assert updated_session.session_status_code == "completed"
+        assert updated_request is not None
+        assert updated_request.request_status_code == "satisfied"
+        assert len(follow_ups) == 1
+        assert follow_ups[0].closed is True
+        assert len(outbox) == 1
+        assert outbox[0].text == "운영 검토 결과 증빙이 확인되었습니다."
+        assert response.json()["outbox_message"]["status"] == OutboxStatus.PENDING.value
+    finally:
+        sqlite_runtime.close()
+
+
+def test_admin_api_can_request_retry_for_manual_review_evidence_and_close_follow_up(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        evidence_repository, submission = create_manual_review_evidence(sqlite_runtime)
+        runtime = InMemoryAdminRuntime()
+        client = TestClient(create_admin_api_app(runtime, evidence_repository=evidence_repository))
+
+        response = client.post(
+            f"/admin/evidence-reviews/{submission.id}/request-retry",
+            json={"message": "운영 검토 결과 증빙을 다시 제출해 주세요."},
+        )
+
+        updated_submission = evidence_repository.get_submission(submission.id)
+        updated_session = evidence_repository.get_submission_session(submission.evidence_submission_session_id)
+        logs = evidence_repository.list_state_logs(submission.id)
+        follow_ups = runtime.list_follow_ups(include_closed=True)
+        outbox = runtime.list_outbox()
+
+        assert response.status_code == 200
+        assert updated_submission is not None
+        assert updated_submission.artifact_status_code == "rejected"
+        assert updated_session is not None
+        assert updated_session.session_status_code == "abandoned"
+        assert logs[-1].reason_code == "admin_review_retry_requested"
+        assert len(follow_ups) == 1
+        assert follow_ups[0].closed is True
+        assert len(outbox) == 1
+        assert outbox[0].text == "운영 검토 결과 증빙을 다시 제출해 주세요."
+        assert response.json()["outbox_message"]["status"] == OutboxStatus.PENDING.value
+    finally:
+        sqlite_runtime.close()
+
+
 def test_admin_api_follow_up_reply_writes_audit_event(tmp_path):
     sqlite_runtime = bootstrap_sqlite_runtime(
         SqliteSettings(
