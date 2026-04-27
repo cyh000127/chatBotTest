@@ -3,15 +3,11 @@ from types import SimpleNamespace
 
 from PROJECT.channels.telegram.handlers import commands, messages
 from PROJECT.evidence import EvidenceSubmissionService
-from PROJECT.conversations.evidence_submission.states import (
-    STATE_EVIDENCE_VALIDATING,
-    STATE_EVIDENCE_WAITING_DOCUMENT,
-    STATE_EVIDENCE_WAITING_LOCATION,
-)
+from PROJECT.conversations.evidence_submission.states import STATE_EVIDENCE_WAITING_DOCUMENT, STATE_EVIDENCE_WAITING_LOCATION
 from PROJECT.dispatch.session_dispatcher import current_state, evidence_submission_draft, reset_session
 from PROJECT.fields.binding import FIELD_CODE_BINDING_SOURCE
 from PROJECT.settings import SqliteSettings
-from PROJECT.storage.evidence import EVIDENCE_SESSION_STATUS_VALIDATING, SqliteEvidenceRepository
+from PROJECT.storage.evidence import EVIDENCE_SESSION_STATUS_WAITING_DOCUMENT, SqliteEvidenceRepository
 from PROJECT.storage.fields import SqliteFieldRegistryRepository
 from PROJECT.storage.invitations import SqliteInvitationRepository
 from PROJECT.storage.onboarding import SqliteOnboardingRepository
@@ -175,7 +171,7 @@ def test_evidence_document_before_location_shows_location_fallback(tmp_path):
         runtime.close()
 
 
-def test_evidence_location_and_document_flow_moves_to_validating(tmp_path):
+def test_evidence_location_and_document_flow_requests_document_retry_when_metadata_is_missing(tmp_path):
     runtime, field_repository, evidence_repository, bot_data = _approved_runtime(tmp_path)
     context = _context(bot_data)
     message = FakeMessage()
@@ -199,20 +195,21 @@ def test_evidence_location_and_document_flow_moves_to_validating(tmp_path):
         document_message = FakeMessage(document=FakeDocument())
         asyncio.run(messages.document_message(_message_update(document_message), context))
 
-        assert current_state(context.user_data) == STATE_EVIDENCE_VALIDATING
+        assert current_state(context.user_data) == STATE_EVIDENCE_WAITING_DOCUMENT
         updated_draft = evidence_submission_draft(context.user_data)
         assert updated_draft is not None
         assert updated_draft["document_uploaded"] is True
         assert updated_draft["evidence_submission_id"].startswith("evidence_submission_")
         assert updated_draft["file_name"] == "field.jpg"
-        assert "증빙 파일을 받았습니다" in document_message.replies[-1][0]
+        assert "증빙을 다시 제출해 주세요" in document_message.replies[-1][0]
+        assert "EXIF 정보가 없습니다" in document_message.replies[-1][0]
 
         session = evidence_repository.get_submission_session(updated_draft["session_id"])
         assert session is not None
-        assert session.session_status_code == EVIDENCE_SESSION_STATUS_VALIDATING
+        assert session.session_status_code == EVIDENCE_SESSION_STATUS_WAITING_DOCUMENT
         submissions = evidence_repository.list_submissions_for_session(updated_draft["session_id"])
         assert len(submissions) == 1
         logs = evidence_repository.list_state_logs(submissions[0].id)
-        assert logs[0].to_state_code == "uploaded"
+        assert logs[-1].to_state_code == "rejected"
     finally:
         runtime.close()

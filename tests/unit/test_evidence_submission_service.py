@@ -3,13 +3,18 @@ import pytest
 from PROJECT.evidence import (
     EVIDENCE_BINDING_RESOLUTION_SINGLE_ACTIVE_BINDING,
     EVIDENCE_BINDING_RESOLUTION_UNRESOLVED_NO_ACTIVE_BINDING,
+    EVIDENCE_VALIDATION_OUTCOME_ACCEPTED,
+    EVIDENCE_VALIDATION_OUTCOME_RETRY_DOCUMENT,
     EvidenceSubmissionService,
 )
 from PROJECT.fields.binding import FIELD_CODE_BINDING_SOURCE
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.evidence import (
     EVIDENCE_ARTIFACT_STATUS_SIGNALS_READY,
+    EVIDENCE_REQUEST_STATUS_SATISFIED,
+    EVIDENCE_SESSION_STATUS_COMPLETED,
     EVIDENCE_SESSION_STATUS_VALIDATING,
+    EVIDENCE_SESSION_STATUS_WAITING_DOCUMENT,
     SqliteEvidenceRepository,
 )
 from PROJECT.storage.fields import SqliteFieldRegistryRepository
@@ -340,5 +345,117 @@ def test_evidence_service_marks_missing_signal_rows_when_metadata_is_absent(tmp_
         assert signals["gps_longitude"].signal_status_code == "missing"
         assert signals["location_distance_meters"].signal_status_code == "not_computed"
         assert signals["upload_delay_seconds"].signal_status_code == "not_computed"
+    finally:
+        runtime.close()
+
+
+def test_evidence_service_evaluates_submission_as_accepted_when_required_signals_exist(tmp_path):
+    runtime = _runtime(tmp_path)
+    try:
+        _approve_participant(runtime, provider_user_id="1001")
+        field_repository = SqliteFieldRegistryRepository(runtime.connection)
+        evidence_repository = SqliteEvidenceRepository(runtime.connection)
+        service = EvidenceSubmissionService(evidence_repository, field_repository)
+
+        request_context = service.create_request(
+            provider_user_id="1001",
+            request_type_code="field_photo",
+        )
+        session = service.start_submission_session(
+            provider_user_id="1001",
+            chat_id=67890,
+            request_event_id=request_context.request_event.id,
+        )
+        service.accept_location(
+            session.id,
+            latitude=37.55,
+            longitude=127.01,
+            accuracy_meters=5.0,
+        )
+        submission = service.register_document_upload(
+            session.id,
+            provider_file_id="file_123",
+            provider_file_unique_id="file_unique_123",
+            provider_message_id="msg_123",
+            file_name="field.jpg",
+            mime_type="image/jpeg",
+            file_size_bytes=2048,
+            uploaded_at="2026-04-27T00:10:00+00:00",
+            payload={
+                "exif": {
+                    "gps_latitude": 37.5501,
+                    "gps_longitude": 127.0101,
+                    "captured_at": "2026-04-27T00:00:00+00:00",
+                }
+            },
+        )
+
+        decision = service.evaluate_submission(submission.id)
+        updated_submission = evidence_repository.get_submission(submission.id)
+        updated_session = evidence_repository.get_submission_session(session.id)
+        updated_request = evidence_repository.get_request_event(request_context.request_event.id)
+        logs = evidence_repository.list_state_logs(submission.id)
+
+        assert decision.outcome_code == EVIDENCE_VALIDATION_OUTCOME_ACCEPTED
+        assert decision.reason_codes == ()
+        assert updated_submission is not None
+        assert updated_submission.artifact_status_code == "accepted"
+        assert updated_session is not None
+        assert updated_session.session_status_code == EVIDENCE_SESSION_STATUS_COMPLETED
+        assert updated_request is not None
+        assert updated_request.request_status_code == EVIDENCE_REQUEST_STATUS_SATISFIED
+        assert logs[-1].to_state_code == "accepted"
+    finally:
+        runtime.close()
+
+
+def test_evidence_service_evaluates_submission_as_retry_when_required_signals_are_missing(tmp_path):
+    runtime = _runtime(tmp_path)
+    try:
+        _approve_participant(runtime, provider_user_id="1001")
+        field_repository = SqliteFieldRegistryRepository(runtime.connection)
+        evidence_repository = SqliteEvidenceRepository(runtime.connection)
+        service = EvidenceSubmissionService(evidence_repository, field_repository)
+
+        request_context = service.create_request(
+            provider_user_id="1001",
+            request_type_code="field_photo",
+        )
+        session = service.start_submission_session(
+            provider_user_id="1001",
+            chat_id=67890,
+            request_event_id=request_context.request_event.id,
+        )
+        service.accept_location(
+            session.id,
+            latitude=37.55,
+            longitude=127.01,
+            accuracy_meters=5.0,
+        )
+        submission = service.register_document_upload(
+            session.id,
+            provider_file_id="file_123",
+            provider_file_unique_id="file_unique_123",
+            provider_message_id="msg_123",
+            file_name="field.jpg",
+            mime_type="image/jpeg",
+            file_size_bytes=2048,
+            payload={},
+        )
+
+        decision = service.evaluate_submission(submission.id)
+        updated_submission = evidence_repository.get_submission(submission.id)
+        updated_session = evidence_repository.get_submission_session(session.id)
+        logs = evidence_repository.list_state_logs(submission.id)
+
+        assert decision.outcome_code == EVIDENCE_VALIDATION_OUTCOME_RETRY_DOCUMENT
+        assert "missing_exif" in decision.reason_codes
+        assert "missing_gps" in decision.reason_codes
+        assert "missing_capture_time" in decision.reason_codes
+        assert updated_submission is not None
+        assert updated_submission.artifact_status_code == "rejected"
+        assert updated_session is not None
+        assert updated_session.session_status_code == EVIDENCE_SESSION_STATUS_WAITING_DOCUMENT
+        assert logs[-1].to_state_code == "rejected"
     finally:
         runtime.close()
