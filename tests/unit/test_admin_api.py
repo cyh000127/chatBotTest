@@ -3,9 +3,11 @@ from fastapi.testclient import TestClient
 from PROJECT.admin.follow_up import DEFAULT_OUTBOX_MAX_RETRY_COUNT, FOLLOW_UP_CLOSED_NOTICE, InMemoryAdminRuntime, OutboxStatus
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
 from PROJECT.admin_api.app import create_admin_api_app
+from PROJECT.evidence import EvidenceSubmissionService
 from PROJECT.fields.binding import FieldBindingService
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.admin_audit import RESULT_FAILURE, RESULT_SUCCESS, SqliteAdminAuditRepository
+from PROJECT.storage.evidence import SqliteEvidenceRepository
 from PROJECT.storage.fields import FIELD_BINDING_EXCEPTION_STATUS_OPEN, FIELD_BINDING_EXCEPTION_STATUS_RESOLVED, SqliteFieldRegistryRepository
 from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED, INVITATION_STATUS_REVOKED, SqliteInvitationRepository
 from PROJECT.storage.onboarding import ONBOARDING_STATUS_APPROVED, ONBOARDING_STATUS_REJECTED, SqliteOnboardingRepository
@@ -76,6 +78,72 @@ def create_field_binding_exception(runtime):
     )
     assert result.exception is not None
     return field_repository, result.exception
+
+
+def create_manual_review_evidence(runtime):
+    invitation_repository = SqliteInvitationRepository(runtime.connection)
+    onboarding_repository = SqliteOnboardingRepository(runtime.connection)
+    invitation = invitation_repository.create_invitation()
+    session = onboarding_repository.create_or_resume_from_invitation(
+        invitation=invitation,
+        provider_user_id="12345",
+        provider_handle="farmer_user",
+        preferred_locale_code="ko",
+        chat_id=67890,
+    )
+    session = onboarding_repository.update_locale(session.id, "ko")
+    session = onboarding_repository.update_name(session.id, "홍길동")
+    session = onboarding_repository.update_phone(
+        session.id,
+        phone_raw="+855 12 345 678",
+        phone_normalized="+85512345678",
+    )
+    session = onboarding_repository.submit_pending_approval(session.id)
+    SqliteOnboardingAdminRepository(runtime.connection).approve_submission(session.id)
+
+    field_repository = SqliteFieldRegistryRepository(runtime.connection)
+    evidence_repository = SqliteEvidenceRepository(runtime.connection)
+    service = EvidenceSubmissionService(evidence_repository, field_repository)
+    request_context = service.create_request(
+        provider_user_id="12345",
+        request_type_code="field_photo",
+    )
+    submission_session = service.start_submission_session(
+        provider_user_id="12345",
+        chat_id=67890,
+        request_event_id=request_context.request_event.id,
+    )
+    service.accept_location(
+        submission_session.id,
+        latitude=37.55,
+        longitude=127.01,
+        accuracy_meters=5.0,
+    )
+    submission = service.register_document_upload(
+        submission_session.id,
+        provider_file_id="file_123",
+        provider_file_unique_id="file_unique_123",
+        provider_message_id="msg_123",
+        file_name="field.jpg",
+        mime_type="image/jpeg",
+        file_size_bytes=2048,
+        uploaded_at="2026-04-27T00:10:00+00:00",
+        payload={
+            "exif": {
+                "gps_latitude": 35.101,
+                "gps_longitude": 129.021,
+                "captured_at": "2026-04-27T00:00:00+00:00",
+            }
+        },
+    )
+    decision = service.evaluate_submission(submission.id)
+    assessment = service.assess_manual_review_requirement(submission.id, decision)
+    escalated = service.escalate_submission_manual_review(
+        submission.id,
+        trigger_reason_code=assessment.trigger_reason_code or "distance_conflict",
+        detail={"reason_codes": list(decision.reason_codes)},
+    )
+    return evidence_repository, escalated
 
 
 def test_admin_api_lists_follow_ups_and_accepts_reply():
@@ -250,6 +318,59 @@ def test_admin_api_can_export_follow_ups_as_csv():
     assert matched.follow_up_id in response.text
     assert "사진 업로드가 안 됩니다" not in response.text
     assert "follow_up_id,status,route_hint" in response.text
+
+
+def test_admin_api_lists_evidence_reviews_with_manual_review_filter(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        evidence_repository, submission = create_manual_review_evidence(sqlite_runtime)
+        client = TestClient(create_admin_api_app(InMemoryAdminRuntime(), evidence_repository=evidence_repository))
+
+        response = client.get("/admin/evidence-reviews?status=manual_review_required")
+        page = client.get("/admin/pages/evidence-reviews?status=manual_review_required")
+
+        assert response.status_code == 200
+        assert [item["id"] for item in response.json()["items"]] == [submission.id]
+        assert page.status_code == 200
+        assert submission.id in page.text
+        assert "증빙 검토" in page.text
+    finally:
+        sqlite_runtime.close()
+
+
+def test_admin_api_shows_evidence_review_detail_with_signals_and_logs(tmp_path):
+    sqlite_runtime = bootstrap_sqlite_runtime(
+        SqliteSettings(
+            database_path=str(tmp_path / "runtime.sqlite3"),
+            migrations_enabled=True,
+        )
+    )
+    assert sqlite_runtime is not None
+    try:
+        evidence_repository, submission = create_manual_review_evidence(sqlite_runtime)
+        client = TestClient(create_admin_api_app(InMemoryAdminRuntime(), evidence_repository=evidence_repository))
+
+        response = client.get(f"/admin/evidence-reviews/{submission.id}")
+        page = client.get(f"/admin/pages/evidence-reviews/{submission.id}")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["submission"]["id"] == submission.id
+        assert payload["session"]["session_status_code"] == "manual_review_required"
+        assert any(item["signal_type_code"] == "location_distance_meters" for item in payload["signals"])
+        assert payload["state_logs"][-1]["to_state_code"] == "manual_review_required"
+        assert page.status_code == 200
+        assert submission.id in page.text
+        assert "location_distance_meters" in page.text
+        assert "manual_review_required" in page.text
+    finally:
+        sqlite_runtime.close()
 
 
 def test_admin_api_follow_up_reply_writes_audit_event(tmp_path):
