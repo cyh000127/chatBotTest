@@ -8,6 +8,7 @@ from PROJECT.evidence import (
 from PROJECT.fields.binding import FIELD_CODE_BINDING_SOURCE
 from PROJECT.settings import SqliteSettings
 from PROJECT.storage.evidence import (
+    EVIDENCE_ARTIFACT_STATUS_SIGNALS_READY,
     EVIDENCE_SESSION_STATUS_VALIDATING,
     SqliteEvidenceRepository,
 )
@@ -233,5 +234,111 @@ def test_evidence_service_requires_location_before_document_upload(tmp_path):
         assert updated_session.session_status_code == EVIDENCE_SESSION_STATUS_VALIDATING
         assert submission.payload["accepted_location_latitude"] == 37.55
         assert logs[0].to_state_code == "uploaded"
+    finally:
+        runtime.close()
+
+
+def test_evidence_service_extracts_signal_rows_from_submission_metadata(tmp_path):
+    runtime = _runtime(tmp_path)
+    try:
+        _approve_participant(runtime, provider_user_id="1001")
+        field_repository = SqliteFieldRegistryRepository(runtime.connection)
+        evidence_repository = SqliteEvidenceRepository(runtime.connection)
+        service = EvidenceSubmissionService(evidence_repository, field_repository)
+
+        request_context = service.create_request(
+            provider_user_id="1001",
+            request_type_code="field_photo",
+        )
+        session = service.start_submission_session(
+            provider_user_id="1001",
+            chat_id=67890,
+            request_event_id=request_context.request_event.id,
+        )
+        service.accept_location(
+            session.id,
+            latitude=37.55,
+            longitude=127.01,
+            accuracy_meters=5.0,
+        )
+        submission = service.register_document_upload(
+            session.id,
+            provider_file_id="file_123",
+            provider_file_unique_id="file_unique_123",
+            provider_message_id="msg_123",
+            file_name="field.jpg",
+            mime_type="image/jpeg",
+            file_size_bytes=2048,
+            uploaded_at="2026-04-27T00:10:00+00:00",
+            payload={
+                "exif": {
+                    "gps_latitude": 37.5505,
+                    "gps_longitude": 127.0105,
+                    "captured_at": "2026-04-27T00:00:00+00:00",
+                }
+            },
+        )
+
+        assert submission.artifact_status_code == EVIDENCE_ARTIFACT_STATUS_SIGNALS_READY
+        signals = {signal.signal_type_code: signal for signal in evidence_repository.list_validation_signals(submission.id)}
+
+        assert signals["exif_present"].signal_status_code == "present"
+        assert signals["gps_present"].signal_status_code == "present"
+        assert signals["capture_time_present"].signal_status_code == "present"
+        assert signals["capture_time"].text_value == "2026-04-27T00:00:00+00:00"
+        assert signals["gps_latitude"].numeric_value == 37.5505
+        assert signals["gps_longitude"].numeric_value == 127.0105
+        assert signals["location_distance_meters"].signal_status_code == "computed"
+        assert signals["location_distance_meters"].numeric_value is not None
+        assert signals["upload_delay_seconds"].signal_status_code == "computed"
+        assert signals["upload_delay_seconds"].numeric_value == 600.0
+    finally:
+        runtime.close()
+
+
+def test_evidence_service_marks_missing_signal_rows_when_metadata_is_absent(tmp_path):
+    runtime = _runtime(tmp_path)
+    try:
+        _approve_participant(runtime, provider_user_id="1001")
+        field_repository = SqliteFieldRegistryRepository(runtime.connection)
+        evidence_repository = SqliteEvidenceRepository(runtime.connection)
+        service = EvidenceSubmissionService(evidence_repository, field_repository)
+
+        request_context = service.create_request(
+            provider_user_id="1001",
+            request_type_code="field_photo",
+        )
+        session = service.start_submission_session(
+            provider_user_id="1001",
+            chat_id=67890,
+            request_event_id=request_context.request_event.id,
+        )
+        service.accept_location(
+            session.id,
+            latitude=37.55,
+            longitude=127.01,
+            accuracy_meters=5.0,
+        )
+        submission = service.register_document_upload(
+            session.id,
+            provider_file_id="file_123",
+            provider_file_unique_id="file_unique_123",
+            provider_message_id="msg_123",
+            file_name="field.jpg",
+            mime_type="image/jpeg",
+            file_size_bytes=2048,
+            payload={},
+        )
+
+        signals = {signal.signal_type_code: signal for signal in evidence_repository.list_validation_signals(submission.id)}
+
+        assert signals["exif_present"].signal_status_code == "missing"
+        assert signals["gps_present"].signal_status_code == "missing"
+        assert signals["capture_time_present"].signal_status_code == "missing"
+        assert signals["capture_time"].signal_status_code == "missing"
+        assert signals["gps_latitude"].signal_status_code == "missing"
+        assert signals["gps_longitude"].signal_status_code == "missing"
+        assert signals["location_distance_meters"].signal_status_code == "not_computed"
+        assert signals["upload_delay_seconds"].signal_status_code == "not_computed"
     finally:
         runtime.close()
