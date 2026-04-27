@@ -9,7 +9,6 @@ from PROJECT.channels.telegram.handlers.commands import (
     cancel_command,
     help_command,
     fertilizer_command,
-    handle_local_auth_text,
     input_resolve_command,
     _require_started_access,
     open_fertilizer_edit_selector,
@@ -1469,8 +1468,6 @@ async def text_message(update, context) -> None:
         locale=session_locale,
     )
 
-    if await handle_local_auth_text(update, context, inbound.text):
-        return
     if not await _require_started_access(update, context):
         return
 

@@ -5,6 +5,7 @@ from PROJECT.support_handoff import SupportHandoffState, support_handoff_from_di
 
 def _default_session() -> dict:
     return {
+        "started": False,
         "state": STATE_MAIN_MENU,
         "history": [],
         "selected_city": None,
@@ -42,6 +43,7 @@ def get_session(user_data: dict) -> dict:
 
 
 def reset_session(user_data: dict) -> dict:
+    started = get_session(user_data).get("started", False) if "session" in user_data else False
     locale = get_session(user_data).get("locale", DEFAULT_LOCALE) if "session" in user_data else DEFAULT_LOCALE
     authenticated = get_session(user_data).get("authenticated", False) if "session" in user_data else False
     login_id = get_session(user_data).get("login_id") if "session" in user_data else None
@@ -57,6 +59,7 @@ def reset_session(user_data: dict) -> dict:
     confirmed_yield = get_session(user_data).get("confirmed_yield") if "session" in user_data else None
     last_context = get_session(user_data).get("last_recovery_context") if "session" in user_data else None
     user_data["session"] = _default_session()
+    user_data["session"]["started"] = started
     user_data["session"]["locale"] = locale
     user_data["session"]["authenticated"] = authenticated
     user_data["session"]["login_id"] = login_id
@@ -82,6 +85,14 @@ def cancel_session(user_data: dict) -> dict:
 
 def current_state(user_data: dict) -> str:
     return get_session(user_data)["state"]
+
+
+def mark_started(user_data: dict) -> None:
+    get_session(user_data)["started"] = True
+
+
+def has_started(user_data: dict) -> bool:
+    return bool(get_session(user_data)["started"])
 
 
 def set_state(user_data: dict, new_state: str, *, push_history: bool = False) -> dict:
@@ -192,6 +203,7 @@ def is_authenticated(user_data: dict) -> bool:
 
 def authenticate_session(user_data: dict, *, login_id: str, user_name: str) -> None:
     session = get_session(user_data)
+    session["started"] = True
     session["authenticated"] = True
     session["login_id"] = login_id
     session["user_name"] = user_name

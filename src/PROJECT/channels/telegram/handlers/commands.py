@@ -1,8 +1,6 @@
 from datetime import UTC, datetime
 
 from PROJECT.adapters.outbound.reply_sender import send_text
-from PROJECT.auth.service import authenticate_login_id
-from PROJECT.auth.session_registry import process_auth_registry, telegram_identity_key
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_USED
@@ -13,20 +11,19 @@ from PROJECT.conversations.yield_intake import service as yield_service
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_READY
 from PROJECT.conversations.sample_menu import service
 from PROJECT.conversations.sample_menu.keyboards import keyboard_layout_for_state
-from PROJECT.conversations.sample_menu.states import STATE_AUTH_LOGIN, STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
+from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.dispatch.session_dispatcher import (
     confirmed_fertilizer,
     confirmed_profile,
     cancel_session,
-    authenticate_session,
     has_confirmed_fertilizer,
     has_confirmed_profile,
     current_locale,
     current_onboarding_session_id,
     current_onboarding_status,
     current_state,
-    current_user_name,
-    increment_auth_failures,
+    has_started,
+    mark_started,
     profile_draft,
     reset_session,
     set_fertilizer_draft,
@@ -36,7 +33,6 @@ from PROJECT.dispatch.session_dispatcher import (
     set_profile_draft,
     set_state,
     set_yield_draft,
-    is_authenticated,
 )
 from PROJECT.dispatch.support_handoff_dispatcher import (
     admin_runtime_for_context,
@@ -97,9 +93,7 @@ def _is_expired(expires_at: str) -> bool:
 
 def _farmer_feature_access_allowed(update, context) -> bool:
     if not _sqlite_onboarding_enabled(context):
-        return is_authenticated(context.user_data)
-    if is_authenticated(context.user_data):
-        return True
+        return has_started(context.user_data)
     if current_onboarding_status(context.user_data) == ONBOARDING_STATUS_APPROVED:
         return True
     effective_user = update.effective_user
@@ -125,9 +119,7 @@ def _farmer_feature_access_allowed(update, context) -> bool:
 
 
 def _started_access_allowed(update, context) -> bool:
-    if is_authenticated(context.user_data):
-        return True
-    if _restore_process_auth_session(update, context):
+    if has_started(context.user_data):
         return True
     if current_onboarding_session_id(context.user_data) is not None:
         return True
@@ -136,20 +128,6 @@ def _started_access_allowed(update, context) -> bool:
     if _sqlite_onboarding_enabled(context):
         return _farmer_feature_access_allowed(update, context)
     return False
-
-
-def _restore_process_auth_session(update, context) -> bool:
-    if _sqlite_onboarding_enabled(context):
-        return False
-    record = process_auth_registry.get(telegram_identity_key(update))
-    if record is None:
-        return False
-    authenticate_session(
-        context.user_data,
-        login_id=record.login_id,
-        user_name=record.user_name,
-    )
-    return True
 
 
 async def _send_onboarding_access_required(update, context) -> None:
@@ -176,11 +154,11 @@ async def _send_onboarding_access_required(update, context) -> None:
     )
 
 
-async def _send_auth_required(update, context) -> None:
+async def _send_start_required(update, context) -> None:
     catalog = catalog_for(context)
     await send_text(
         update,
-        catalog.AUTH_REQUIRED_MESSAGE,
+        catalog.START_REQUIRED_MESSAGE,
         keyboard_layout=[
             [{"text": catalog.BUTTON_RESTART, "data": "intent:restart"}],
         ],
@@ -190,68 +168,20 @@ async def _send_auth_required(update, context) -> None:
 async def _require_started_access(update, context) -> bool:
     if _started_access_allowed(update, context):
         return True
-    await _send_auth_required(update, context)
+    await _send_start_required(update, context)
     return False
 
 
 async def _require_farmer_feature_access(update, context) -> bool:
     if not _sqlite_onboarding_enabled(context):
-        if is_authenticated(context.user_data):
+        if has_started(context.user_data):
             return True
-        await _send_auth_required(update, context)
+        await _send_start_required(update, context)
         return False
     if _farmer_feature_access_allowed(update, context):
         return True
     await _send_onboarding_access_required(update, context)
     return False
-
-
-async def complete_local_auth(update, context, login_id: str, *, already_logged_in: bool = False) -> bool:
-    catalog = catalog_for(context)
-    result = authenticate_login_id(login_id)
-    if result is None:
-        failures = increment_auth_failures(context.user_data)
-        if failures >= 2:
-            reset_session(context.user_data)
-            set_state(context.user_data, STATE_MAIN_MENU)
-            await send_text(update, catalog.AUTH_RETRY_LIMIT_MESSAGE)
-            return True
-        await send_text(update, catalog.AUTH_INVALID_MESSAGE)
-        return False
-
-    authenticate_session(
-        context.user_data,
-        login_id=result["login_id"],
-        user_name=result["user_name"],
-    )
-    identity_key = telegram_identity_key(update)
-    if identity_key is not None:
-        process_auth_registry.set_authenticated(
-            identity_key=identity_key,
-            login_id=result["login_id"],
-            user_name=result["user_name"],
-        )
-    reset_session(context.user_data)
-    set_state(context.user_data, STATE_MAIN_MENU)
-    message_template = catalog.AUTH_ALREADY_LOGGED_IN_MESSAGE if already_logged_in else catalog.AUTH_WELCOME_MESSAGE
-    await send_text(
-        update,
-        f"{message_template.format(user_name=result['user_name'])}\n\n{service.main_menu_text(catalog)}",
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
-    )
-    return True
-
-
-async def handle_local_auth_text(update, context, text: str) -> bool:
-    if _sqlite_onboarding_enabled(context):
-        return False
-    _restore_process_auth_session(update, context)
-    if is_authenticated(context.user_data):
-        return False
-    if current_state(context.user_data) != STATE_AUTH_LOGIN:
-        return False
-    await complete_local_auth(update, context, text.strip())
-    return True
 
 
 async def start_profile_input(update, context) -> None:
@@ -557,6 +487,7 @@ async def start_command(update, context) -> None:
             step=onboarding_session.current_step_code,
             draft=sync_onboarding_session(context, onboarding_session),
         )
+        mark_started(context.user_data)
         log_event(
             ONBOARDING_STARTED,
             onboarding_session_id=onboarding_session.id,
@@ -566,27 +497,13 @@ async def start_command(update, context) -> None:
         await send_onboarding_prompt(update, context)
         return
 
-    if is_authenticated(context.user_data):
-        user_name = current_user_name(context.user_data) or ""
-        reset_session(context.user_data)
-        set_state(context.user_data, STATE_MAIN_MENU)
-        await send_text(
-            update,
-            f"{catalog.AUTH_ALREADY_LOGGED_IN_MESSAGE.format(user_name=user_name)}\n\n{service.main_menu_text(catalog)}",
-            keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
-        )
-        return
-
-    login_id = _start_invite_code(context)
-    if login_id:
-        await complete_local_auth(update, context, login_id)
-        return
-
     reset_session(context.user_data)
-    set_state(context.user_data, STATE_AUTH_LOGIN)
+    mark_started(context.user_data)
+    set_state(context.user_data, STATE_MAIN_MENU)
     await send_text(
         update,
-        catalog.AUTH_START_PROMPT,
+        service.main_menu_text(catalog),
+        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, profile_draft(context.user_data)),
     )
 
 

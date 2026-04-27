@@ -55,6 +55,7 @@ AUTH_INVALID_MESSAGE = "아이디가 맞지 않습니다.\n다시 입력하세�
 AUTH_RETRY_LIMIT_MESSAGE = "인증에 두 번 실패했습니다.\n/start 입력 후 처음부터 진행하세요."
 AUTH_WELCOME_MESSAGE = "어서오세요 {user_name}님!"
 AUTH_ALREADY_LOGGED_IN_MESSAGE = "어서오세요 {user_name}님!"
+START_REQUIRED_MESSAGE = "먼저 /start로 시작하세요."
 ONBOARDING_INVITE_REQUIRED_MESSAGE = "초대 코드가 필요합니다.\n초대 코드가 있다면 /start <초대코드>로 시작하세요."
 ONBOARDING_INVALID_INVITE_MESSAGE = "초대 코드를 확인하지 못했습니다.\n코드를 다시 확인한 뒤 /start <초대코드>로 입력하세요."
 ONBOARDING_IDENTITY_REQUIRED_MESSAGE = "Telegram 사용자 정보를 확인하지 못했습니다.\n잠시 뒤 다시 시도하세요."

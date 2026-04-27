@@ -209,7 +209,7 @@ def test_protected_farmer_command_requires_approved_onboarding(monkeypatch, tmp_
         asyncio.run(commands.fertilizer_command(_update("/fertilizer"), context))
 
         assert current_state(context.user_data) != STATE_FERTILIZER_USED
-        assert "인증" in sent[0]
+        assert "/start" in sent[0]
     finally:
         runtime.close()
 

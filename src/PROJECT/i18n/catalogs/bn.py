@@ -51,6 +51,7 @@ AUTH_INVALID_MESSAGE = "এই আইডি ঠিক নয়। আবার ল
 AUTH_RETRY_LIMIT_MESSAGE = "দুইবার ভুল হয়েছে।\nআবার শুরু করুন। /start দিন।"
 AUTH_WELCOME_MESSAGE = "স্বাগতম {user_name}।"
 AUTH_ALREADY_LOGGED_IN_MESSAGE = "ফিরে এলেন {user_name}।"
+START_REQUIRED_MESSAGE = "আগে /start দিয়ে শুরু করুন।"
 ONBOARDING_INVITE_REQUIRED_MESSAGE = "আমন্ত্রণ কোড দরকার।\nকোড থাকলে /start <invite_code> দিয়ে শুরু করুন।"
 ONBOARDING_INVALID_INVITE_MESSAGE = "আমন্ত্রণ কোড যাচাই করা যায়নি।\nকোড দেখে আবার /start <invite_code> লিখুন।"
 ONBOARDING_IDENTITY_REQUIRED_MESSAGE = "আপনার Telegram ব্যবহারকারী তথ্য পড়া যায়নি।\nকিছুক্ষণ পরে আবার চেষ্টা করুন।"
