@@ -1,6 +1,6 @@
 from PROJECT.canonical_intents import registry
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_USED
-from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT, STATE_PROFILE_NAME
+from PROJECT.conversations.profile_intake.states import STATE_PROFILE_CONFIRM, STATE_PROFILE_EDIT_SELECT
 from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_CONFIRM, STATE_YIELD_EDIT_SELECT, STATE_YIELD_READY
 from PROJECT.dispatch.command_router import (
@@ -8,7 +8,6 @@ from PROJECT.dispatch.command_router import (
     ROUTE_OPEN_FERTILIZER,
     ROUTE_OPEN_INPUT_RESOLVE,
     ROUTE_OPEN_MYFIELDS,
-    ROUTE_OPEN_PROFILE,
     ROUTE_OPEN_YIELD,
     ROUTE_PROFILE_EDIT,
     ROUTE_YIELD_EDIT,
@@ -17,10 +16,9 @@ from PROJECT.dispatch.command_router import (
     route_message,
 )
 
-def test_profile_entry_routes_to_profile_input():
+def test_profile_entry_no_longer_routes_from_main_menu():
     decision = route_message(STATE_MAIN_MENU, registry.INTENT_PROFILE)
-    assert decision.route == ROUTE_OPEN_PROFILE
-    assert decision.next_state == STATE_PROFILE_NAME
+    assert decision.route == ROUTE_UNKNOWN_INPUT
 
 
 def test_fertilizer_entry_routes_to_fertilizer_input():

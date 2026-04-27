@@ -47,18 +47,18 @@ def test_cancelled_repeated_failure_recovery_scenario_shows_escalation_guidance(
     assert "현재 흐름이 종료되었습니다." in text
 
 
-def test_profile_input_fallback_scenario_keeps_current_step_navigation():
+def test_profile_input_fallback_scenario_uses_default_product_navigation():
     catalog = get_catalog("ko")
 
     layout = fallback_keyboard_layout_for_state(STATE_PROFILE_NAME, catalog)
     text = render_fallback_message(
-        fallback_key="profile_input",
+        fallback_key="default",
         catalog=catalog,
     )
 
-    assert layout[0][0]["text"] == catalog.BUTTON_BACK
-    assert layout[1][0]["text"] == catalog.BUTTON_RESTART
-    assert "프로필 입력을 처리하지 못했습니다." in text
+    assert layout[0][0]["text"] == catalog.BUTTON_FERTILIZER
+    assert layout[0][1]["text"] == catalog.BUTTON_YIELD
+    assert "선택" in text
 
 
 def test_fertilizer_confirm_fallback_scenario_exposes_direct_edit_fast_path():

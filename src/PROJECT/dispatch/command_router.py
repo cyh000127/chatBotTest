@@ -48,8 +48,6 @@ def route_message(state: str, intent: str, payload: dict | None = None) -> Route
         return RouteDecision(ROUTE_HELP)
     if intent in {registry.INTENT_START, registry.INTENT_MENU, registry.INTENT_RESTART}:
         return RouteDecision(ROUTE_MAIN_MENU)
-    if intent == registry.INTENT_PROFILE:
-        return RouteDecision(ROUTE_OPEN_PROFILE, next_state=STATE_PROFILE_NAME)
     if intent == registry.INTENT_FIELD_LIST:
         return RouteDecision(ROUTE_OPEN_MYFIELDS)
     if intent == registry.INTENT_AGRI_INPUT_START:

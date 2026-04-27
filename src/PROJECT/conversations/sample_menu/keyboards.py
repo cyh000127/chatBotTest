@@ -8,19 +8,6 @@ from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_PRODUCT,
     STATE_FERTILIZER_USED,
 )
-from PROJECT.conversations.profile_intake import keyboards as profile_keyboards
-from PROJECT.conversations.profile_intake import service as profile_service
-from PROJECT.conversations.profile_intake.states import (
-    STATE_PROFILE_BIRTH_DAY,
-    STATE_PROFILE_BIRTH_MONTH,
-    STATE_PROFILE_BIRTH_YEAR,
-    STATE_PROFILE_CITY,
-    STATE_PROFILE_CONFIRM,
-    STATE_PROFILE_EDIT_SELECT,
-    STATE_PROFILE_DISTRICT,
-    STATE_PROFILE_NAME,
-    STATE_PROFILE_RESIDENCE,
-)
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_LANGUAGE_SELECT
 from PROJECT.conversations.onboarding import service as onboarding_service
 from PROJECT.conversations.onboarding.states import ONBOARDING_STATES
@@ -139,20 +126,6 @@ def fallback_keyboard_layout_for_state(
         return fertilizer_recovery_confirm_keyboard(catalog)
     if state in {STATE_YIELD_READY, STATE_YIELD_FIELD, STATE_YIELD_AMOUNT, STATE_YIELD_DATE, STATE_YIELD_CONFIRM, STATE_YIELD_EDIT_SELECT}:
         return yield_service.keyboard_for_state(state, catalog)
-    if state in {
-        STATE_PROFILE_NAME,
-        STATE_PROFILE_RESIDENCE,
-        STATE_PROFILE_CITY,
-        STATE_PROFILE_DISTRICT,
-        STATE_PROFILE_BIRTH_YEAR,
-        STATE_PROFILE_BIRTH_MONTH,
-        STATE_PROFILE_BIRTH_DAY,
-    }:
-        return profile_service.keyboard_for_state(state, profile_service.draft_from_dict(draft), catalog)
-    if state == STATE_PROFILE_CONFIRM:
-        return profile_recovery_confirm_keyboard(catalog)
-    if state == STATE_PROFILE_EDIT_SELECT:
-        return profile_keyboards.profile_edit_select_keyboard(catalog)
     if state == STATE_CANCELLED:
         return cancelled_keyboard(catalog)
     return main_menu_keyboard(catalog)
@@ -172,18 +145,6 @@ def keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) ->
         return fertilizer_service.keyboard_for_state(state, catalog)
     if state in {STATE_YIELD_READY, STATE_YIELD_FIELD, STATE_YIELD_AMOUNT, STATE_YIELD_DATE, STATE_YIELD_CONFIRM, STATE_YIELD_EDIT_SELECT}:
         return yield_service.keyboard_for_state(state, catalog)
-    if state in {
-        STATE_PROFILE_NAME,
-        STATE_PROFILE_RESIDENCE,
-        STATE_PROFILE_CITY,
-        STATE_PROFILE_DISTRICT,
-        STATE_PROFILE_BIRTH_YEAR,
-        STATE_PROFILE_BIRTH_MONTH,
-        STATE_PROFILE_BIRTH_DAY,
-        STATE_PROFILE_CONFIRM,
-        STATE_PROFILE_EDIT_SELECT,
-    }:
-        return profile_service.keyboard_for_state(state, profile_service.draft_from_dict(draft), catalog)
     if state == STATE_LANGUAGE_SELECT:
         return language_keyboard()
     if state == STATE_CANCELLED:

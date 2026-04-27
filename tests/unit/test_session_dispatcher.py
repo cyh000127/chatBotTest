@@ -61,12 +61,15 @@ def test_reset_session_clears_auth_failures():
     assert auth_failures(user_data) == 0
 
 
-def test_confirmed_profile_helpers_work():
+def test_confirmed_profile_helpers_do_not_survive_reset():
     user_data = {}
     assert has_confirmed_profile(user_data) is False
     set_confirmed_profile(user_data, {"name": "홍길동"})
     assert has_confirmed_profile(user_data) is True
     assert confirmed_profile(user_data) == {"name": "홍길동"}
+    reset_session(user_data)
+    assert has_confirmed_profile(user_data) is False
+    assert confirmed_profile(user_data) is None
 
 
 def test_yield_draft_and_confirmed_helpers_work():

@@ -54,7 +54,6 @@ def reset_session(user_data: dict) -> dict:
     onboarding_status = get_session(user_data).get("onboarding_status") if "session" in user_data else None
     onboarding_step = get_session(user_data).get("onboarding_step") if "session" in user_data else None
     onboarding_draft = get_session(user_data).get("onboarding_draft") if "session" in user_data else None
-    confirmed_profile = get_session(user_data).get("confirmed_profile") if "session" in user_data else None
     confirmed_fertilizer = get_session(user_data).get("confirmed_fertilizer") if "session" in user_data else None
     confirmed_yield = get_session(user_data).get("confirmed_yield") if "session" in user_data else None
     last_context = get_session(user_data).get("last_recovery_context") if "session" in user_data else None
@@ -70,7 +69,6 @@ def reset_session(user_data: dict) -> dict:
     user_data["session"]["onboarding_status"] = onboarding_status
     user_data["session"]["onboarding_step"] = onboarding_step
     user_data["session"]["onboarding_draft"] = onboarding_draft
-    user_data["session"]["confirmed_profile"] = confirmed_profile
     user_data["session"]["confirmed_fertilizer"] = confirmed_fertilizer
     user_data["session"]["confirmed_yield"] = confirmed_yield
     user_data["session"]["last_recovery_context"] = last_context

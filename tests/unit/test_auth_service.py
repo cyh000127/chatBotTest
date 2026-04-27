@@ -38,8 +38,8 @@ def test_authenticate_session_resets_failure_count():
     assert auth_failures(user_data) == 0
 
 
-def test_confirmed_profile_survives_reset():
+def test_confirmed_profile_does_not_survive_reset():
     user_data = {}
     set_confirmed_profile(user_data, {"name": "홍길동"})
     reset_session(user_data)
-    assert confirmed_profile(user_data) == {"name": "홍길동"}
+    assert confirmed_profile(user_data) is None

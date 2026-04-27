@@ -11,6 +11,11 @@ def test_default_fallback():
     assert fallback_key_for_state(STATE_MAIN_MENU) == FALLBACK_DEFAULT
 
 
+def test_profile_state_fallbacks_use_default_product_path():
+    assert fallback_key_for_state(STATE_PROFILE_NAME) == FALLBACK_DEFAULT
+    assert fallback_key_for_state(STATE_PROFILE_CONFIRM) == FALLBACK_DEFAULT
+
+
 def test_cancelled_fallback():
     assert fallback_key_for_state(STATE_CANCELLED) == FALLBACK_CANCELLED
 
@@ -38,21 +43,20 @@ def test_default_fallback_keyboard_uses_main_menu_buttons():
     assert all(button["text"] != catalog.BUTTON_PROFILE for row in layout for button in row)
 
 
-def test_profile_fallback_keyboard_uses_current_step_navigation():
+def test_profile_fallback_keyboard_uses_default_product_navigation():
     catalog = get_catalog("ko")
     layout = fallback_keyboard_layout_for_state(STATE_PROFILE_NAME, catalog)
 
-    assert layout[0][0]["text"] == catalog.BUTTON_BACK
-    assert layout[1][0]["text"] == catalog.BUTTON_RESTART
+    assert layout[0][0]["text"] == catalog.BUTTON_FERTILIZER
+    assert layout[0][1]["text"] == catalog.BUTTON_YIELD
 
 
-def test_profile_confirm_fallback_keyboard_exposes_direct_edit_targets():
+def test_profile_confirm_fallback_keyboard_uses_default_product_navigation():
     catalog = get_catalog("ko")
     layout = fallback_keyboard_layout_for_state(STATE_PROFILE_CONFIRM, catalog)
 
-    assert layout[0][0]["text"] == catalog.BUTTON_CONFIRM
-    assert layout[1][0]["text"] == catalog.BUTTON_EDIT_NAME
-    assert layout[1][1]["text"] == catalog.BUTTON_EDIT_RESIDENCE
+    assert layout[0][0]["text"] == catalog.BUTTON_FERTILIZER
+    assert layout[0][1]["text"] == catalog.BUTTON_YIELD
 
 
 def test_fertilizer_fallback_keyboard_uses_current_step_navigation():
