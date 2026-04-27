@@ -26,6 +26,7 @@
 - `Field Binding Implementation Baseline`: 농지 바인딩과 `/myfields` 실체화 기준
 - `Season Activity Subset Baseline`: current season, seasonal event, fertilizer/yield canonical write 기준
 - `Reminder And Input Resolution Baseline`: reminder 재진입과 input-resolution 영속화 기준
+- `Evidence Submission Baseline`: 위치 선행 증빙 제출과 EXIF/GPS/시각 signal 저장 기준
 - `Support Handoff Chatbot Relay`: 기존 챗봇 대화창 안에서 운영자 후속 답변을 중계하는 기준
 - `SQLite Backup And Recovery Runbook`: 로컬 SQLite 백업, 복구, 검증 절차
 - `Target Runtime Integration Guide`: 다른 런타임으로 옮길 때 재사용 범위와 금지 범위를 정리한 이식 기준
