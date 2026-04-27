@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from PROJECT.evidence.signals import EvidenceSignalExtractionResult, extract_signal_candidates
 from PROJECT.storage.evidence import (
     EVIDENCE_ARTIFACT_STATUS_ACCEPTED,
+    EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED,
     EVIDENCE_ARTIFACT_STATUS_REJECTED,
     EVIDENCE_ARTIFACT_STATUS_SIGNALS_READY,
     EVIDENCE_SESSION_STATUS_WAITING_DOCUMENT,
@@ -26,7 +27,10 @@ EVIDENCE_REASON_MISSING_EXIF = "missing_exif"
 EVIDENCE_REASON_MISSING_GPS = "missing_gps"
 EVIDENCE_REASON_MISSING_CAPTURE_TIME = "missing_capture_time"
 EVIDENCE_REASON_LOCATION_DISTANCE_TOO_FAR = "location_distance_too_far"
+EVIDENCE_MANUAL_REVIEW_REASON_DISTANCE_CONFLICT = "distance_conflict"
+EVIDENCE_MANUAL_REVIEW_REASON_RETRY_LIMIT = "retry_limit"
 MAX_EVIDENCE_LOCATION_DISTANCE_METERS = 500.0
+MAX_EVIDENCE_RETRY_BEFORE_MANUAL_REVIEW = 2
 
 
 @dataclass(frozen=True)
@@ -45,6 +49,13 @@ class EvidenceValidationDecision:
     location_distance_meters: float | None
     upload_delay_seconds: float | None
     artifact_status_code: str
+
+
+@dataclass(frozen=True)
+class EvidenceManualReviewAssessment:
+    required: bool
+    trigger_reason_code: str | None
+    rejected_submission_count: int
 
 
 class EvidenceSubmissionService:
@@ -308,6 +319,62 @@ class EvidenceSubmissionService:
             artifact_status_code=artifact_status_code,
         )
 
+    def assess_manual_review_requirement(
+        self,
+        submission_id: str,
+        decision: EvidenceValidationDecision,
+    ) -> EvidenceManualReviewAssessment:
+        submission = self._require_submission(submission_id)
+        rejected_submission_count = self._count_rejected_submissions(submission.evidence_submission_session_id)
+        if EVIDENCE_REASON_LOCATION_DISTANCE_TOO_FAR in decision.reason_codes:
+            return EvidenceManualReviewAssessment(
+                required=True,
+                trigger_reason_code=EVIDENCE_MANUAL_REVIEW_REASON_DISTANCE_CONFLICT,
+                rejected_submission_count=rejected_submission_count,
+            )
+        if (
+            decision.outcome_code == EVIDENCE_VALIDATION_OUTCOME_RETRY_DOCUMENT
+            and rejected_submission_count >= MAX_EVIDENCE_RETRY_BEFORE_MANUAL_REVIEW
+        ):
+            return EvidenceManualReviewAssessment(
+                required=True,
+                trigger_reason_code=EVIDENCE_MANUAL_REVIEW_REASON_RETRY_LIMIT,
+                rejected_submission_count=rejected_submission_count,
+            )
+        return EvidenceManualReviewAssessment(
+            required=False,
+            trigger_reason_code=None,
+            rejected_submission_count=rejected_submission_count,
+        )
+
+    def escalate_submission_manual_review(
+        self,
+        submission_id: str,
+        *,
+        trigger_reason_code: str,
+        detail: dict | None = None,
+    ) -> EvidenceSubmission:
+        submission = self._require_submission(submission_id)
+        self._evidence_repository.update_submission_artifact_status(
+            submission.id,
+            artifact_status_code=EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED,
+        )
+        self._evidence_repository.append_state_log(
+            evidence_submission_id=submission.id,
+            from_state_code=submission.artifact_status_code,
+            to_state_code=EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED,
+            reason_code="manual_review_required",
+            detail={
+                "trigger_reason_code": trigger_reason_code,
+                **(detail or {}),
+            },
+        )
+        self._evidence_repository.mark_session_manual_review(submission.evidence_submission_session_id)
+        updated_submission = self._evidence_repository.get_submission(submission.id)
+        if updated_submission is None:
+            raise RuntimeError("운영 검토로 전환한 evidence submission을 다시 읽을 수 없습니다.")
+        return updated_submission
+
     def _require_participant(self, *, provider_user_id: str) -> ParticipantContext:
         participant = self._field_repository.find_active_participant_context(provider_user_id=provider_user_id)
         if participant is None:
@@ -347,3 +414,14 @@ class EvidenceSubmissionService:
         if signal is None:
             return None
         return signal.signal_status_code
+
+    def _count_rejected_submissions(self, session_id: str) -> int:
+        submissions = self._evidence_repository.list_submissions_for_session(session_id)
+        return sum(
+            1
+            for item in submissions
+            if item.artifact_status_code in {
+                EVIDENCE_ARTIFACT_STATUS_REJECTED,
+                EVIDENCE_ARTIFACT_STATUS_MANUAL_REVIEW_REQUIRED,
+            }
+        )

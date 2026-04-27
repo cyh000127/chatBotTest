@@ -148,6 +148,14 @@ def retry_text(catalog, draft: EvidenceSubmissionDraft, *, reason_codes: tuple[s
     )
 
 
+def manual_review_text(catalog, draft: EvidenceSubmissionDraft, *, reason_codes: tuple[str, ...]) -> str:
+    reason_lines = tuple(reason_text(catalog, reason_code) for reason_code in reason_codes)
+    return catalog.format_evidence_manual_review(
+        file_name=draft.file_name or "-",
+        reason_lines=reason_lines,
+    )
+
+
 def reason_text(catalog, reason_code: str) -> str:
     mapping = {
         EVIDENCE_REASON_MISSING_EXIF: catalog.EVIDENCE_REASON_MISSING_EXIF,

@@ -10,6 +10,7 @@ from PROJECT.conversations.evidence_submission.states import (
     STATE_EVIDENCE_WAITING_LOCATION,
 )
 from PROJECT.dispatch.session_dispatcher import (
+    clear_evidence_submission_draft,
     current_locale,
     current_state,
     evidence_submission_draft,
@@ -17,8 +18,11 @@ from PROJECT.dispatch.session_dispatcher import (
     set_evidence_submission_draft,
     set_state,
 )
+from PROJECT.dispatch.support_handoff_dispatcher import admin_runtime_for_context, create_support_handoff_request
 from PROJECT.evidence import EVIDENCE_VALIDATION_OUTCOME_ACCEPTED
 from PROJECT.i18n.translator import get_catalog
+from PROJECT.telemetry.event_logger import log_event
+from PROJECT.telemetry.events import EVIDENCE_MANUAL_REVIEW_REQUESTED
 
 DEFAULT_EVIDENCE_REQUEST_TYPE = "field_photo"
 DEFAULT_EVIDENCE_REQUEST_REASON = "manual_submission"
@@ -161,6 +165,61 @@ async def handle_evidence_document(update, context) -> bool:
         await send_text(
             update,
             evidence_conversation_service.accepted_text(catalog, updated),
+            keyboard_layout=keyboard_layout_for_state(STATE_MAIN_MENU, catalog, None),
+        )
+        return True
+
+    manual_review = evidence_service.assess_manual_review_requirement(submission.id, decision)
+    if manual_review.required:
+        escalated_submission = evidence_service.escalate_submission_manual_review(
+            submission.id,
+            trigger_reason_code=manual_review.trigger_reason_code or "manual_review_required",
+            detail={
+                "reason_codes": list(decision.reason_codes),
+                "location_distance_meters": decision.location_distance_meters,
+            },
+        )
+        updated = evidence_conversation_service.update_draft(
+            updated,
+            artifact_status_code=escalated_submission.artifact_status_code,
+        )
+        summary = (
+            f"evidence_submission session={draft.session_id} "
+            f"submission={submission.id} "
+            f"file={updated.file_name or '-'} "
+            f"reasons={','.join(decision.reason_codes) or '-'}"
+        )
+        create_support_handoff_request(
+            context.user_data,
+            route_hint="admin_follow_up_queue",
+            reason="evidence_submission_manual_review",
+            current_step=STATE_EVIDENCE_WAITING_DOCUMENT,
+            chat_id=update.effective_chat.id if update.effective_chat is not None else None,
+            user_id=update.effective_user.id if update.effective_user is not None else None,
+            locale=current_locale(context.user_data),
+            user_message=summary,
+            failure_count=manual_review.rejected_submission_count,
+            recent_messages_summary=summary,
+            source="evidence_submission_manual_review",
+            runtime=admin_runtime_for_context(context),
+        )
+        log_event(
+            EVIDENCE_MANUAL_REVIEW_REQUESTED,
+            submission_id=submission.id,
+            session_id=draft.session_id,
+            trigger_reason_code=manual_review.trigger_reason_code,
+            rejected_submission_count=manual_review.rejected_submission_count,
+            reason_codes=list(decision.reason_codes),
+        )
+        clear_evidence_submission_draft(context.user_data)
+        set_state(context.user_data, STATE_MAIN_MENU)
+        await send_text(
+            update,
+            evidence_conversation_service.manual_review_text(
+                catalog,
+                updated,
+                reason_codes=decision.reason_codes,
+            ),
             keyboard_layout=keyboard_layout_for_state(STATE_MAIN_MENU, catalog, None),
         )
         return True

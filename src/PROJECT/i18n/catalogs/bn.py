@@ -128,6 +128,7 @@ EVIDENCE_DOCUMENT_FALLBACK = "এই ধাপে মূল ফাইলটি d
 EVIDENCE_VALIDATING_MESSAGE = "প্রমাণ ফাইলটি পাওয়া গেছে।\nপরের নির্দেশনার জন্য অপেক্ষা করুন বা সম্পর্কিত কাজ বেছে নিন।"
 EVIDENCE_ACCEPTED_MESSAGE = "প্রমাণ জমা সম্পূর্ণ হয়েছে।\nমৌলিক যাচাই পেরিয়েছে।"
 EVIDENCE_RETRY_REQUIRED_MESSAGE = "অনুগ্রহ করে প্রমাণটি আবার জমা দিন।"
+EVIDENCE_MANUAL_REVIEW_MESSAGE = "প্রমাণ জমা ম্যানুয়াল রিভিউতে পাঠানো হয়েছে।"
 EVIDENCE_REASON_MISSING_EXIF = "EXIF তথ্য নেই।"
 EVIDENCE_REASON_MISSING_GPS = "GPS তথ্য নেই।"
 EVIDENCE_REASON_MISSING_CAPTURE_TIME = "ছবি তোলার সময়ের তথ্য নেই।"
@@ -487,6 +488,17 @@ def format_evidence_retry_required(*, file_name: str, reason_lines: tuple[str, .
         f"- ফাইলের নাম: {file_name}\n"
         f"{reason_text}\n\n"
         "একই ধাপে document আবার আপলোড করুন।"
+    )
+
+
+def format_evidence_manual_review(*, file_name: str, reason_lines: tuple[str, ...]) -> str:
+    reason_text = "\n".join(f"- {line}" for line in reason_lines)
+    reason_block = f"{reason_text}\n\n" if reason_text else ""
+    return (
+        f"{EVIDENCE_MANUAL_REVIEW_MESSAGE}\n"
+        f"- ফাইলের নাম: {file_name}\n"
+        f"{reason_block}"
+        "পরের নির্দেশনা এই একই চ্যাটে চলবে।"
     )
 
 

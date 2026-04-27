@@ -128,6 +128,7 @@ EVIDENCE_DOCUMENT_FALLBACK = "This step needs the original file as a document up
 EVIDENCE_VALIDATING_MESSAGE = "The evidence file was received.\nWait for the next guidance or choose a related action."
 EVIDENCE_ACCEPTED_MESSAGE = "The evidence submission is complete.\nBasic validation passed."
 EVIDENCE_RETRY_REQUIRED_MESSAGE = "Please submit the evidence again."
+EVIDENCE_MANUAL_REVIEW_MESSAGE = "The evidence submission was moved to manual review."
 EVIDENCE_REASON_MISSING_EXIF = "The EXIF metadata is missing."
 EVIDENCE_REASON_MISSING_GPS = "The GPS metadata is missing."
 EVIDENCE_REASON_MISSING_CAPTURE_TIME = "The capture time metadata is missing."
@@ -487,6 +488,17 @@ def format_evidence_retry_required(*, file_name: str, reason_lines: tuple[str, .
         f"- File name: {file_name}\n"
         f"{reason_text}\n\n"
         "Upload the document again in this same step."
+    )
+
+
+def format_evidence_manual_review(*, file_name: str, reason_lines: tuple[str, ...]) -> str:
+    reason_text = "\n".join(f"- {line}" for line in reason_lines)
+    reason_block = f"{reason_text}\n\n" if reason_text else ""
+    return (
+        f"{EVIDENCE_MANUAL_REVIEW_MESSAGE}\n"
+        f"- File name: {file_name}\n"
+        f"{reason_block}"
+        "Follow-up guidance will continue in this chat."
     )
 
 
