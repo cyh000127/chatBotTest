@@ -147,32 +147,51 @@ class SqliteAdminRuntime:
         *,
         include_closed: bool = True,
         status: FollowUpStatus | None = None,
+        query: str | None = None,
     ) -> list[FollowUpItem]:
+        filters: list[str] = []
+        values: list[object] = []
+        if status is not None:
+            filters.append("follow_up_status_code = ?")
+            values.append(status.value)
+        elif not include_closed:
+            filters.append("follow_up_status_code != ?")
+            values.append(FollowUpStatus.CLOSED.value)
+        normalized_query = (query or "").strip().lower()
+        if normalized_query:
+            like = f"%{normalized_query}%"
+            filters.append(
+                """
+                (
+                  lower(id) LIKE ?
+                  OR lower(route_hint) LIKE ?
+                  OR lower(reason) LIKE ?
+                  OR lower(COALESCE(current_step_code, '')) LIKE ?
+                  OR lower(COALESCE(locale_code, '')) LIKE ?
+                  OR CAST(chat_id AS TEXT) LIKE ?
+                  OR COALESCE(provider_user_id, '') LIKE ?
+                  OR lower(COALESCE(recent_messages_summary, '')) LIKE ?
+                  OR EXISTS (
+                    SELECT 1
+                    FROM admin_follow_up_messages
+                    WHERE admin_follow_up_messages.admin_follow_up_queue_id = admin_follow_up_queue.id
+                      AND lower(message_text) LIKE ?
+                  )
+                )
+                """
+            )
+            values.extend((like, like, like, like, like, like, like, like, like))
+        where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
         with self._lock:
-            if status is not None:
-                rows = self._connection.execute(
-                    """
-                    SELECT *
-                    FROM admin_follow_up_queue
-                    WHERE follow_up_status_code = ?
-                    ORDER BY created_at ASC
-                    """,
-                    (status.value,),
-                ).fetchall()
-            elif include_closed:
-                rows = self._connection.execute(
-                    "SELECT * FROM admin_follow_up_queue ORDER BY created_at ASC"
-                ).fetchall()
-            else:
-                rows = self._connection.execute(
-                    """
-                    SELECT *
-                    FROM admin_follow_up_queue
-                    WHERE follow_up_status_code != ?
-                    ORDER BY created_at ASC
-                    """,
-                    (FollowUpStatus.CLOSED.value,),
-                ).fetchall()
+            rows = self._connection.execute(
+                f"""
+                SELECT *
+                FROM admin_follow_up_queue
+                {where_clause}
+                ORDER BY created_at ASC
+                """,
+                tuple(values),
+            ).fetchall()
             return [self._row_to_follow_up(row) for row in rows]
 
     def get_follow_up(self, follow_up_id: str) -> FollowUpItem | None:

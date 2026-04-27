@@ -98,6 +98,35 @@ def test_admin_api_can_filter_follow_ups_by_status():
     assert invalid_response.json()["detail"] == "unknown follow-up status"
 
 
+def test_admin_api_can_search_follow_ups_by_query():
+    runtime = InMemoryAdminRuntime()
+    runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+        user_message="사진 업로드가 안 됩니다",
+    )
+    matched = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=21,
+        user_id=77,
+        current_step="fertilizer_confirm",
+        user_message="비료 입력을 다시 확인해주세요",
+    )
+    client = TestClient(create_admin_api_app(runtime))
+
+    message_response = client.get("/admin/follow-ups?query=비료 입력")
+    user_response = client.get("/admin/follow-ups?query=77")
+
+    assert message_response.status_code == 200
+    assert [item["follow_up_id"] for item in message_response.json()["items"]] == [matched.follow_up_id]
+    assert user_response.status_code == 200
+    assert [item["follow_up_id"] for item in user_response.json()["items"]] == [matched.follow_up_id]
+
+
 def test_admin_api_follow_up_reply_writes_audit_event(tmp_path):
     sqlite_runtime = bootstrap_sqlite_runtime(
         SqliteSettings(
@@ -678,6 +707,35 @@ def test_admin_pages_can_filter_follow_up_request_list():
     assert "종료된 요청" in response.text
     assert waiting.follow_up_id not in response.text
     assert opened.follow_up_id not in response.text
+
+
+def test_admin_pages_can_search_follow_up_request_list():
+    runtime = InMemoryAdminRuntime()
+    runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+        user_message="사진 업로드 도움 요청",
+    )
+    matched = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=99,
+        user_id=88,
+        current_step="yield_confirm",
+        user_message="수확량 입력을 다시 확인하고 싶어요",
+    )
+    client = TestClient(create_admin_api_app(runtime))
+
+    response = client.get("/admin/pages/follow-ups?status=waiting_admin_reply&query=수확량 입력")
+
+    assert response.status_code == 200
+    assert matched.follow_up_id in response.text
+    assert "사진 업로드 도움 요청" not in response.text
+    assert 'name="status" value="waiting_admin_reply"' in response.text
+    assert 'value="수확량 입력"' in response.text
 
 
 def test_admin_pages_show_outbox_messages():

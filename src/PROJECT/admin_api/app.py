@@ -899,17 +899,29 @@ def create_admin_api_app(
         return RedirectResponse("/admin/pages/invitations", status_code=303)
 
     @app.get("/admin/pages/follow-ups", response_class=HTMLResponse)
-    def follow_up_request_page(include_closed: bool = True, status: str | None = None) -> HTMLResponse:
+    def follow_up_request_page(
+        include_closed: bool = True,
+        status: str | None = None,
+        query: str | None = None,
+    ) -> HTMLResponse:
         selected_status = _parse_follow_up_status(status)
+        selected_query = (query or "").strip()
         follow_ups = runtime.list_follow_ups(
             include_closed=include_closed,
             status=selected_status,
+            query=selected_query,
         )
-        filter_links = """<section class="card">
+        filter_links = f"""<section class="card">
   <a href="/admin/pages/follow-ups">전체</a>
   <a href="/admin/pages/follow-ups?status=waiting_admin_reply">답변 대기</a>
   <a href="/admin/pages/follow-ups?status=open">진행 중</a>
   <a href="/admin/pages/follow-ups?status=closed">종료</a>
+  <form method="get" accept-charset="utf-8">
+    <label for="query">검색</label>
+    <input id="query" name="query" value="{escape(selected_query)}" placeholder="follow-up id, chat id, user id, 메시지">
+    {f'<input type="hidden" name="status" value="{escape(selected_status.value)}">' if selected_status else ''}
+    <button type="submit">검색</button>
+  </form>
 </section>"""
         if follow_ups:
             items = "\n".join(
@@ -1039,14 +1051,20 @@ def create_admin_api_app(
         return RedirectResponse(f"/admin/pages/follow-ups/{follow_up_id}", status_code=303)
 
     @app.get("/admin/follow-ups")
-    def list_follow_ups(include_closed: bool = True, status: str | None = None) -> dict:
+    def list_follow_ups(
+        include_closed: bool = True,
+        status: str | None = None,
+        query: str | None = None,
+    ) -> dict:
         selected_status = _parse_follow_up_status(status)
+        selected_query = (query or "").strip()
         return {
             "items": [
                 _serialize(item)
                 for item in runtime.list_follow_ups(
                     include_closed=include_closed,
                     status=selected_status,
+                    query=selected_query,
                 )
             ],
         }

@@ -181,6 +181,7 @@ class InMemoryAdminRuntime:
         *,
         include_closed: bool = True,
         status: FollowUpStatus | None = None,
+        query: str | None = None,
     ) -> list[FollowUpItem]:
         with self._lock:
             follow_ups = list(self._follow_ups.values())
@@ -188,6 +189,26 @@ class InMemoryAdminRuntime:
             follow_ups = [item for item in follow_ups if item.status == status]
         elif not include_closed:
             follow_ups = [item for item in follow_ups if item.status != FollowUpStatus.CLOSED]
+        normalized_query = (query or "").strip().lower()
+        if normalized_query:
+            follow_ups = [
+                item
+                for item in follow_ups
+                if normalized_query in "\n".join(
+                    (
+                        item.follow_up_id,
+                        item.route_hint,
+                        item.reason,
+                        item.current_step or "",
+                        item.locale,
+                        str(item.chat_id),
+                        str(item.user_id or ""),
+                        item.recent_messages_summary,
+                        item.user_message,
+                        "\n".join(item.user_messages),
+                    )
+                ).lower()
+            ]
         return sorted(follow_ups, key=lambda item: item.created_at)
 
     def get_follow_up(self, follow_up_id: str) -> FollowUpItem | None:
