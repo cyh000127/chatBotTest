@@ -13,6 +13,7 @@ The schema follows the reference domains for participant onboarding and messagin
 - admin follow-up outcome ledger
 - bot-mediated outbound message outbox
 - local admin action audit trail
+- field registry and participant field binding
 
 This document is a planning contract for the next migration SQL. It is not a replacement for the reference schema.
 
@@ -37,6 +38,11 @@ Tables included in the current local SQLite migrations:
 - `admin_follow_up_outcomes`
 - `outbox_messages`
 - `admin_audit_events`
+- `field_registry_versions`
+- `field_registry_fields`
+- `field_registry_boundaries`
+- `participant_field_bindings`
+- `field_binding_exceptions`
 
 Tables intentionally not included in the current local SQLite migrations:
 
@@ -46,7 +52,6 @@ Tables intentionally not included in the current local SQLite migrations:
 - `reminder_deliveries`
 - `escalations`
 - evidence submission and review tables
-- field registry tables
 - production-grade governance access tables
 
 These excluded tables are part of the reference architecture but are outside the current local runtime target.
@@ -623,3 +628,140 @@ The SQLite schema intentionally defers these reference areas:
 - production-grade admin authorization
 
 Deferring these areas keeps the local runtime aligned with the reference flow without pretending to implement the full product.
+
+## 14. Field Registry And Binding Tables
+
+```sql
+CREATE TABLE field_registry_versions (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  version_label TEXT NOT NULL,
+  source_code TEXT NOT NULL DEFAULT 'local_runtime',
+  version_status_code TEXT NOT NULL,
+  published_at TEXT,
+  archived_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id),
+  UNIQUE(project_id, version_label)
+);
+```
+
+```sql
+CREATE TABLE field_registry_fields (
+  id TEXT PRIMARY KEY,
+  field_registry_version_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  field_code TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  area_square_meters REAL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (field_registry_version_id) REFERENCES field_registry_versions(id),
+  FOREIGN KEY (project_id) REFERENCES projects(id),
+  UNIQUE(field_registry_version_id, field_code)
+);
+```
+
+```sql
+CREATE TABLE field_registry_boundaries (
+  id TEXT PRIMARY KEY,
+  field_id TEXT NOT NULL,
+  polygon_json TEXT NOT NULL,
+  bounding_box_json TEXT NOT NULL,
+  centroid_latitude REAL NOT NULL,
+  centroid_longitude REAL NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (field_id) REFERENCES field_registry_fields(id)
+);
+```
+
+```sql
+CREATE TABLE participant_field_bindings (
+  id TEXT PRIMARY KEY,
+  participant_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  field_id TEXT NOT NULL,
+  field_registry_version_id TEXT NOT NULL,
+  binding_status_code TEXT NOT NULL,
+  binding_source_code TEXT NOT NULL,
+  onboarding_session_id TEXT,
+  provider_user_id TEXT,
+  chat_id INTEGER,
+  location_latitude REAL,
+  location_longitude REAL,
+  location_accuracy_meters REAL,
+  requested_field_code TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deactivated_at TEXT,
+  FOREIGN KEY (participant_id) REFERENCES participants(id),
+  FOREIGN KEY (project_id) REFERENCES projects(id),
+  FOREIGN KEY (field_id) REFERENCES field_registry_fields(id),
+  FOREIGN KEY (field_registry_version_id) REFERENCES field_registry_versions(id),
+  FOREIGN KEY (onboarding_session_id) REFERENCES onboarding_sessions(id)
+);
+```
+
+```sql
+CREATE TABLE field_binding_exceptions (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  participant_id TEXT,
+  onboarding_session_id TEXT,
+  provider_user_id TEXT,
+  chat_id INTEGER,
+  field_registry_version_id TEXT,
+  exception_type_code TEXT NOT NULL,
+  exception_status_code TEXT NOT NULL DEFAULT 'open',
+  route_hint TEXT NOT NULL DEFAULT 'manual_resolution_required',
+  requested_field_code TEXT,
+  location_latitude REAL,
+  location_longitude REAL,
+  location_accuracy_meters REAL,
+  candidate_field_ids_json TEXT NOT NULL DEFAULT '[]',
+  detail_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  resolved_at TEXT,
+  FOREIGN KEY (project_id) REFERENCES projects(id),
+  FOREIGN KEY (participant_id) REFERENCES participants(id),
+  FOREIGN KEY (onboarding_session_id) REFERENCES onboarding_sessions(id),
+  FOREIGN KEY (field_registry_version_id) REFERENCES field_registry_versions(id)
+);
+```
+
+Binding status vocabulary:
+
+- `active`
+- `released`
+
+Registry version status vocabulary:
+
+- `draft`
+- `published`
+- `archived`
+
+Binding exception status vocabulary:
+
+- `open`
+- `resolved`
+- `closed`
+
+Binding exception type baseline:
+
+- `location_no_candidate`
+- `location_multiple_candidates`
+- `field_code_not_found`
+- `field_code_multiple_matches`
+- `field_already_bound`
+- `participant_duplicate_binding`
+
+Rules:
+
+- automatic confirm is allowed only when a published version yields exactly one candidate
+- one field may have at most one active binding
+- one participant may not hold duplicate active bindings to the same field
+- ambiguous, missing, or conflicting inputs must create a binding exception instead of silently guessing

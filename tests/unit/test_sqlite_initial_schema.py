@@ -24,6 +24,11 @@ REQUIRED_TABLES = {
     "admin_follow_up_outcomes",
     "outbox_messages",
     "admin_audit_events",
+    "field_registry_versions",
+    "field_registry_fields",
+    "field_registry_boundaries",
+    "participant_field_bindings",
+    "field_binding_exceptions",
 }
 
 DEFERRED_TABLES = {
@@ -46,6 +51,13 @@ REQUIRED_INDEXES = {
     "idx_admin_audit_events_action_time",
     "idx_admin_audit_events_actor_time",
     "idx_admin_audit_events_target",
+    "idx_field_registry_versions_project_status",
+    "idx_field_registry_fields_version_code",
+    "idx_participant_field_bindings_participant_status",
+    "idx_participant_field_bindings_field_status",
+    "idx_field_binding_exceptions_status_created",
+    "idx_participant_field_bindings_active_participant_field",
+    "idx_participant_field_bindings_active_field",
 }
 
 
@@ -80,7 +92,7 @@ def test_initial_schema_migration_creates_required_tables_and_indexes(tmp_path):
 
     assert runtime is not None
     try:
-        assert runtime.applied_migrations == ("001_initial_schema", "002_admin_audit_events")
+        assert runtime.applied_migrations == ("001_initial_schema", "002_admin_audit_events", "003_field_registry")
         existing_tables = table_names(runtime.connection)
         existing_indexes = index_names(runtime.connection)
         assert REQUIRED_TABLES <= existing_tables
@@ -89,6 +101,7 @@ def test_initial_schema_migration_creates_required_tables_and_indexes(tmp_path):
         assert read_applied_migration_versions(runtime.connection) == {
             "001_initial_schema",
             "002_admin_audit_events",
+            "003_field_registry",
         }
     finally:
         runtime.close()
@@ -126,6 +139,27 @@ def test_initial_schema_contains_reference_alignment_columns(tmp_path):
             "detail_json",
             "occurred_at",
         } <= column_names(runtime.connection, "admin_audit_events")
+        assert {
+            "project_id",
+            "version_label",
+            "version_status_code",
+        } <= column_names(runtime.connection, "field_registry_versions")
+        assert {"field_code", "display_name", "metadata_json"} <= column_names(
+            runtime.connection,
+            "field_registry_fields",
+        )
+        assert {"polygon_json", "bounding_box_json"} <= column_names(runtime.connection, "field_registry_boundaries")
+        assert {
+            "participant_id",
+            "field_id",
+            "binding_status_code",
+            "binding_source_code",
+        } <= column_names(runtime.connection, "participant_field_bindings")
+        assert {
+            "exception_type_code",
+            "exception_status_code",
+            "candidate_field_ids_json",
+        } <= column_names(runtime.connection, "field_binding_exceptions")
     finally:
         runtime.close()
 
