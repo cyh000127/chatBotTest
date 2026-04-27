@@ -459,3 +459,118 @@ def test_evidence_service_evaluates_submission_as_retry_when_required_signals_ar
         assert logs[-1].to_state_code == "rejected"
     finally:
         runtime.close()
+
+
+def test_evidence_service_requests_manual_review_when_location_distance_is_too_far(tmp_path):
+    runtime = _runtime(tmp_path)
+    try:
+        _approve_participant(runtime, provider_user_id="1001")
+        field_repository = SqliteFieldRegistryRepository(runtime.connection)
+        evidence_repository = SqliteEvidenceRepository(runtime.connection)
+        service = EvidenceSubmissionService(evidence_repository, field_repository)
+
+        request_context = service.create_request(
+            provider_user_id="1001",
+            request_type_code="field_photo",
+        )
+        session = service.start_submission_session(
+            provider_user_id="1001",
+            chat_id=67890,
+            request_event_id=request_context.request_event.id,
+        )
+        service.accept_location(
+            session.id,
+            latitude=37.55,
+            longitude=127.01,
+            accuracy_meters=5.0,
+        )
+        submission = service.register_document_upload(
+            session.id,
+            provider_file_id="file_123",
+            provider_file_unique_id="file_unique_123",
+            provider_message_id="msg_123",
+            file_name="field.jpg",
+            mime_type="image/jpeg",
+            file_size_bytes=2048,
+            uploaded_at="2026-04-27T00:10:00+00:00",
+            payload={
+                "exif": {
+                    "gps_latitude": 35.101,
+                    "gps_longitude": 129.021,
+                    "captured_at": "2026-04-27T00:00:00+00:00",
+                }
+            },
+        )
+
+        decision = service.evaluate_submission(submission.id)
+        assessment = service.assess_manual_review_requirement(submission.id, decision)
+
+        assert decision.outcome_code == EVIDENCE_VALIDATION_OUTCOME_RETRY_DOCUMENT
+        assert "location_distance_too_far" in decision.reason_codes
+        assert assessment.required is True
+        assert assessment.trigger_reason_code == "distance_conflict"
+        assert assessment.rejected_submission_count == 1
+    finally:
+        runtime.close()
+
+
+def test_evidence_service_escalates_retry_limit_to_manual_review(tmp_path):
+    runtime = _runtime(tmp_path)
+    try:
+        _approve_participant(runtime, provider_user_id="1001")
+        field_repository = SqliteFieldRegistryRepository(runtime.connection)
+        evidence_repository = SqliteEvidenceRepository(runtime.connection)
+        service = EvidenceSubmissionService(evidence_repository, field_repository)
+
+        request_context = service.create_request(
+            provider_user_id="1001",
+            request_type_code="field_photo",
+        )
+        session = service.start_submission_session(
+            provider_user_id="1001",
+            chat_id=67890,
+            request_event_id=request_context.request_event.id,
+        )
+        service.accept_location(
+            session.id,
+            latitude=37.55,
+            longitude=127.01,
+            accuracy_meters=5.0,
+        )
+
+        latest_submission = None
+        latest_decision = None
+        for suffix in ("1", "2"):
+            latest_submission = service.register_document_upload(
+                session.id,
+                provider_file_id=f"file_{suffix}",
+                provider_file_unique_id=f"file_unique_{suffix}",
+                provider_message_id=f"msg_{suffix}",
+                file_name=f"field_{suffix}.jpg",
+                mime_type="image/jpeg",
+                file_size_bytes=2048,
+                payload={},
+            )
+            latest_decision = service.evaluate_submission(latest_submission.id)
+
+        assert latest_submission is not None
+        assert latest_decision is not None
+
+        assessment = service.assess_manual_review_requirement(latest_submission.id, latest_decision)
+        escalated = service.escalate_submission_manual_review(
+            latest_submission.id,
+            trigger_reason_code=assessment.trigger_reason_code or "retry_limit",
+            detail={"reason_codes": list(latest_decision.reason_codes)},
+        )
+        updated_session = evidence_repository.get_submission_session(session.id)
+        logs = evidence_repository.list_state_logs(latest_submission.id)
+
+        assert assessment.required is True
+        assert assessment.trigger_reason_code == "retry_limit"
+        assert assessment.rejected_submission_count == 2
+        assert escalated.artifact_status_code == "manual_review_required"
+        assert updated_session is not None
+        assert updated_session.session_status_code == "manual_review_required"
+        assert logs[-1].to_state_code == "manual_review_required"
+    finally:
+        runtime.close()

@@ -1,8 +1,10 @@
 import asyncio
 from types import SimpleNamespace
 
+from PROJECT.admin.follow_up import InMemoryAdminRuntime
 from PROJECT.channels.telegram.handlers import commands, messages
 from PROJECT.evidence import EvidenceSubmissionService
+from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
 from PROJECT.conversations.evidence_submission.states import STATE_EVIDENCE_WAITING_DOCUMENT, STATE_EVIDENCE_WAITING_LOCATION
 from PROJECT.dispatch.session_dispatcher import current_state, evidence_submission_draft, reset_session
 from PROJECT.fields.binding import FIELD_CODE_BINDING_SOURCE
@@ -93,12 +95,14 @@ def _approved_runtime(tmp_path):
     field_repository = SqliteFieldRegistryRepository(runtime.connection)
     evidence_repository = SqliteEvidenceRepository(runtime.connection)
     evidence_service = EvidenceSubmissionService(evidence_repository, field_repository)
+    admin_runtime = InMemoryAdminRuntime()
     bot_data = {
         "invitation_repository": invitation_repository,
         "onboarding_repository": onboarding_repository,
         "field_registry_repository": field_repository,
         "evidence_repository": evidence_repository,
         "evidence_submission_service": evidence_service,
+        "admin_runtime": admin_runtime,
     }
     return runtime, field_repository, evidence_repository, bot_data
 
@@ -211,5 +215,54 @@ def test_evidence_location_and_document_flow_requests_document_retry_when_metada
         assert len(submissions) == 1
         logs = evidence_repository.list_state_logs(submissions[0].id)
         assert logs[-1].to_state_code == "rejected"
+    finally:
+        runtime.close()
+
+
+def test_evidence_repeated_retry_escalates_to_manual_review(tmp_path):
+    runtime, field_repository, evidence_repository, bot_data = _approved_runtime(tmp_path)
+    context = _context(bot_data)
+    message = FakeMessage()
+
+    try:
+        _bind_field(field_repository)
+
+        asyncio.run(commands.evidence_command(_message_update(message), context))
+
+        location_message = FakeMessage(
+            location=SimpleNamespace(latitude=37.05, longitude=127.05, horizontal_accuracy=8.0)
+        )
+        asyncio.run(messages.location_message(_message_update(location_message), context))
+
+        initial_draft = evidence_submission_draft(context.user_data)
+        assert initial_draft is not None
+        session_id = initial_draft["session_id"]
+
+        first_document = FakeMessage(document=FakeDocument(file_id="file_1", file_unique_id="unique_1", file_name="first.jpg"))
+        asyncio.run(messages.document_message(_message_update(first_document), context))
+
+        assert current_state(context.user_data) == STATE_EVIDENCE_WAITING_DOCUMENT
+        assert "증빙을 다시 제출해 주세요" in first_document.replies[-1][0]
+
+        second_document = FakeMessage(document=FakeDocument(file_id="file_2", file_unique_id="unique_2", file_name="second.jpg"))
+        asyncio.run(messages.document_message(_message_update(second_document), context))
+
+        assert current_state(context.user_data) == STATE_MAIN_MENU
+        assert evidence_submission_draft(context.user_data) is None
+        assert "운영 검토로 넘겼습니다" in second_document.replies[-1][0]
+
+        admin_runtime = bot_data["admin_runtime"]
+        follow_ups = admin_runtime.list_follow_ups(include_closed=True)
+        assert len(follow_ups) == 1
+        assert follow_ups[0].reason == "evidence_submission_manual_review"
+
+        session = evidence_repository.get_submission_session(session_id)
+        assert session is not None
+        assert session.session_status_code == "manual_review_required"
+
+        submissions = evidence_repository.list_submissions_for_session(session_id)
+        assert len(submissions) == 2
+        logs = evidence_repository.list_state_logs(submissions[-1].id)
+        assert logs[-1].to_state_code == "manual_review_required"
     finally:
         runtime.close()
