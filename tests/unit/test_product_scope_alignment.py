@@ -39,6 +39,7 @@ def test_product_main_menu_and_button_mapping_do_not_expose_removed_profile_entr
         catalog.BUTTON_FERTILIZER,
         catalog.BUTTON_YIELD,
         catalog.BUTTON_MYFIELDS,
+        catalog.BUTTON_EVIDENCE,
         catalog.BUTTON_INPUT_RESOLVE,
         catalog.BUTTON_SUPPORT,
         catalog.BUTTON_HELP,
