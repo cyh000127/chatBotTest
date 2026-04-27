@@ -881,6 +881,55 @@ def test_admin_home_dashboard_shows_summary_and_links(tmp_path):
         sqlite_runtime.close()
 
 
+def test_admin_runtime_summary_reports_follow_up_and_outbox_counts():
+    runtime = InMemoryAdminRuntime()
+    runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=20,
+        user_id=10,
+        current_step="main_menu",
+    )
+    reply_target = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=21,
+        user_id=11,
+        current_step="main_menu",
+    )
+    closed_target = runtime.create_follow_up(
+        route_hint="support.escalate",
+        reason="explicit_support_request",
+        chat_id=22,
+        user_id=12,
+        current_step="main_menu",
+    )
+    _, outbox_message = runtime.create_admin_reply(reply_target.follow_up_id, "입력 내용을 확인했습니다.")
+    runtime.close_follow_up(closed_target.follow_up_id, notify_user=True)
+    runtime.mark_outbox_failed(outbox_message.outbox_id, "transport down")
+
+    client = TestClient(create_admin_api_app(runtime))
+    response = client.get("/admin/runtime-summary")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["follow_ups"] == {
+        "total": 3,
+        "active": 2,
+        "waiting_admin_reply": 1,
+        "open": 1,
+        "closed": 1,
+    }
+    assert payload["outbox"] == {
+        "total": 2,
+        "pending": 1,
+        "sending": 0,
+        "sent": 0,
+        "failed": 1,
+        "manual_review": 0,
+    }
+
+
 def test_admin_pages_show_follow_up_conversation():
     runtime = InMemoryAdminRuntime()
     follow_up = runtime.create_follow_up(

@@ -543,15 +543,32 @@ def create_admin_api_app(
             ],
         }
 
+    def admin_runtime_summary() -> dict:
+        follow_ups = runtime.list_follow_ups(include_closed=True)
+        outbox_messages = runtime.list_outbox()
+        return {
+            "follow_ups": {
+                "total": len(follow_ups),
+                "active": sum(1 for item in follow_ups if not item.closed),
+                "waiting_admin_reply": sum(1 for item in follow_ups if item.awaiting_admin_reply and not item.closed),
+                "open": sum(1 for item in follow_ups if item.status == FollowUpStatus.OPEN),
+                "closed": sum(1 for item in follow_ups if item.closed),
+            },
+            "outbox": {
+                "total": len(outbox_messages),
+                "pending": sum(1 for item in outbox_messages if item.status == OutboxStatus.PENDING),
+                "sending": sum(1 for item in outbox_messages if item.status == OutboxStatus.SENDING),
+                "sent": sum(1 for item in outbox_messages if item.status == OutboxStatus.SENT),
+                "failed": sum(1 for item in outbox_messages if item.status == OutboxStatus.FAILED),
+                "manual_review": sum(1 for item in outbox_messages if item.status == OutboxStatus.MANUAL_REVIEW),
+            },
+        }
+
     @app.get("/admin", response_class=HTMLResponse)
     def admin_home() -> HTMLResponse:
-        follow_ups = runtime.list_follow_ups(include_closed=True)
-        open_follow_up_count = sum(1 for item in follow_ups if not item.closed)
-        waiting_follow_up_count = sum(1 for item in follow_ups if item.awaiting_admin_reply and not item.closed)
-
-        pending_outbox_count = len(runtime.list_outbox(status=OutboxStatus.PENDING))
-        failed_outbox_count = len(runtime.list_outbox(status=OutboxStatus.FAILED))
-        manual_review_outbox_count = len(runtime.list_outbox(status=OutboxStatus.MANUAL_REVIEW))
+        summary = admin_runtime_summary()
+        follow_up_summary = summary["follow_ups"]
+        outbox_summary = summary["outbox"]
 
         invitation_count: str | int = "비활성"
         if invitation_repository is not None:
@@ -570,15 +587,19 @@ def create_admin_api_app(
   <p class="muted">이 화면은 운영 검증용 요약이며, 관리자 답변은 outbox를 거쳐 기존 챗봇 대화창으로 중계됩니다.</p>
 </section>
 <section class="dashboard" aria-label="Admin dashboard summary">
-  {_dashboard_card("지원 이관", f"{open_follow_up_count} open / {waiting_follow_up_count} waiting", "/admin/pages/follow-ups", "사용자 지원 이관 요청과 대화 내역을 확인합니다.")}
+  {_dashboard_card("지원 이관", f"{follow_up_summary['active']} open / {follow_up_summary['waiting_admin_reply']} waiting", "/admin/pages/follow-ups", "사용자 지원 이관 요청과 대화 내역을 확인합니다.")}
   {_dashboard_card("초대 코드", invitation_count, "/admin/pages/invitations", "사용자가 /start 코드로 진입할 수 있는 초대 코드를 관리합니다.")}
   {_dashboard_card("온보딩 승인", pending_onboarding_count, "/admin/pages/onboarding/submissions", "제출된 온보딩 신청을 승인하거나 반려합니다.")}
-  {_dashboard_card("발송 대기", f"{pending_outbox_count} pending / {failed_outbox_count} failed", "/admin/pages/outbox", "봇 전송 계층으로 전달될 메시지 상태를 확인합니다.")}
-  {_dashboard_card("운영 검토", manual_review_outbox_count, "/admin/pages/outbox?status=manual_review", "재시도 한도를 초과한 outbox 메시지를 점검합니다.")}
+  {_dashboard_card("발송 대기", f"{outbox_summary['pending']} pending / {outbox_summary['failed']} failed", "/admin/pages/outbox", "봇 전송 계층으로 전달될 메시지 상태를 확인합니다.")}
+  {_dashboard_card("운영 검토", outbox_summary["manual_review"], "/admin/pages/outbox?status=manual_review", "재시도 한도를 초과한 outbox 메시지를 점검합니다.")}
   {_dashboard_card("감사 로그", audit_count, "/admin/pages/audit-events", "관리자 쓰기 작업과 접근 제어 이벤트를 확인합니다.")}
   {_dashboard_card("보안 상태", "local token", "/admin/pages/security", "로컬 인증 경계와 운영 전환 하드닝 상태를 확인합니다.")}
 </section>"""
         return _page("Admin Dashboard", body)
+
+    @app.get("/admin/runtime-summary")
+    def get_admin_runtime_summary() -> dict:
+        return admin_runtime_summary()
 
     @app.get("/admin/security-status")
     def get_admin_security_status() -> dict:
