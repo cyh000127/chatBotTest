@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from PROJECT.evidence.signals import EvidenceSignalExtractionResult, extract_signal_candidates
 from PROJECT.storage.evidence import (
+    EVIDENCE_ARTIFACT_STATUS_ACCEPTED,
+    EVIDENCE_ARTIFACT_STATUS_REJECTED,
     EVIDENCE_ARTIFACT_STATUS_SIGNALS_READY,
     EVIDENCE_SESSION_STATUS_WAITING_DOCUMENT,
     EVIDENCE_SESSION_STATUS_WAITING_LOCATION,
@@ -13,10 +15,18 @@ from PROJECT.storage.evidence import (
     SqliteEvidenceRepository,
 )
 from PROJECT.storage.fields import ParticipantContext, ParticipantFieldBindingRecord, SqliteFieldRegistryRepository
+from PROJECT.storage.invitations import utc_now_text
 
 EVIDENCE_BINDING_RESOLUTION_SINGLE_ACTIVE_BINDING = "single_active_binding"
 EVIDENCE_BINDING_RESOLUTION_UNRESOLVED_NO_ACTIVE_BINDING = "unresolved_no_active_binding"
 EVIDENCE_BINDING_RESOLUTION_UNRESOLVED_MULTIPLE_ACTIVE_BINDINGS = "unresolved_multiple_active_bindings"
+EVIDENCE_VALIDATION_OUTCOME_ACCEPTED = "accepted"
+EVIDENCE_VALIDATION_OUTCOME_RETRY_DOCUMENT = "retry_document"
+EVIDENCE_REASON_MISSING_EXIF = "missing_exif"
+EVIDENCE_REASON_MISSING_GPS = "missing_gps"
+EVIDENCE_REASON_MISSING_CAPTURE_TIME = "missing_capture_time"
+EVIDENCE_REASON_LOCATION_DISTANCE_TOO_FAR = "location_distance_too_far"
+MAX_EVIDENCE_LOCATION_DISTANCE_METERS = 500.0
 
 
 @dataclass(frozen=True)
@@ -25,6 +35,16 @@ class EvidenceRequestContext:
     binding_resolution_code: str
     field_binding_id: str | None
     field_id: str | None
+
+
+@dataclass(frozen=True)
+class EvidenceValidationDecision:
+    outcome_code: str
+    reason_codes: tuple[str, ...]
+    missing_signal_codes: tuple[str, ...]
+    location_distance_meters: float | None
+    upload_delay_seconds: float | None
+    artifact_status_code: str
 
 
 class EvidenceSubmissionService:
@@ -192,7 +212,101 @@ class EvidenceSubmissionService:
             submission.id,
             artifact_status_code=EVIDENCE_ARTIFACT_STATUS_SIGNALS_READY,
         )
+        self._evidence_repository.append_state_log(
+            evidence_submission_id=submission.id,
+            from_state_code="uploaded",
+            to_state_code="signals_ready",
+            reason_code="signal_extraction_completed",
+            detail={"signal_count": len(result.signals)},
+        )
         return result
+
+    def evaluate_submission(self, submission_id: str) -> EvidenceValidationDecision:
+        submission = self._require_submission(submission_id)
+        session = self._require_session(submission.evidence_submission_session_id)
+        request_event = self._evidence_repository.get_request_event(submission.evidence_request_event_id)
+        if request_event is None:
+            raise ValueError("증빙 요청을 찾을 수 없습니다.")
+
+        signals_by_type = {
+            signal.signal_type_code: signal
+            for signal in self._evidence_repository.list_validation_signals(submission.id)
+        }
+
+        missing_signal_codes: list[str] = []
+        reason_codes: list[str] = []
+
+        if self._signal_status(signals_by_type, "exif_present") != "present":
+            missing_signal_codes.append("exif_present")
+            reason_codes.append(EVIDENCE_REASON_MISSING_EXIF)
+        if self._signal_status(signals_by_type, "gps_present") != "present":
+            missing_signal_codes.append("gps_present")
+            reason_codes.append(EVIDENCE_REASON_MISSING_GPS)
+        if self._signal_status(signals_by_type, "capture_time_present") != "present":
+            missing_signal_codes.append("capture_time_present")
+            reason_codes.append(EVIDENCE_REASON_MISSING_CAPTURE_TIME)
+
+        distance_signal = signals_by_type.get("location_distance_meters")
+        distance_meters = distance_signal.numeric_value if distance_signal is not None else None
+        if (
+            distance_signal is not None
+            and distance_signal.signal_status_code == "computed"
+            and distance_meters is not None
+            and distance_meters > MAX_EVIDENCE_LOCATION_DISTANCE_METERS
+        ):
+            reason_codes.append(EVIDENCE_REASON_LOCATION_DISTANCE_TOO_FAR)
+
+        upload_delay_signal = signals_by_type.get("upload_delay_seconds")
+        upload_delay_seconds = upload_delay_signal.numeric_value if upload_delay_signal is not None else None
+
+        if reason_codes:
+            self._evidence_repository.update_submission_artifact_status(
+                submission.id,
+                artifact_status_code=EVIDENCE_ARTIFACT_STATUS_REJECTED,
+            )
+            self._evidence_repository.append_state_log(
+                evidence_submission_id=submission.id,
+                from_state_code="signals_ready",
+                to_state_code="rejected",
+                reason_code="validation_retry_required",
+                detail={
+                    "reason_codes": reason_codes,
+                    "missing_signal_codes": missing_signal_codes,
+                    "location_distance_meters": distance_meters,
+                },
+            )
+            self._evidence_repository.mark_session_waiting_document(session.id)
+            artifact_status_code = EVIDENCE_ARTIFACT_STATUS_REJECTED
+            outcome_code = EVIDENCE_VALIDATION_OUTCOME_RETRY_DOCUMENT
+        else:
+            self._evidence_repository.update_submission_artifact_status(
+                submission.id,
+                artifact_status_code=EVIDENCE_ARTIFACT_STATUS_ACCEPTED,
+                submitted_at=utc_now_text(),
+            )
+            self._evidence_repository.append_state_log(
+                evidence_submission_id=submission.id,
+                from_state_code="signals_ready",
+                to_state_code="accepted",
+                reason_code="validation_passed",
+                detail={
+                    "location_distance_meters": distance_meters,
+                    "upload_delay_seconds": upload_delay_seconds,
+                },
+            )
+            self._evidence_repository.mark_session_completed(session.id)
+            self._evidence_repository.mark_request_satisfied(request_event.id)
+            artifact_status_code = EVIDENCE_ARTIFACT_STATUS_ACCEPTED
+            outcome_code = EVIDENCE_VALIDATION_OUTCOME_ACCEPTED
+
+        return EvidenceValidationDecision(
+            outcome_code=outcome_code,
+            reason_codes=tuple(reason_codes),
+            missing_signal_codes=tuple(missing_signal_codes),
+            location_distance_meters=distance_meters,
+            upload_delay_seconds=upload_delay_seconds,
+            artifact_status_code=artifact_status_code,
+        )
 
     def _require_participant(self, *, provider_user_id: str) -> ParticipantContext:
         participant = self._field_repository.find_active_participant_context(provider_user_id=provider_user_id)
@@ -226,3 +340,10 @@ class EvidenceSubmissionService:
         if submission is None:
             raise ValueError("증빙 제출 파일을 찾을 수 없습니다.")
         return submission
+
+    @staticmethod
+    def _signal_status(signals_by_type: dict, signal_type_code: str) -> str | None:
+        signal = signals_by_type.get(signal_type_code)
+        if signal is None:
+            return None
+        return signal.signal_status_code

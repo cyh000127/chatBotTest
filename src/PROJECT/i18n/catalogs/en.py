@@ -126,6 +126,12 @@ EVIDENCE_DOCUMENT_PROMPT = "The location was accepted.\nNow upload the original 
 EVIDENCE_LOCATION_FALLBACK = "This step needs your current location.\nUse Telegram's location attachment."
 EVIDENCE_DOCUMENT_FALLBACK = "This step needs the original file as a document upload.\nUse a document attachment instead of a photo."
 EVIDENCE_VALIDATING_MESSAGE = "The evidence file was received.\nWait for the next guidance or choose a related action."
+EVIDENCE_ACCEPTED_MESSAGE = "The evidence submission is complete.\nBasic validation passed."
+EVIDENCE_RETRY_REQUIRED_MESSAGE = "Please submit the evidence again."
+EVIDENCE_REASON_MISSING_EXIF = "The EXIF metadata is missing."
+EVIDENCE_REASON_MISSING_GPS = "The GPS metadata is missing."
+EVIDENCE_REASON_MISSING_CAPTURE_TIME = "The capture time metadata is missing."
+EVIDENCE_REASON_LOCATION_DISTANCE_TOO_FAR = "The distance between the current location and the photo GPS is too large."
 INPUT_RESOLVE_ENTRY_MESSAGE = "This is the input resolve entry.\nFor now, the runtime starts with the main value flow.\nCandidate matching and manual review are in a separate scope."
 INPUT_RESOLVE_TARGET_FALLBACK = "Choose the value to resolve with the buttons."
 INPUT_RESOLVE_METHOD_FALLBACK = "Only typed text is available in this step.\nSelect [Type text]."
@@ -464,6 +470,23 @@ def format_evidence_uploaded(*, file_name: str) -> str:
         "The evidence file was received.\n"
         f"- File name: {file_name}\n\n"
         "The next step will continue in this same flow when basic validation is ready."
+    )
+
+
+def format_evidence_accepted(*, file_name: str) -> str:
+    return (
+        f"{EVIDENCE_ACCEPTED_MESSAGE}\n"
+        f"- File name: {file_name}"
+    )
+
+
+def format_evidence_retry_required(*, file_name: str, reason_lines: tuple[str, ...]) -> str:
+    reason_text = "\n".join(f"- {line}" for line in reason_lines)
+    return (
+        f"{EVIDENCE_RETRY_REQUIRED_MESSAGE}\n"
+        f"- File name: {file_name}\n"
+        f"{reason_text}\n\n"
+        "Upload the document again in this same step."
     )
 
 

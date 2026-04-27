@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from PROJECT.adapters.outbound.reply_sender import send_text
+from PROJECT.conversations.sample_menu.keyboards import keyboard_layout_for_state
+from PROJECT.conversations.sample_menu.states import STATE_MAIN_MENU
 from PROJECT.conversations.evidence_submission import service as evidence_conversation_service
 from PROJECT.conversations.evidence_submission.states import (
     STATE_EVIDENCE_VALIDATING,
@@ -15,6 +17,7 @@ from PROJECT.dispatch.session_dispatcher import (
     set_evidence_submission_draft,
     set_state,
 )
+from PROJECT.evidence import EVIDENCE_VALIDATION_OUTCOME_ACCEPTED
 from PROJECT.i18n.translator import get_catalog
 
 DEFAULT_EVIDENCE_REQUEST_TYPE = "field_photo"
@@ -146,12 +149,32 @@ async def handle_evidence_document(update, context) -> bool:
     set_evidence_submission_draft(context.user_data, updated.to_dict())
     set_state(context.user_data, STATE_EVIDENCE_VALIDATING, push_history=True)
     reset_recovery_attempts(context.user_data)
+    decision = evidence_service.evaluate_submission(submission.id)
+    updated = evidence_conversation_service.update_draft(
+        updated,
+        artifact_status_code=decision.artifact_status_code,
+    )
+    set_evidence_submission_draft(context.user_data, updated.to_dict())
     catalog = _catalog(context)
+    if decision.outcome_code == EVIDENCE_VALIDATION_OUTCOME_ACCEPTED:
+        set_state(context.user_data, STATE_MAIN_MENU)
+        await send_text(
+            update,
+            evidence_conversation_service.accepted_text(catalog, updated),
+            keyboard_layout=keyboard_layout_for_state(STATE_MAIN_MENU, catalog, None),
+        )
+        return True
+
+    set_state(context.user_data, STATE_EVIDENCE_WAITING_DOCUMENT)
     await send_text(
         update,
-        evidence_conversation_service.prompt_for_state(STATE_EVIDENCE_VALIDATING, catalog, updated),
+        evidence_conversation_service.retry_text(
+            catalog,
+            updated,
+            reason_codes=decision.reason_codes,
+        ),
         keyboard_layout=evidence_conversation_service.keyboard_for_state(
-            STATE_EVIDENCE_VALIDATING,
+            STATE_EVIDENCE_WAITING_DOCUMENT,
             catalog,
             updated,
         ),

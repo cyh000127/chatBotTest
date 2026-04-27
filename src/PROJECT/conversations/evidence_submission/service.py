@@ -8,6 +8,12 @@ from PROJECT.conversations.evidence_submission.states import (
     STATE_EVIDENCE_WAITING_DOCUMENT,
     STATE_EVIDENCE_WAITING_LOCATION,
 )
+from PROJECT.evidence import (
+    EVIDENCE_REASON_LOCATION_DISTANCE_TOO_FAR,
+    EVIDENCE_REASON_MISSING_CAPTURE_TIME,
+    EVIDENCE_REASON_MISSING_EXIF,
+    EVIDENCE_REASON_MISSING_GPS,
+)
 
 
 @dataclass(frozen=True)
@@ -128,3 +134,25 @@ def fallback_text_for_state(state: str, catalog) -> str:
     if state == STATE_EVIDENCE_VALIDATING:
         return catalog.EVIDENCE_VALIDATING_MESSAGE
     return catalog.EVIDENCE_RUNTIME_UNAVAILABLE_MESSAGE
+
+
+def accepted_text(catalog, draft: EvidenceSubmissionDraft) -> str:
+    return catalog.format_evidence_accepted(file_name=draft.file_name or "-")
+
+
+def retry_text(catalog, draft: EvidenceSubmissionDraft, *, reason_codes: tuple[str, ...]) -> str:
+    reason_lines = tuple(reason_text(catalog, reason_code) for reason_code in reason_codes)
+    return catalog.format_evidence_retry_required(
+        file_name=draft.file_name or "-",
+        reason_lines=reason_lines,
+    )
+
+
+def reason_text(catalog, reason_code: str) -> str:
+    mapping = {
+        EVIDENCE_REASON_MISSING_EXIF: catalog.EVIDENCE_REASON_MISSING_EXIF,
+        EVIDENCE_REASON_MISSING_GPS: catalog.EVIDENCE_REASON_MISSING_GPS,
+        EVIDENCE_REASON_MISSING_CAPTURE_TIME: catalog.EVIDENCE_REASON_MISSING_CAPTURE_TIME,
+        EVIDENCE_REASON_LOCATION_DISTANCE_TOO_FAR: catalog.EVIDENCE_REASON_LOCATION_DISTANCE_TOO_FAR,
+    }
+    return mapping.get(reason_code, reason_code)

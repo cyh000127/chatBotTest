@@ -224,6 +224,30 @@ class SqliteEvidenceRepository:
             return None
         return EvidenceRequestEvent(**dict(row))
 
+    def mark_request_satisfied(self, request_id: str) -> EvidenceRequestEvent:
+        with self._lock:
+            now = utc_now_text()
+            self._connection.execute(
+                """
+                UPDATE evidence_request_events
+                SET request_status_code = ?,
+                    satisfied_at = ?,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    EVIDENCE_REQUEST_STATUS_SATISFIED,
+                    now,
+                    now,
+                    request_id,
+                ),
+            )
+            self._connection.commit()
+        updated = self.get_request_event(request_id)
+        if updated is None:
+            raise RuntimeError("갱신한 evidence request를 다시 읽을 수 없습니다.")
+        return updated
+
     def create_submission_session(
         self,
         *,
@@ -345,6 +369,13 @@ class SqliteEvidenceRepository:
             session_status_code=EVIDENCE_SESSION_STATUS_COMPLETED,
             current_step_code=EVIDENCE_SESSION_STATUS_COMPLETED,
             completed_at=utc_now_text(),
+        )
+
+    def mark_session_waiting_document(self, session_id: str) -> EvidenceSubmissionSession:
+        return self._update_session_status(
+            session_id,
+            session_status_code=EVIDENCE_SESSION_STATUS_WAITING_DOCUMENT,
+            current_step_code=EVIDENCE_SESSION_STATUS_WAITING_DOCUMENT,
         )
 
     def mark_session_manual_review(self, session_id: str) -> EvidenceSubmissionSession:
