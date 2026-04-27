@@ -39,6 +39,11 @@ REQUIRED_TABLES = {
     "input_resolution_attempts",
     "input_resolution_candidates",
     "input_resolution_decisions",
+    "evidence_request_events",
+    "evidence_submission_sessions",
+    "evidence_submissions",
+    "evidence_validation_signals",
+    "evidence_validation_state_logs",
 }
 
 DEFERRED_TABLES = {
@@ -80,6 +85,14 @@ REQUIRED_INDEXES = {
     "idx_input_resolution_attempts_session",
     "idx_input_resolution_candidates_session_rank",
     "idx_input_resolution_decisions_session",
+    "idx_evidence_request_events_participant_due",
+    "idx_evidence_request_events_seasonal_event",
+    "idx_evidence_submission_sessions_status_updated",
+    "idx_evidence_submission_sessions_request",
+    "idx_evidence_submissions_session_submitted",
+    "idx_evidence_submissions_status_uploaded",
+    "idx_evidence_validation_signals_submission_type",
+    "idx_evidence_validation_state_logs_submission_created",
 }
 
 
@@ -120,6 +133,7 @@ def test_initial_schema_migration_creates_required_tables_and_indexes(tmp_path):
             "003_field_registry",
             "004_season_activity",
             "005_reminder_input_resolution",
+            "006_evidence_submission",
         )
         existing_tables = table_names(runtime.connection)
         existing_indexes = index_names(runtime.connection)
@@ -132,6 +146,7 @@ def test_initial_schema_migration_creates_required_tables_and_indexes(tmp_path):
             "003_field_registry",
             "004_season_activity",
             "005_reminder_input_resolution",
+            "006_evidence_submission",
         }
     finally:
         runtime.close()
@@ -239,6 +254,36 @@ def test_initial_schema_contains_reference_alignment_columns(tmp_path):
             runtime.connection,
             "input_resolution_decisions",
         )
+        assert {
+            "request_type_code",
+            "request_status_code",
+            "requested_via_code",
+            "seasonal_event_id",
+        } <= column_names(runtime.connection, "evidence_request_events")
+        assert {
+            "evidence_request_event_id",
+            "session_status_code",
+            "current_step_code",
+            "accepted_location_latitude",
+        } <= column_names(runtime.connection, "evidence_submission_sessions")
+        assert {
+            "evidence_submission_session_id",
+            "artifact_status_code",
+            "staged_artifact_uri",
+            "checksum_sha256",
+        } <= column_names(runtime.connection, "evidence_submissions")
+        assert {
+            "evidence_submission_id",
+            "signal_type_code",
+            "signal_status_code",
+            "detail_json",
+        } <= column_names(runtime.connection, "evidence_validation_signals")
+        assert {
+            "evidence_submission_id",
+            "from_state_code",
+            "to_state_code",
+            "reason_code",
+        } <= column_names(runtime.connection, "evidence_validation_state_logs")
     finally:
         runtime.close()
 

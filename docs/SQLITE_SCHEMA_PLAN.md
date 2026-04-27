@@ -53,6 +53,11 @@ Tables included in the current local SQLite migrations:
 - `input_resolution_attempts`
 - `input_resolution_candidates`
 - `input_resolution_decisions`
+- `evidence_request_events`
+- `evidence_submission_sessions`
+- `evidence_submissions`
+- `evidence_validation_signals`
+- `evidence_validation_state_logs`
 
 Tables intentionally not included in the current local SQLite migrations:
 
@@ -60,7 +65,6 @@ Tables intentionally not included in the current local SQLite migrations:
 - `participant_identity_link_reviews`
 - `participant_reachability_states`
 - `escalations`
-- evidence submission and review tables
 - production-grade governance access tables
 
 These excluded tables are part of the reference architecture but are outside the current local runtime target.
@@ -624,13 +628,11 @@ The SQLite schema keeps these reference principles:
 - `admin_follow_up_outcomes` is append-only handling history
 - admin replies are bot-mediated through an outbox
 - admin writes are traceable through local audit events without storing sensitive message content
+- evidence request, submission, signal, and validation state are stored as separate lifecycle tables
 
 The SQLite schema intentionally defers these reference areas:
 
-- evidence submission and review
-- field binding and field registry
 - AI follow-up attempt lifecycle
-- reminder scheduling
 - reachability projection
 - escalation issue tracking
 - identity conflict review workflow
@@ -999,3 +1001,136 @@ Rules:
 - a reminder token must reopen only the linked unresolved session
 - candidate rows are append-only per attempt
 - final resolution and manual review escalation must be written as decision rows
+
+## 17. Evidence Submission Tables
+
+```sql
+CREATE TABLE evidence_request_events (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  field_season_id TEXT,
+  seasonal_event_id TEXT,
+  field_binding_id TEXT,
+  field_id TEXT,
+  request_type_code TEXT NOT NULL,
+  request_status_code TEXT NOT NULL DEFAULT 'open',
+  request_reason_code TEXT,
+  requested_via_code TEXT NOT NULL DEFAULT 'runtime',
+  due_at TEXT,
+  satisfied_at TEXT,
+  cancelled_at TEXT,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+```
+
+```sql
+CREATE TABLE evidence_submission_sessions (
+  id TEXT PRIMARY KEY,
+  evidence_request_event_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  provider_user_id TEXT NOT NULL,
+  chat_id INTEGER NOT NULL,
+  field_season_id TEXT,
+  field_binding_id TEXT,
+  field_id TEXT,
+  session_status_code TEXT NOT NULL,
+  current_step_code TEXT NOT NULL,
+  accepted_location_latitude REAL,
+  accepted_location_longitude REAL,
+  accepted_location_accuracy_meters REAL,
+  accepted_location_recorded_at TEXT,
+  draft_payload_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  completed_at TEXT,
+  abandoned_at TEXT
+);
+```
+
+```sql
+CREATE TABLE evidence_submissions (
+  id TEXT PRIMARY KEY,
+  evidence_submission_session_id TEXT NOT NULL,
+  evidence_request_event_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  participant_id TEXT NOT NULL,
+  field_season_id TEXT,
+  field_binding_id TEXT,
+  field_id TEXT,
+  provider_message_id TEXT,
+  provider_file_id TEXT,
+  provider_file_unique_id TEXT,
+  file_name TEXT,
+  mime_type TEXT,
+  file_size_bytes INTEGER,
+  artifact_status_code TEXT NOT NULL,
+  staged_artifact_uri TEXT,
+  checksum_sha256 TEXT,
+  captured_at TEXT,
+  uploaded_at TEXT NOT NULL,
+  submitted_at TEXT,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+```
+
+```sql
+CREATE TABLE evidence_validation_signals (
+  id TEXT PRIMARY KEY,
+  evidence_submission_id TEXT NOT NULL,
+  signal_type_code TEXT NOT NULL,
+  signal_status_code TEXT NOT NULL,
+  numeric_value REAL,
+  text_value TEXT,
+  detail_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+```
+
+```sql
+CREATE TABLE evidence_validation_state_logs (
+  id TEXT PRIMARY KEY,
+  evidence_submission_id TEXT NOT NULL,
+  from_state_code TEXT,
+  to_state_code TEXT NOT NULL,
+  reason_code TEXT,
+  detail_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+```
+
+Evidence request vocabulary baseline:
+
+- `open`
+- `satisfied`
+- `cancelled`
+- `expired`
+
+Evidence submission session vocabulary baseline:
+
+- `waiting_location`
+- `waiting_document`
+- `validating`
+- `completed`
+- `manual_review_required`
+- `abandoned`
+
+Evidence artifact status vocabulary baseline:
+
+- `uploaded`
+- `signals_ready`
+- `accepted`
+- `rejected`
+- `manual_review_required`
+
+Rules:
+
+- location acceptance must be written before a submission can reach validation-complete state
+- document upload metadata and validation result must remain separate records
+- validation signals may preserve EXIF, GPS, capture time, and distance metadata without overwriting the original submission row
+- validation state history must be append-only
