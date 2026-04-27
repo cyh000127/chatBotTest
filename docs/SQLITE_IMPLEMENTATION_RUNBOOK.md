@@ -51,6 +51,7 @@ Rules:
 - `ADMIN_API_ACCESS_ROLE=viewer` makes the local admin surface read-only.
 - `ADMIN_API_ACCESS_ROLE=operator` allows local admin write actions.
 - missing model credentials must not block the rules-only runtime.
+- backup and restore must follow the dedicated SQLite backup and recovery runbook.
 
 ## 3. Execution Flow
 
@@ -111,6 +112,11 @@ http://127.0.0.1:8000/admin/pages/security
 `/admin` is the local admin dashboard. It summarizes queue, invitation,
 onboarding, outbox, manual-review, audit-log, and security-status entry points
 without exposing secret values.
+
+Runtime summary:
+
+- `GET /admin/runtime-summary` exposes queue and outbox counts for operational checks.
+- use this endpoint after restart, backup, or restore to confirm the expected state shape quickly.
 
 Security status:
 

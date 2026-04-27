@@ -146,11 +146,17 @@ After restart, the runtime may re-render the latest user-facing state from persi
 
 ## 7. Backup And Reset
 
-SQLite backup is file-based.
+SQLite backup and restore must follow the dedicated backup runbook.
 
-Before destructive local testing, copy the database file to a backup location.
+Minimum rule summary:
 
-Resetting the local runtime means stopping the process and deleting or replacing the SQLite database file. This should be treated as data loss.
+- use cold file-copy backup when a short stop is acceptable
+- use SQLite logical backup when the runtime must stay online
+- when copying files directly, keep the database file, WAL file, and SHM file together
+- restore only after stopping the runtime
+- after restore, verify `/healthz` and `/admin/runtime-summary`
+
+Resetting the local runtime still means stopping the process and deleting or replacing the SQLite database file. This should be treated as data loss.
 
 The reset procedure must not be used to resolve migration errors unless the data is disposable.
 

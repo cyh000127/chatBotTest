@@ -24,6 +24,7 @@
 - `Model Recovery Setup`: recovery classifier 구성과 런타임 gate 기준
 - `Structured Interaction Policy`: confirm, edit, fallback UX 원칙
 - `Support Handoff Chatbot Relay`: 기존 챗봇 대화창 안에서 운영자 후속 답변을 중계하는 기준
+- `SQLite Backup And Recovery Runbook`: 로컬 SQLite 백업, 복구, 검증 절차
 
 ## 현재 구현 범위
 
