@@ -10,6 +10,7 @@ ROUTE_CANCEL = "cancel"
 ROUTE_OPEN_MYFIELDS = "open_myfields"
 ROUTE_OPEN_FERTILIZER = "open_fertilizer"
 ROUTE_OPEN_YIELD = "open_yield"
+ROUTE_OPEN_EVIDENCE = "open_evidence"
 ROUTE_OPEN_INPUT_RESOLVE = "open_input_resolve"
 ROUTE_SUPPORT_GUIDANCE = "support_guidance"
 ROUTE_YIELD_EDIT = "yield_edit"
@@ -40,6 +41,8 @@ def route_message(state: str, intent: str, payload: dict | None = None) -> Route
         return RouteDecision(ROUTE_OPEN_FERTILIZER, next_state=STATE_FERTILIZER_USED)
     if intent == registry.INTENT_YIELD_INPUT_START:
         return RouteDecision(ROUTE_OPEN_YIELD, next_state=STATE_YIELD_READY)
+    if intent == registry.INTENT_EVIDENCE_SUBMISSION_START:
+        return RouteDecision(ROUTE_OPEN_EVIDENCE)
     if intent == registry.INTENT_INPUT_RESOLVE_START:
         return RouteDecision(ROUTE_OPEN_INPUT_RESOLVE)
     if intent == registry.INTENT_SUPPORT_ESCALATE:

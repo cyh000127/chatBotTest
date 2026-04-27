@@ -5,6 +5,7 @@ BUTTON_TODAY_WEATHER = "អាកាសធាតុថ្ងៃនេះ"
 BUTTON_FERTILIZER = "បញ្ចូលជី"
 BUTTON_YIELD = "បញ្ចូលទិន្នផល"
 BUTTON_MYFIELDS = "ពិនិត្យផ្ទាល់ខ្លួន"
+BUTTON_EVIDENCE = "ដាក់ស្នើភស្តុតាង"
 BUTTON_FIELD_REGISTER = "ចុះបញ្ជីស្រែ"
 BUTTON_FIELD_REFRESH = "ផ្ទុកឡើងវិញ"
 BUTTON_FIELD_LOOKUP_LOCATION = "រកតាមទីតាំង"
@@ -119,6 +120,12 @@ MYFIELDS_BINDING_CONFIRMED_MESSAGE = "បានចុះបញ្ជីស្រ
 MYFIELDS_BINDING_CONFLICT_MESSAGE = "មិនអាចចុះបញ្ជីស្រែនេះភ្លាមៗបានទេ។\nវាត្រូវបានផ្ញើទៅការពិនិត្យប្រតិបត្តិការ។ សូមជ្រើសវិធីផ្សេង។"
 MYFIELDS_LOOKUP_METHOD_LOCATION_LABEL = "ទីតាំង"
 MYFIELDS_LOOKUP_METHOD_CODE_LABEL = "លេខកូដស្រែ"
+EVIDENCE_RUNTIME_UNAVAILABLE_MESSAGE = "មុខងារដាក់ស្នើភស្តុតាងមិនអាចប្រើបានឥឡូវនេះទេ។\nសូមសាកម្តងទៀតនៅពេលក្រោយ ឬស្នើសុំជំនួយ។"
+EVIDENCE_ENTRY_MESSAGE = "ចាប់ផ្តើមដាក់ស្នើភស្តុតាង។\nសូមផ្ញើទីតាំងបច្ចុប្បន្នជាមុនសិន។"
+EVIDENCE_DOCUMENT_PROMPT = "ទីតាំងត្រូវបានទទួលយកហើយ។\nឥឡូវសូមអាប់ឡូតឯកសារដើមជា document។"
+EVIDENCE_LOCATION_FALLBACK = "ជំហាននេះត្រូវការទីតាំងបច្ចុប្បន្នរបស់អ្នក។\nសូមប្រើការភ្ជាប់ទីតាំងរបស់ Telegram។"
+EVIDENCE_DOCUMENT_FALLBACK = "ជំហាននេះត្រូវការឯកសារដើមជា document upload។\nសូមប្រើ document attachment ជំនួសរូបថត។"
+EVIDENCE_VALIDATING_MESSAGE = "ឯកសារភស្តុតាងត្រូវបានទទួលហើយ។\nសូមរង់ចាំការណែនាំបន្ទាប់ ឬជ្រើសសកម្មភាពដែលពាក់ព័ន្ធ។"
 INPUT_RESOLVE_ENTRY_MESSAGE = "នេះគឺជាទំព័រជួយបញ្ជាក់តម្លៃ។\nប្រព័ន្ធនឹងទាញយកតម្លៃសំខាន់ៗជាដំបូង។\nការជ្រើសចុងក្រោយ និងការពិនិត្យដោយមនុស្ស ធ្វើនៅជំហានក្រោយ។"
 INPUT_RESOLVE_TARGET_FALLBACK = "សូមជ្រើសតម្លៃដែលត្រូវបញ្ជាក់ដោយប៊ូតុង។"
 INPUT_RESOLVE_METHOD_FALLBACK = "ជំហាននេះអាចប្រើបានតែការវាយអក្សរ។\nសូមជ្រើស [វាយអក្សរ]។"
@@ -144,6 +151,7 @@ HELP_MESSAGE = (
     "- /myfields : មើលព័ត៌មានរបស់អ្នក\n"
     "- /fertilizer : ចាប់ផ្តើមបញ្ចូលជី\n"
     "- /yield : ចាប់ផ្តើមបញ្ចូលទិន្នផល\n"
+    "- /evidence : ចាប់ផ្តើមដាក់ស្នើភស្តុតាង\n"
     "- /resolve : ជួយបញ្ជាក់តម្លៃ\n"
     "- /support : បើកជំនួយ\n"
     "- /language : ប្តូរភាសា\n"
@@ -161,6 +169,8 @@ FALLBACK_MESSAGES = {
     "yield_confirm": "អ្នកនៅជំហានបញ្ជាក់ទិន្នផល។\nសូមជ្រើសបញ្ជាក់ ឬថយក្រោយខាងក្រោម។",
     "myfields_input": "មិនអាចដំណើរការការចុះបញ្ជីស្រែនេះបានទេ។\nសូមជ្រើសវិធីដែលត្រូវនឹងជំហានបច្ចុប្បន្ន។",
     "myfields_confirm": "អ្នកនៅជំហានបញ្ជាក់ស្រែ។\nសូមជ្រើសបញ្ជាក់ ឬវិធីផ្សេងខាងក្រោម។",
+    "evidence_input": "មិនអាចដំណើរការជំហានដាក់ស្នើភស្តុតាងបានទេ។\nសូមផ្ញើទីតាំង ឬ document upload ឲ្យត្រូវនឹងជំហាននេះម្ដងទៀត។",
+    "evidence_status": "ឯកសារភស្តុតាងត្រូវបានទទួលរួចហើយ។\nសូមរង់ចាំការណែនាំបន្ទាប់ ឬជ្រើសសកម្មភាពដែលពាក់ព័ន្ធ។",
     "input_resolve_input": "មិនអាចដំណើរការជំហានបកស្រាយតម្លៃបានទេ។\nសូមជ្រើសប៊ូតុងដែលត្រូវ ឬបញ្ចូលតម្លៃខ្លីម្ដងទៀត។",
     "input_resolve_confirm": "នេះជាជំហានពិនិត្យជម្រើស។\nសូមជ្រើសជម្រើស សាកម្តងទៀត ត្រឡប់មកក្រោយ ឬឲ្យមនុស្សពិនិត្យ។",
 }
@@ -440,6 +450,21 @@ def format_input_resolve_reminder_created(*, command_text: str) -> str:
 
 def format_input_resolve_resumed(*, step_label: str, prompt_text: str) -> str:
     return f"បានបើកលំហូរបកស្រាយតម្លៃដែលបានរក្សាទុកឡើងវិញ។\nជំហានបច្ចុប្បន្ន: {step_label}\n\n{prompt_text}"
+
+
+def format_evidence_entry(*, field_label: str) -> str:
+    return (
+        f"{EVIDENCE_ENTRY_MESSAGE}\n"
+        f"- ស្រែដែលបានភ្ជាប់បច្ចុប្បន្ន: {field_label}"
+    )
+
+
+def format_evidence_uploaded(*, file_name: str) -> str:
+    return (
+        "បានទទួលឯកសារភស្តុតាងហើយ។\n"
+        f"- ឈ្មោះឯកសារ: {file_name}\n\n"
+        "ជំហានបន្ទាប់នឹងបន្តក្នុងលំហូរនេះ នៅពេលការត្រួតពិនិត្យមូលដ្ឋានរួចរាល់។"
+    )
 
 
 WEATHER_CODE_LABELS = {

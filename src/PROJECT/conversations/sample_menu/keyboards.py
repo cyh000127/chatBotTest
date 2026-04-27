@@ -18,6 +18,12 @@ from PROJECT.conversations.input_resolve.states import (
     STATE_INPUT_RESOLVE_RAW_INPUT,
     STATE_INPUT_RESOLVE_TARGET,
 )
+from PROJECT.conversations.evidence_submission import service as evidence_submission_service
+from PROJECT.conversations.evidence_submission.states import (
+    STATE_EVIDENCE_VALIDATING,
+    STATE_EVIDENCE_WAITING_DOCUMENT,
+    STATE_EVIDENCE_WAITING_LOCATION,
+)
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_LANGUAGE_SELECT
 from PROJECT.conversations.onboarding import service as onboarding_service
 from PROJECT.conversations.onboarding.states import ONBOARDING_STATES
@@ -45,13 +51,16 @@ def main_menu_keyboard(catalog) -> list[list[dict[str, str]]]:
         ],
         [
             _button(catalog.BUTTON_MYFIELDS, "intent:field.list"),
-            _button(catalog.BUTTON_INPUT_RESOLVE, "intent:input.resolve.start"),
+            _button(catalog.BUTTON_EVIDENCE, "intent:evidence.submit.start"),
         ],
         [
+            _button(catalog.BUTTON_INPUT_RESOLVE, "intent:input.resolve.start"),
             _button(catalog.BUTTON_SUPPORT, "intent:support.escalate"),
-            _button(catalog.BUTTON_HELP, "intent:help"),
         ],
-        [_button(catalog.BUTTON_RESTART, "intent:restart")],
+        [
+            _button(catalog.BUTTON_HELP, "intent:help"),
+            _button(catalog.BUTTON_RESTART, "intent:restart"),
+        ],
     ]
 
 
@@ -134,6 +143,17 @@ def fallback_keyboard_layout_for_state(
             input_resolve_service.draft_from_dict(payload),
         )
     if state in {
+        STATE_EVIDENCE_WAITING_LOCATION,
+        STATE_EVIDENCE_WAITING_DOCUMENT,
+        STATE_EVIDENCE_VALIDATING,
+    }:
+        payload = recovery_context.get("evidence_submission_draft") if recovery_context else draft
+        return evidence_submission_service.keyboard_for_state(
+            state,
+            catalog,
+            evidence_submission_service.draft_from_dict(payload),
+        )
+    if state in {
         STATE_FERTILIZER_USED,
         STATE_FERTILIZER_KIND,
         STATE_FERTILIZER_PRODUCT,
@@ -178,6 +198,16 @@ def keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) ->
             state,
             catalog,
             input_resolve_service.draft_from_dict(draft),
+        )
+    if state in {
+        STATE_EVIDENCE_WAITING_LOCATION,
+        STATE_EVIDENCE_WAITING_DOCUMENT,
+        STATE_EVIDENCE_VALIDATING,
+    }:
+        return evidence_submission_service.keyboard_for_state(
+            state,
+            catalog,
+            evidence_submission_service.draft_from_dict(draft),
         )
     if state in {
         STATE_FERTILIZER_USED,

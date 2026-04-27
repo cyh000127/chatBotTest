@@ -21,6 +21,11 @@ from PROJECT.conversations.input_resolve.states import (
     STATE_INPUT_RESOLVE_RAW_INPUT,
     STATE_INPUT_RESOLVE_TARGET,
 )
+from PROJECT.conversations.evidence_submission.states import (
+    STATE_EVIDENCE_VALIDATING,
+    STATE_EVIDENCE_WAITING_DOCUMENT,
+    STATE_EVIDENCE_WAITING_LOCATION,
+)
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_AMOUNT, STATE_YIELD_CONFIRM, STATE_YIELD_DATE, STATE_YIELD_EDIT_SELECT, STATE_YIELD_FIELD, STATE_YIELD_READY
 
@@ -49,4 +54,8 @@ def fallback_key_for_state(state: str) -> str:
         return "input_resolve_input"
     if state in {STATE_INPUT_RESOLVE_CANDIDATES, STATE_INPUT_RESOLVE_DECISION}:
         return "input_resolve_confirm"
+    if state in {STATE_EVIDENCE_WAITING_LOCATION, STATE_EVIDENCE_WAITING_DOCUMENT}:
+        return "evidence_input"
+    if state == STATE_EVIDENCE_VALIDATING:
+        return "evidence_status"
     return FALLBACK_DEFAULT

@@ -10,6 +10,7 @@ BUTTON_TODAY_WEATHER = "오늘 날씨"
 BUTTON_FERTILIZER = "비료 입력"
 BUTTON_YIELD = "수확량 입력"
 BUTTON_MYFIELDS = "자기 조회"
+BUTTON_EVIDENCE = "증빙 제출"
 BUTTON_FIELD_REGISTER = "농지 등록"
 BUTTON_FIELD_REFRESH = "새로고침"
 BUTTON_FIELD_LOOKUP_LOCATION = "위치로 찾기"
@@ -124,6 +125,12 @@ MYFIELDS_BINDING_CONFIRMED_MESSAGE = "농지가 등록되었습니다."
 MYFIELDS_BINDING_CONFLICT_MESSAGE = "이 농지는 바로 등록할 수 없습니다.\n운영 검토로 넘기고 다른 방법을 선택해 주세요."
 MYFIELDS_LOOKUP_METHOD_LOCATION_LABEL = "위치 공유"
 MYFIELDS_LOOKUP_METHOD_CODE_LABEL = "고유 번호"
+EVIDENCE_RUNTIME_UNAVAILABLE_MESSAGE = "현재는 증빙 제출 런타임을 사용할 수 없습니다.\n잠시 뒤 다시 시도하거나 지원을 요청해 주세요."
+EVIDENCE_ENTRY_MESSAGE = "증빙 제출을 시작합니다.\n현재 위치를 먼저 보내주세요."
+EVIDENCE_DOCUMENT_PROMPT = "위치를 확인했습니다.\n이제 압축하지 않은 원본 파일을 document로 업로드해 주세요."
+EVIDENCE_LOCATION_FALLBACK = "이 단계에서는 현재 위치를 보내야 합니다.\nTelegram의 위치 첨부 기능을 사용해 주세요."
+EVIDENCE_DOCUMENT_FALLBACK = "이 단계에서는 원본 파일을 document로 업로드해야 합니다.\n사진이 아니라 document 첨부를 사용해 주세요."
+EVIDENCE_VALIDATING_MESSAGE = "증빙 파일이 접수된 상태입니다.\n안내를 기다리거나 관련 메뉴를 선택해 주세요."
 INPUT_RESOLVE_ENTRY_MESSAGE = "입력 해석 화면입니다.\n현재는 정할 값을 먼저 모으는 단계입니다.\n후보 만들기와 운영 검토 연결은 별도 단계에서 진행됩니다."
 INPUT_RESOLVE_TARGET_FALLBACK = "정할 값을 버튼으로 선택해 주세요."
 INPUT_RESOLVE_METHOD_FALLBACK = "현재는 글로 입력만 사용할 수 있습니다.\n[글로 입력]을 눌러 주세요."
@@ -149,6 +156,7 @@ HELP_MESSAGE = (
     "- /myfields : 자기 조회 열기\n"
     "- /fertilizer : 비료 입력 시작\n"
     "- /yield : 수확량 입력 시작\n"
+    "- /evidence : 증빙 제출 시작\n"
     "- /resolve : 입력 해석 열기\n"
     "- /support : 지원 안내 열기\n"
     "- /language : 언어 바꾸기\n"
@@ -166,6 +174,8 @@ FALLBACK_MESSAGES = {
     "yield_confirm": "수확량 확인 단계입니다.\n확인하거나 뒤로가기를 누르세요.",
     "myfields_input": "농지 등록 입력을 처리하지 못했습니다.\n현재 단계에 맞는 방법을 다시 선택하세요.",
     "myfields_confirm": "농지 확인 단계입니다.\n확인하거나 다른 방법을 선택하세요.",
+    "evidence_input": "증빙 제출 단계를 처리하지 못했습니다.\n현재 단계에 맞는 위치 또는 document 업로드를 다시 보내 주세요.",
+    "evidence_status": "증빙 파일이 접수된 상태입니다.\n안내를 기다리거나 관련 메뉴를 선택해 주세요.",
     "input_resolve_input": "입력 해석 단계를 처리하지 못했습니다.\n현재 단계에 맞는 버튼이나 예시 입력을 다시 보내 주세요.",
     "input_resolve_confirm": "후보 확인 단계입니다.\n후보를 선택하거나 다시 입력, 나중에 다시, 운영 검토 중 하나를 선택하세요.",
 }
@@ -450,6 +460,21 @@ def format_input_resolve_reminder_created(*, command_text: str) -> str:
 
 def format_input_resolve_resumed(*, step_label: str, prompt_text: str) -> str:
     return f"저장된 입력 해석을 다시 열었습니다.\n현재 단계: {step_label}\n\n{prompt_text}"
+
+
+def format_evidence_entry(*, field_label: str) -> str:
+    return (
+        f"{EVIDENCE_ENTRY_MESSAGE}\n"
+        f"- 현재 연결 농지: {field_label}"
+    )
+
+
+def format_evidence_uploaded(*, file_name: str) -> str:
+    return (
+        "증빙 파일을 받았습니다.\n"
+        f"- 파일명: {file_name}\n\n"
+        "기본 검증을 진행할 준비가 되면 이 대화 흐름에서 이어집니다."
+    )
 
 
 WEATHER_CODE_LABELS = {

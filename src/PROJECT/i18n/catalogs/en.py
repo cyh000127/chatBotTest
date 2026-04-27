@@ -5,6 +5,7 @@ BUTTON_TODAY_WEATHER = "Weather"
 BUTTON_FERTILIZER = "Fertilizer"
 BUTTON_YIELD = "Yield"
 BUTTON_MYFIELDS = "My fields"
+BUTTON_EVIDENCE = "Evidence"
 BUTTON_FIELD_REGISTER = "Register field"
 BUTTON_FIELD_REFRESH = "Refresh"
 BUTTON_FIELD_LOOKUP_LOCATION = "Use location"
@@ -119,6 +120,12 @@ MYFIELDS_BINDING_CONFIRMED_MESSAGE = "The field was registered."
 MYFIELDS_BINDING_CONFLICT_MESSAGE = "This field cannot be registered right now.\nIt was sent for operator review. Choose another method."
 MYFIELDS_LOOKUP_METHOD_LOCATION_LABEL = "Location share"
 MYFIELDS_LOOKUP_METHOD_CODE_LABEL = "Field code"
+EVIDENCE_RUNTIME_UNAVAILABLE_MESSAGE = "The evidence submission runtime is not available right now.\nPlease try again later or ask for support."
+EVIDENCE_ENTRY_MESSAGE = "Evidence submission starts here.\nSend your current location first."
+EVIDENCE_DOCUMENT_PROMPT = "The location was accepted.\nNow upload the original file as a document."
+EVIDENCE_LOCATION_FALLBACK = "This step needs your current location.\nUse Telegram's location attachment."
+EVIDENCE_DOCUMENT_FALLBACK = "This step needs the original file as a document upload.\nUse a document attachment instead of a photo."
+EVIDENCE_VALIDATING_MESSAGE = "The evidence file was received.\nWait for the next guidance or choose a related action."
 INPUT_RESOLVE_ENTRY_MESSAGE = "This is the input resolve entry.\nFor now, the runtime starts with the main value flow.\nCandidate matching and manual review are in a separate scope."
 INPUT_RESOLVE_TARGET_FALLBACK = "Choose the value to resolve with the buttons."
 INPUT_RESOLVE_METHOD_FALLBACK = "Only typed text is available in this step.\nSelect [Type text]."
@@ -144,6 +151,7 @@ HELP_MESSAGE = (
     "- /myfields : open my fields\n"
     "- /fertilizer : start fertilizer input\n"
     "- /yield : start yield input\n"
+    "- /evidence : start evidence submission\n"
     "- /resolve : open input resolve\n"
     "- /support : open support help\n"
     "- /language : change language\n"
@@ -161,6 +169,8 @@ FALLBACK_MESSAGES = {
     "yield_confirm": "You are at the yield check step.\nChoose Confirm or Back below.",
     "myfields_input": "The field registration input could not be processed.\nChoose the matching method for this step.",
     "myfields_confirm": "You are at the field check step.\nChoose Confirm or another method below.",
+    "evidence_input": "The evidence submission step could not be processed.\nSend the matching location or document upload again.",
+    "evidence_status": "The evidence file is already received.\nWait for the next guidance or choose a related action.",
     "input_resolve_input": "The input resolve step could not be processed.\nSend a matching button choice or a short example again.",
     "input_resolve_confirm": "This is the candidate review step.\nChoose a candidate, retry, come back later, or send it to manual review.",
 }
@@ -440,6 +450,21 @@ def format_input_resolve_reminder_created(*, command_text: str) -> str:
 
 def format_input_resolve_resumed(*, step_label: str, prompt_text: str) -> str:
     return f"Reopened the saved input resolve flow.\nCurrent step: {step_label}\n\n{prompt_text}"
+
+
+def format_evidence_entry(*, field_label: str) -> str:
+    return (
+        f"{EVIDENCE_ENTRY_MESSAGE}\n"
+        f"- Current field link: {field_label}"
+    )
+
+
+def format_evidence_uploaded(*, file_name: str) -> str:
+    return (
+        "The evidence file was received.\n"
+        f"- File name: {file_name}\n\n"
+        "The next step will continue in this same flow when basic validation is ready."
+    )
 
 
 WEATHER_CODE_LABELS = {

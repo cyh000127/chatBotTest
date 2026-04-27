@@ -9,6 +9,7 @@ COMMAND_TO_INTENT = {
     "myfields": registry.INTENT_FIELD_LIST,
     "fertilizer": registry.INTENT_AGRI_INPUT_START,
     "yield": registry.INTENT_YIELD_INPUT_START,
+    "evidence": registry.INTENT_EVIDENCE_SUBMISSION_START,
     "resolve": registry.INTENT_INPUT_RESOLVE_START,
     "support": registry.INTENT_SUPPORT_ESCALATE,
     "cancel": registry.INTENT_CANCEL,

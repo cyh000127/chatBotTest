@@ -7,6 +7,7 @@ from PROJECT.canonical_intents.registry import INTENT_UNKNOWN_COMMAND
 from PROJECT.channels.telegram.parser import parse_update
 from PROJECT.channels.telegram.handlers.commands import (
     cancel_command,
+    evidence_command,
     help_command,
     fertilizer_command,
     input_resolve_command,
@@ -18,6 +19,10 @@ from PROJECT.channels.telegram.handlers.commands import (
     show_support_guidance,
     start_command,
     yield_command,
+)
+from PROJECT.channels.telegram.handlers.evidence_submission import (
+    handle_evidence_document,
+    handle_evidence_location,
 )
 from PROJECT.channels.telegram.handlers.field_binding import (
     handle_field_binding_callback,
@@ -51,6 +56,13 @@ from PROJECT.conversations.input_resolve.states import (
     STATE_INPUT_RESOLVE_RAW_INPUT,
     STATE_INPUT_RESOLVE_TARGET,
 )
+from PROJECT.conversations.evidence_submission import service as evidence_submission_service
+from PROJECT.conversations.evidence_submission.states import (
+    EVIDENCE_STATES,
+    STATE_EVIDENCE_VALIDATING,
+    STATE_EVIDENCE_WAITING_DOCUMENT,
+    STATE_EVIDENCE_WAITING_LOCATION,
+)
 from PROJECT.conversations.yield_intake import service as yield_service
 from PROJECT.conversations.yield_intake.states import (
     STATE_YIELD_AMOUNT,
@@ -74,6 +86,7 @@ from PROJECT.dispatch.command_router import (
     ROUTE_GO_BACK,
     ROUTE_HELP,
     ROUTE_MAIN_MENU,
+    ROUTE_OPEN_EVIDENCE,
     ROUTE_OPEN_FERTILIZER,
     ROUTE_OPEN_INPUT_RESOLVE,
     ROUTE_OPEN_MYFIELDS,
@@ -92,6 +105,7 @@ from PROJECT.dispatch.session_dispatcher import (
     confirmed_yield,
     current_locale,
     current_state,
+    evidence_submission_draft,
     field_binding_draft,
     fertilizer_draft,
     go_back,
@@ -192,6 +206,11 @@ INPUT_RESOLVE_STATES = {
     STATE_INPUT_RESOLVE_RAW_INPUT,
     STATE_INPUT_RESOLVE_CANDIDATES,
     STATE_INPUT_RESOLVE_DECISION,
+}
+
+EVIDENCE_INPUT_STATES = {
+    STATE_EVIDENCE_WAITING_LOCATION,
+    STATE_EVIDENCE_WAITING_DOCUMENT,
 }
 
 FERTILIZER_EDIT_CALLBACK_TO_STATE = {
@@ -1088,6 +1107,9 @@ async def location_message(update, context) -> None:
     if await handle_field_location(update, context):
         reset_recovery_attempts(context.user_data)
         return
+    if await handle_evidence_location(update, context):
+        reset_recovery_attempts(context.user_data)
+        return
     catalog = current_catalog(context)
     await send_text(
         update,
@@ -1100,11 +1122,45 @@ async def location_message(update, context) -> None:
             current_state(context.user_data),
             catalog,
             field_binding_draft(context.user_data),
+            {"evidence_submission_draft": evidence_submission_draft(context.user_data)}
+            if current_state(context.user_data) in EVIDENCE_STATES
+            else None,
         ),
     )
     log_event(
         FALLBACK_SHOWN,
         source="location_message",
+        state=current_state(context.user_data),
+        fallback_key=fallback_key_for_state(current_state(context.user_data)),
+    )
+
+
+async def document_message(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
+    if await handle_evidence_document(update, context):
+        reset_recovery_attempts(context.user_data)
+        return
+    catalog = current_catalog(context)
+    await send_text(
+        update,
+        service.fallback_text(
+            fallback_key_for_state(current_state(context.user_data)),
+            catalog,
+            last_recovery_context(context.user_data),
+        ),
+        keyboard_layout=fallback_keyboard_layout_for_state(
+            current_state(context.user_data),
+            catalog,
+            None,
+            {"evidence_submission_draft": evidence_submission_draft(context.user_data)}
+            if current_state(context.user_data) in EVIDENCE_STATES
+            else None,
+        ),
+    )
+    log_event(
+        FALLBACK_SHOWN,
+        source="document_message",
         state=current_state(context.user_data),
         fallback_key=fallback_key_for_state(current_state(context.user_data)),
     )
@@ -1231,6 +1287,17 @@ async def handle_yield_state(update, context, state: str, text: str) -> bool:
         return True
 
     return False
+
+
+async def handle_evidence_state(update, context, state: str, text: str) -> bool:
+    catalog = current_catalog(context)
+    draft = evidence_submission_service.draft_from_dict(evidence_submission_draft(context.user_data))
+    await send_text(
+        update,
+        evidence_submission_service.fallback_text_for_state(state, catalog),
+        keyboard_layout=evidence_submission_service.keyboard_for_state(state, catalog, draft),
+    )
+    return True
 
 
 async def text_message(update, context) -> None:
@@ -1626,6 +1693,12 @@ async def text_message(update, context) -> None:
             reset_recovery_attempts(context.user_data)
             return
 
+    if state in EVIDENCE_STATES:
+        handled = await handle_evidence_state(update, context, state, inbound.text)
+        if handled:
+            reset_recovery_attempts(context.user_data)
+            return
+
     fallback_key = fallback_key_for_state(current_state(context.user_data))
     late_gate = classify_cheap_gate(
         inbound.text,
@@ -1993,6 +2066,10 @@ async def button_callback(update, context) -> None:
 
     if decision.route == ROUTE_OPEN_INPUT_RESOLVE:
         await input_resolve_command(update, context)
+        return
+
+    if decision.route == ROUTE_OPEN_EVIDENCE:
+        await evidence_command(update, context)
         return
 
     if decision.route == ROUTE_SUPPORT_GUIDANCE:

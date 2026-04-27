@@ -1,9 +1,11 @@
 from datetime import UTC, datetime
 
 from PROJECT.adapters.outbound.reply_sender import send_text
+from PROJECT.channels.telegram.handlers.evidence_submission import start_evidence_submission_flow
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_USED
+from PROJECT.conversations.evidence_submission.states import STATE_EVIDENCE_WAITING_LOCATION
 from PROJECT.conversations.input_resolve.states import STATE_INPUT_RESOLVE_TARGET
 from PROJECT.conversations.yield_intake import service as yield_service
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_READY
@@ -230,6 +232,12 @@ async def start_input_resolve_entry(update, context) -> None:
         service.input_resolve_entry_text(catalog),
         keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
+
+
+async def start_evidence_entry(update, context) -> None:
+    reset_session(context.user_data)
+    set_state(context.user_data, STATE_EVIDENCE_WAITING_LOCATION)
+    await start_evidence_submission_flow(update, context)
 
 
 async def show_support_guidance(
@@ -508,6 +516,14 @@ async def input_resolve_command(update, context) -> None:
     if not await _require_farmer_feature_access(update, context):
         return
     await start_input_resolve_entry(update, context)
+
+
+async def evidence_command(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
+    if not await _require_farmer_feature_access(update, context):
+        return
+    await start_evidence_entry(update, context)
 
 
 async def support_command(update, context) -> None:
