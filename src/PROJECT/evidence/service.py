@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from PROJECT.evidence.signals import EvidenceSignalExtractionResult, extract_signal_candidates
 from PROJECT.storage.evidence import (
+    EVIDENCE_ARTIFACT_STATUS_SIGNALS_READY,
     EVIDENCE_SESSION_STATUS_WAITING_DOCUMENT,
     EVIDENCE_SESSION_STATUS_WAITING_LOCATION,
     EvidenceRequestEvent,
@@ -125,6 +127,7 @@ class EvidenceSubmissionService:
         staged_artifact_uri: str | None = None,
         checksum_sha256: str | None = None,
         captured_at: str | None = None,
+        uploaded_at: str | None = None,
         payload: dict | None = None,
     ) -> EvidenceSubmission:
         session = self._require_session(session_id)
@@ -156,6 +159,7 @@ class EvidenceSubmissionService:
             staged_artifact_uri=staged_artifact_uri,
             checksum_sha256=checksum_sha256,
             captured_at=captured_at,
+            uploaded_at=uploaded_at,
             payload=submission_payload,
         )
         self._evidence_repository.append_state_log(
@@ -164,11 +168,31 @@ class EvidenceSubmissionService:
             reason_code="document_received",
             detail={"session_id": session.id},
         )
+        self.extract_submission_signals(submission.id)
         self._evidence_repository.mark_session_validating(session.id)
         updated_submission = self._evidence_repository.get_submission(submission.id)
         if updated_submission is None:
             raise RuntimeError("등록한 evidence submission을 다시 읽을 수 없습니다.")
         return updated_submission
+
+    def extract_submission_signals(self, submission_id: str) -> EvidenceSignalExtractionResult:
+        submission = self._require_submission(submission_id)
+        session = self._require_session(submission.evidence_submission_session_id)
+        result = extract_signal_candidates(submission, session)
+        for signal in result.signals:
+            self._evidence_repository.create_validation_signal(
+                evidence_submission_id=submission.id,
+                signal_type_code=signal.signal_type_code,
+                signal_status_code=signal.signal_status_code,
+                numeric_value=signal.numeric_value,
+                text_value=signal.text_value,
+                detail=signal.detail,
+            )
+        self._evidence_repository.update_submission_artifact_status(
+            submission.id,
+            artifact_status_code=EVIDENCE_ARTIFACT_STATUS_SIGNALS_READY,
+        )
+        return result
 
     def _require_participant(self, *, provider_user_id: str) -> ParticipantContext:
         participant = self._field_repository.find_active_participant_context(provider_user_id=provider_user_id)
@@ -196,3 +220,9 @@ class EvidenceSubmissionService:
         if session is None:
             raise ValueError("증빙 제출 세션을 찾을 수 없습니다.")
         return session
+
+    def _require_submission(self, submission_id: str) -> EvidenceSubmission:
+        submission = self._evidence_repository.get_submission(submission_id)
+        if submission is None:
+            raise ValueError("증빙 제출 파일을 찾을 수 없습니다.")
+        return submission

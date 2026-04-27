@@ -1,3 +1,4 @@
+from PROJECT.evidence.signals import EvidenceSignalExtractionResult
 from PROJECT.evidence.service import (
     EVIDENCE_BINDING_RESOLUTION_SINGLE_ACTIVE_BINDING,
     EVIDENCE_BINDING_RESOLUTION_UNRESOLVED_MULTIPLE_ACTIVE_BINDINGS,
@@ -10,6 +11,7 @@ __all__ = [
     "EVIDENCE_BINDING_RESOLUTION_SINGLE_ACTIVE_BINDING",
     "EVIDENCE_BINDING_RESOLUTION_UNRESOLVED_MULTIPLE_ACTIVE_BINDINGS",
     "EVIDENCE_BINDING_RESOLUTION_UNRESOLVED_NO_ACTIVE_BINDING",
+    "EvidenceSignalExtractionResult",
     "EvidenceRequestContext",
     "EvidenceSubmissionService",
 ]
