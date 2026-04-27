@@ -5,9 +5,11 @@ from PROJECT.channels.telegram.handlers.messages import button_callback, locatio
 from PROJECT.admin.delivery import run_outbox_delivery_loop
 from PROJECT.admin.follow_up import admin_runtime
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
+from PROJECT.activity import SeasonActivityService
 from PROJECT.fields.binding import FieldBindingService
 from PROJECT.llm import GeminiEditIntentResolver, GeminiRecoveryClassifier
 from PROJECT.settings import Settings
+from PROJECT.storage.activity import SqliteSeasonActivityRepository
 from PROJECT.storage.fields import SqliteFieldRegistryRepository
 from PROJECT.storage.invitations import SqliteInvitationRepository
 from PROJECT.storage.onboarding import SqliteOnboardingRepository
@@ -56,8 +58,13 @@ def create_application(settings: Settings, *, sqlite_runtime: SqliteRuntime | No
         application.bot_data["invitation_repository"] = SqliteInvitationRepository(sqlite_runtime.connection)
         application.bot_data["onboarding_repository"] = SqliteOnboardingRepository(sqlite_runtime.connection)
         application.bot_data["field_registry_repository"] = SqliteFieldRegistryRepository(sqlite_runtime.connection)
+        application.bot_data["season_activity_repository"] = SqliteSeasonActivityRepository(sqlite_runtime.connection)
         application.bot_data["field_binding_service"] = FieldBindingService(
             application.bot_data["field_registry_repository"]
+        )
+        application.bot_data["season_activity_service"] = SeasonActivityService(
+            application.bot_data["season_activity_repository"],
+            application.bot_data["field_registry_repository"],
         )
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
