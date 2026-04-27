@@ -72,23 +72,6 @@ def repair_confirmation_keyboard(
     ]
 
 
-def profile_recovery_confirm_keyboard(catalog) -> list[list[dict[str, str]]]:
-    return [
-        [_button(catalog.BUTTON_CONFIRM, "intent:confirm")],
-        [
-            _button(catalog.BUTTON_EDIT_NAME, "profile:edit:name"),
-            _button(catalog.BUTTON_EDIT_RESIDENCE, "profile:edit:residence"),
-        ],
-        [
-            _button(catalog.BUTTON_EDIT_CITY, "profile:edit:city"),
-            _button(catalog.BUTTON_EDIT_DISTRICT, "profile:edit:district"),
-        ],
-        [_button(catalog.BUTTON_EDIT_BIRTH_DATE, "profile:edit:birth_date")],
-        [_button(catalog.BUTTON_BACK, "intent:back")],
-        [_button(catalog.BUTTON_RESTART, "intent:restart")],
-    ]
-
-
 def fertilizer_recovery_confirm_keyboard(catalog) -> list[list[dict[str, str]]]:
     return [
         [_button(catalog.BUTTON_CONFIRM, "intent:confirm")],

@@ -2,7 +2,6 @@ from datetime import datetime
 
 BUTTON_TODAY_DATE = "Today"
 BUTTON_TODAY_WEATHER = "Weather"
-BUTTON_PROFILE = "Profile"
 BUTTON_FERTILIZER = "Fertilizer"
 BUTTON_YIELD = "Yield"
 BUTTON_MYFIELDS = "My fields"
@@ -103,7 +102,6 @@ HELP_MESSAGE = (
     "- /start : go to the start\n"
     "- /help : show help\n"
     "- /menu : open the main menu\n"
-    "- /profile : start profile input\n"
     "- /myfields : open my fields\n"
     "- /fertilizer : start fertilizer input\n"
     "- /yield : start yield input\n"
@@ -118,9 +116,6 @@ FALLBACK_MESSAGES = {
     "default": "The input could not be processed.\nChoose one below.",
     "weather": "The input could not be processed.\nChoose a city below or press Back.",
     "cancelled": "This task has ended.\nChoose one below to continue.",
-    "profile_input": "Profile input could not be processed.\nChoose which profile item to continue or change.",
-    "profile_followup": "We need one more check.\nChoose one below.",
-    "profile_confirm": "You are at the profile check step.\nChoose Confirm or Back below.",
     "fertilizer_input": "Fertilizer input could not be processed.\nChoose which fertilizer item to continue or change.",
     "fertilizer_confirm": "You are at the fertilizer check step.\nChoose Confirm or Back below.",
     "yield_input": "Yield input could not be processed.\nChoose the step below to continue.",

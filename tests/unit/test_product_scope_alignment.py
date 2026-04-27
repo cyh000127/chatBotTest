@@ -32,8 +32,7 @@ def test_product_main_menu_and_button_mapping_do_not_expose_profile_entry():
     layout = main_menu_keyboard(catalog)
     button_texts = {button["text"] for row in layout for button in row}
 
-    assert catalog.BUTTON_PROFILE not in button_texts
-    assert catalog.BUTTON_PROFILE not in all_button_intents()
+    assert hasattr(catalog, "BUTTON_PROFILE") is False
     assert button_texts == {
         catalog.BUTTON_FERTILIZER,
         catalog.BUTTON_YIELD,
@@ -86,4 +85,4 @@ def test_profile_states_fall_back_to_default_product_navigation():
 
     assert layout[0][0]["text"] == catalog.BUTTON_FERTILIZER
     assert layout[0][1]["text"] == catalog.BUTTON_YIELD
-    assert catalog.BUTTON_PROFILE not in button_texts
+    assert "프로필 입력" not in button_texts

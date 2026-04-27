@@ -40,7 +40,7 @@ def test_default_fallback_keyboard_uses_main_menu_buttons():
     assert layout[1][1]["text"] == catalog.BUTTON_INPUT_RESOLVE
     assert layout[2][0]["text"] == catalog.BUTTON_SUPPORT
     assert layout[2][1]["text"] == catalog.BUTTON_HELP
-    assert all(button["text"] != catalog.BUTTON_PROFILE for row in layout for button in row)
+    assert hasattr(catalog, "BUTTON_PROFILE") is False
 
 
 def test_profile_fallback_keyboard_uses_default_product_navigation():

@@ -7,7 +7,6 @@ from datetime import datetime
 
 BUTTON_TODAY_DATE = "오늘 날짜"
 BUTTON_TODAY_WEATHER = "오늘 날씨"
-BUTTON_PROFILE = "프로필 입력"
 BUTTON_FERTILIZER = "비료 입력"
 BUTTON_YIELD = "수확량 입력"
 BUTTON_MYFIELDS = "자기 조회"
@@ -108,7 +107,6 @@ HELP_MESSAGE = (
     "- /start : 처음으로 가기\n"
     "- /help : 도움말 보기\n"
     "- /menu : 메인 메뉴 열기\n"
-    "- /profile : 프로필 입력 시작\n"
     "- /myfields : 자기 조회 열기\n"
     "- /fertilizer : 비료 입력 시작\n"
     "- /yield : 수확량 입력 시작\n"
@@ -123,9 +121,6 @@ FALLBACK_MESSAGES = {
     "default": "입력을 처리하지 못했습니다.\n아래 항목에서 하나를 선택하세요.",
     "weather": "입력을 처리하지 못했습니다.\n도시를 선택하거나 뒤로가기를 누르세요.",
     "cancelled": "현재 흐름은 종료된 상태입니다.\n아래 항목에서 다시 시작할 작업을 선택하세요.",
-    "profile_input": "프로필 입력을 처리하지 못했습니다.\n아래 항목에서 이어서 입력할 내용을 선택하세요.",
-    "profile_followup": "추가 확인이 필요합니다.\n아래 항목에서 하나를 선택하세요.",
-    "profile_confirm": "프로필 확인 단계입니다.\n확인하거나 수정할 항목을 선택하세요.",
     "fertilizer_input": "비료 입력을 처리하지 못했습니다.\n아래 항목에서 이어서 입력할 내용을 선택하세요.",
     "fertilizer_confirm": "비료 확인 단계입니다.\n확인하거나 수정할 항목을 선택하세요.",
     "yield_input": "수확량 입력을 처리하지 못했습니다.\n아래 항목에서 이어서 입력할 내용을 선택하세요.",
