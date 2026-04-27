@@ -70,6 +70,8 @@ class FieldBindingService:
             longitude=longitude,
             project_id=participant.project_id,
         )
+        if lookup_result.version_id is None:
+            return FieldBindingLookupResult(participant=participant, version_id=None, candidates=())
         if not lookup_result.candidates:
             exception = self._repository.create_binding_exception(
                 project_id=participant.project_id,
@@ -131,6 +133,8 @@ class FieldBindingService:
             project_id=participant.project_id,
         )
         version_id = field.field.field_registry_version_id if field is not None else None
+        if version_id is None and self._repository.latest_published_version(project_id=participant.project_id) is None:
+            return FieldBindingLookupResult(participant=participant, version_id=None, candidates=())
         if field is None:
             exception = self._repository.create_binding_exception(
                 project_id=participant.project_id,

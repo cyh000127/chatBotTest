@@ -34,6 +34,7 @@ from PROJECT.dispatch.support_handoff_dispatcher import (
     record_support_handoff_admin_reply,
 )
 from PROJECT.channels.telegram.handlers.onboarding import send_onboarding_prompt, sync_onboarding_session
+from PROJECT.channels.telegram.handlers.field_binding import show_myfields_summary
 from PROJECT.i18n.translator import get_catalog, language_keyboard
 from PROJECT.storage.invitations import INVITATION_STATUS_ISSUED
 from PROJECT.storage.onboarding import ONBOARDING_STATUS_APPROVED
@@ -204,13 +205,8 @@ async def start_yield_input(update, context) -> None:
 
 
 async def show_myfields_entry(update, context) -> None:
-    catalog = catalog_for(context)
     reset_session(context.user_data)
-    await send_text(
-        update,
-        service.myfields_entry_text(catalog),
-        keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
-    )
+    await show_myfields_summary(update, context)
 
 
 async def start_input_resolve_entry(update, context) -> None:

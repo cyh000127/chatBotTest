@@ -19,11 +19,17 @@ from PROJECT.channels.telegram.handlers.commands import (
     start_command,
     yield_command,
 )
+from PROJECT.channels.telegram.handlers.field_binding import (
+    handle_field_binding_callback,
+    handle_field_code_text,
+    handle_field_location,
+)
 from PROJECT.channels.telegram.handlers.onboarding import (
     handle_onboarding_callback,
     handle_onboarding_language_selection,
     handle_onboarding_text,
 )
+from PROJECT.conversations.field_binding.states import FIELD_BINDING_STATES
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
 from PROJECT.conversations.fertilizer_intake.states import (
@@ -75,6 +81,7 @@ from PROJECT.dispatch.session_dispatcher import (
     confirmed_yield,
     current_locale,
     current_state,
+    field_binding_draft,
     fertilizer_draft,
     go_back,
     has_active_support_handoff,
@@ -912,6 +919,16 @@ async def attempt_llm_repair_after_rules(
 def parse_callback_data(data: str) -> tuple[str, dict]:
     if data.startswith("intent:"):
         return data.split(":", 1)[1], {}
+    if data == "fieldbind:start":
+        return "fieldbind_start", {}
+    if data == "fieldbind:refresh":
+        return "fieldbind_refresh", {}
+    if data.startswith("fieldbind:method:"):
+        return "fieldbind_method", {"method": data.rsplit(":", 1)[1]}
+    if data.startswith("fieldbind:candidate:"):
+        return "fieldbind_candidate", {"field_id": data.rsplit(":", 1)[1]}
+    if data == "fieldbind:confirm":
+        return "fieldbind_confirm", {}
     if data == "repair:candidate:apply":
         return "repair_candidate_apply", {}
     if data.startswith("repair:confirm:"):
@@ -949,6 +966,34 @@ async def clear_callback_markup(update) -> None:
         await query.message.edit_reply_markup(reply_markup=None)
     except Exception:
         return
+
+
+async def location_message(update, context) -> None:
+    if not await _require_started_access(update, context):
+        return
+    if await handle_field_location(update, context):
+        reset_recovery_attempts(context.user_data)
+        return
+    catalog = current_catalog(context)
+    await send_text(
+        update,
+        service.fallback_text(
+            fallback_key_for_state(current_state(context.user_data)),
+            catalog,
+            last_recovery_context(context.user_data),
+        ),
+        keyboard_layout=fallback_keyboard_layout_for_state(
+            current_state(context.user_data),
+            catalog,
+            field_binding_draft(context.user_data),
+        ),
+    )
+    log_event(
+        FALLBACK_SHOWN,
+        source="location_message",
+        state=current_state(context.user_data),
+        fallback_key=fallback_key_for_state(current_state(context.user_data)),
+    )
 
 
 async def handle_fertilizer_state(update, context, state: str, text: str) -> bool:
@@ -1439,6 +1484,12 @@ async def text_message(update, context) -> None:
             reset_recovery_attempts(context.user_data)
             return
 
+    if state in FIELD_BINDING_STATES:
+        handled = await handle_field_code_text(update, context, text=inbound.text)
+        if handled:
+            reset_recovery_attempts(context.user_data)
+            return
+
     if state in FERTILIZER_STATES:
         handled = await handle_fertilizer_state(update, context, state, inbound.text)
         if handled:
@@ -1542,7 +1593,7 @@ async def text_message(update, context) -> None:
         keyboard_layout=fallback_keyboard_layout_for_state(
             current_state(context.user_data),
             catalog,
-            None,
+            field_binding_draft(context.user_data),
         ),
     )
     log_event(
@@ -1741,6 +1792,25 @@ async def button_callback(update, context) -> None:
         await send_yield_prompt(update, context, STATE_YIELD_READY)
         return
 
+    if action.startswith("fieldbind_"):
+        await clear_callback_markup(update)
+        if await handle_field_binding_callback(update, context, action=action, payload=payload):
+            return
+        await send_text(
+            update,
+            service.fallback_text(
+                fallback_key_for_state(current_state(context.user_data)),
+                current_catalog(context),
+                last_recovery_context(context.user_data),
+            ),
+            keyboard_layout=fallback_keyboard_layout_for_state(
+                current_state(context.user_data),
+                current_catalog(context),
+                field_binding_draft(context.user_data),
+            ),
+        )
+        return
+
     if action == "yield_edit_select":
         await clear_callback_markup(update)
         if state != STATE_YIELD_EDIT_SELECT:
@@ -1838,7 +1908,7 @@ async def button_callback(update, context) -> None:
         keyboard_layout=fallback_keyboard_layout_for_state(
             current_state(context.user_data),
             catalog,
-            None,
+            field_binding_draft(context.user_data),
         ),
     )
     log_event(

@@ -25,6 +25,7 @@ def _default_session() -> dict:
         "onboarding_status": None,
         "onboarding_step": None,
         "onboarding_draft": None,
+        "field_binding_draft": None,
         "recovery_attempts": 0,
         "last_recovery_context": None,
         "pending_repair_confirmation": None,
@@ -52,6 +53,7 @@ def reset_session(user_data: dict) -> dict:
     onboarding_status = get_session(user_data).get("onboarding_status") if "session" in user_data else None
     onboarding_step = get_session(user_data).get("onboarding_step") if "session" in user_data else None
     onboarding_draft = get_session(user_data).get("onboarding_draft") if "session" in user_data else None
+    field_binding_draft = get_session(user_data).get("field_binding_draft") if "session" in user_data else None
     confirmed_fertilizer = get_session(user_data).get("confirmed_fertilizer") if "session" in user_data else None
     confirmed_yield = get_session(user_data).get("confirmed_yield") if "session" in user_data else None
     last_context = get_session(user_data).get("last_recovery_context") if "session" in user_data else None
@@ -67,6 +69,7 @@ def reset_session(user_data: dict) -> dict:
     user_data["session"]["onboarding_status"] = onboarding_status
     user_data["session"]["onboarding_step"] = onboarding_step
     user_data["session"]["onboarding_draft"] = onboarding_draft
+    user_data["session"]["field_binding_draft"] = field_binding_draft
     user_data["session"]["confirmed_fertilizer"] = confirmed_fertilizer
     user_data["session"]["confirmed_yield"] = confirmed_yield
     user_data["session"]["last_recovery_context"] = last_context
@@ -250,6 +253,18 @@ def clear_onboarding_session(user_data: dict) -> None:
     session["onboarding_status"] = None
     session["onboarding_step"] = None
     session["onboarding_draft"] = None
+
+
+def set_field_binding_draft(user_data: dict, draft: dict | None) -> None:
+    get_session(user_data)["field_binding_draft"] = draft
+
+
+def field_binding_draft(user_data: dict) -> dict | None:
+    return get_session(user_data).get("field_binding_draft")
+
+
+def clear_field_binding_draft(user_data: dict) -> None:
+    get_session(user_data)["field_binding_draft"] = None
 
 
 def auth_failures(user_data: dict) -> int:

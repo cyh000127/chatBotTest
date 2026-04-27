@@ -1,12 +1,14 @@
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from PROJECT.channels.telegram.handlers.commands import cancel_command, fertilizer_command, help_command, input_resolve_command, language_command, menu_command, myfields_command, start_command, support_command, yield_command
-from PROJECT.channels.telegram.handlers.messages import button_callback, text_message, unknown_command
+from PROJECT.channels.telegram.handlers.messages import button_callback, location_message, text_message, unknown_command
 from PROJECT.admin.delivery import run_outbox_delivery_loop
 from PROJECT.admin.follow_up import admin_runtime
 from PROJECT.admin.sqlite_follow_up import SqliteAdminRuntime
+from PROJECT.fields.binding import FieldBindingService
 from PROJECT.llm import GeminiEditIntentResolver, GeminiRecoveryClassifier
 from PROJECT.settings import Settings
+from PROJECT.storage.fields import SqliteFieldRegistryRepository
 from PROJECT.storage.invitations import SqliteInvitationRepository
 from PROJECT.storage.onboarding import SqliteOnboardingRepository
 from PROJECT.storage.sqlite import SqliteRuntime
@@ -53,6 +55,10 @@ def create_application(settings: Settings, *, sqlite_runtime: SqliteRuntime | No
     if sqlite_runtime is not None:
         application.bot_data["invitation_repository"] = SqliteInvitationRepository(sqlite_runtime.connection)
         application.bot_data["onboarding_repository"] = SqliteOnboardingRepository(sqlite_runtime.connection)
+        application.bot_data["field_registry_repository"] = SqliteFieldRegistryRepository(sqlite_runtime.connection)
+        application.bot_data["field_binding_service"] = FieldBindingService(
+            application.bot_data["field_registry_repository"]
+        )
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("menu", menu_command))
@@ -64,6 +70,7 @@ def create_application(settings: Settings, *, sqlite_runtime: SqliteRuntime | No
     application.add_handler(CommandHandler("language", language_command))
     application.add_handler(CommandHandler("cancel", cancel_command))
     application.add_handler(CallbackQueryHandler(button_callback))
+    application.add_handler(MessageHandler(filters.LOCATION, location_message))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_message))
     application.add_handler(MessageHandler(filters.COMMAND, unknown_command))
     return application

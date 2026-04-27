@@ -1,5 +1,7 @@
 from PROJECT.conversations.fertilizer_intake import keyboards as fertilizer_keyboards
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
+from PROJECT.conversations.field_binding import keyboards as field_binding_keyboards
+from PROJECT.conversations.field_binding.states import FIELD_BINDING_STATES, STATE_MYFIELDS_SUMMARY
 from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_AMOUNT,
     STATE_FERTILIZER_CONFIRM,
@@ -97,6 +99,19 @@ def fallback_keyboard_layout_for_state(
 ) -> list[list[dict[str, str]]]:
     if state in ONBOARDING_STATES:
         return onboarding_service.keyboard_for_state(state, catalog) or main_menu_keyboard(catalog)
+    if state in FIELD_BINDING_STATES:
+        candidates = ()
+        has_bindings = False
+        if recovery_context:
+            payload = recovery_context.get("field_binding_draft") or {}
+            candidates = tuple(payload.get("candidates") or ())
+            has_bindings = bool(payload.get("has_bindings"))
+        return field_binding_keyboards.keyboard_for_state(
+            state,
+            catalog,
+            has_bindings=has_bindings,
+            candidates=candidates,
+        )
     if state in {
         STATE_FERTILIZER_USED,
         STATE_FERTILIZER_KIND,
@@ -117,6 +132,20 @@ def fallback_keyboard_layout_for_state(
 def keyboard_layout_for_state(state: str, catalog, draft: dict | None = None) -> list[list[dict[str, str]]]:
     if state in ONBOARDING_STATES:
         return onboarding_service.keyboard_for_state(state, catalog) or main_menu_keyboard(catalog)
+    if state in FIELD_BINDING_STATES:
+        candidates = ()
+        has_bindings = False
+        if isinstance(draft, dict):
+            candidates = tuple(draft.get("candidates") or ())
+            has_bindings = bool(draft.get("has_bindings"))
+        if state == STATE_MYFIELDS_SUMMARY and isinstance(draft, dict):
+            has_bindings = bool(draft.get("has_bindings"))
+        return field_binding_keyboards.keyboard_for_state(
+            state,
+            catalog,
+            has_bindings=has_bindings,
+            candidates=candidates,
+        )
     if state in {
         STATE_FERTILIZER_USED,
         STATE_FERTILIZER_KIND,
