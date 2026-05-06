@@ -103,6 +103,10 @@ def _render_recovery_guidance(recovery_context: dict[str, Any] | Any | None, cat
     if retry_copy:
         lines.append(retry_copy)
 
+    text_step_help = _text_step_help(current_step, catalog)
+    if text_step_help:
+        lines.extend(text_step_help)
+
     quick_action_hint = _quick_action_hint(current_step, catalog)
     if quick_action_hint:
         lines.append(quick_action_hint)
@@ -180,6 +184,50 @@ def _retry_copy_for_state(current_step: str, catalog) -> str | None:
         STATE_MYFIELDS_SUMMARY: catalog.MYFIELDS_SUMMARY_GUIDANCE,
     }
     return mapping.get(current_step)
+
+
+def _text_step_help(current_step: str, catalog) -> tuple[str, ...]:
+    mapping = {
+        STATE_FERTILIZER_PRODUCT: (
+            getattr(catalog, "FERTILIZER_PRODUCT_EXAMPLES", ()),
+            getattr(catalog, "FERTILIZER_PRODUCT_UNSUPPORTED_INPUT_HINT", ""),
+        ),
+        STATE_FERTILIZER_AMOUNT: (
+            getattr(catalog, "FERTILIZER_AMOUNT_EXAMPLES", ()),
+            getattr(catalog, "FERTILIZER_AMOUNT_UNSUPPORTED_INPUT_HINT", ""),
+        ),
+        STATE_FERTILIZER_DATE: (
+            getattr(catalog, "FERTILIZER_DATE_EXAMPLES", ()),
+            getattr(catalog, "FERTILIZER_DATE_UNSUPPORTED_INPUT_HINT", ""),
+        ),
+        STATE_YIELD_FIELD: (
+            getattr(catalog, "YIELD_FIELD_EXAMPLES", ()),
+            getattr(catalog, "YIELD_FIELD_UNSUPPORTED_INPUT_HINT", ""),
+        ),
+        STATE_YIELD_AMOUNT: (
+            getattr(catalog, "YIELD_AMOUNT_EXAMPLES", ()),
+            getattr(catalog, "YIELD_AMOUNT_UNSUPPORTED_INPUT_HINT", ""),
+        ),
+        STATE_YIELD_DATE: (
+            getattr(catalog, "YIELD_DATE_EXAMPLES", ()),
+            getattr(catalog, "YIELD_DATE_UNSUPPORTED_INPUT_HINT", ""),
+        ),
+        STATE_FIELD_BINDING_CODE: (
+            getattr(catalog, "MYFIELDS_CODE_EXAMPLES", ()),
+            getattr(catalog, "MYFIELDS_CODE_UNSUPPORTED_INPUT_HINT", ""),
+        ),
+        STATE_INPUT_RESOLVE_RAW_INPUT: (
+            getattr(catalog, "INPUT_RESOLVE_RAW_INPUT_EXAMPLES", ()),
+            getattr(catalog, "INPUT_RESOLVE_RAW_INPUT_UNSUPPORTED_INPUT_HINT", ""),
+        ),
+    }
+    examples, unsupported_hint = mapping.get(current_step, ((), ""))
+    lines: list[str] = []
+    if examples:
+        lines.append(f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: {', '.join(examples)}")
+    if unsupported_hint:
+        lines.append(f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: {unsupported_hint}")
+    return tuple(lines)
 
 
 def _quick_action_hint(current_step: str, catalog) -> str | None:
