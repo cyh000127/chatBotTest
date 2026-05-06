@@ -27,6 +27,8 @@
   모델 기반 recovery classifier를 주입할 때 필요한 런타임 구성 조건을 설명한다.
 - `STRUCTURED_INTERACTION_POLICY.md`
   구조화 입력, 수정 요청, fallback, confirm, handoff UX 원칙을 설명한다.
+- `GUIDED_RUNTIME_UX_BASELINE.md`
+  단계형 런타임의 진행 상태, retry, 입력 모드, handoff, resume UX 개편 기준을 정의한다.
 - `FEATURE_SCOPE_BASELINE.md`
   구현 대상 기능과 비대상 기능을 구분하는 제품 범위 기준을 정리한다.
 - `SUPPORT_HANDOFF_CHATBOT_RELAY.md`
@@ -44,6 +46,7 @@
 
 - 메인 경로는 rule-first structured interaction이다.
 - 자유 대화형 응답 엔진이 아니라 단계형 입력 수집과 검증 중심 구조를 따른다.
+- 현재 단계, 허용 입력, 실패 이유, 다음 행동이 항상 보이는 guided UX를 지향한다.
 - 모델 호출은 예외적 보조 판정기로만 허용한다.
 - unknown 입력은 종료하지 않고 guided recovery로 회수한다.
 - 자연어 수정은 직접 반영하지 않고 수정 의도와 후보 추출 신호로만 다룬다.
