@@ -1322,7 +1322,7 @@ async def text_message(update, context) -> None:
         )
         await send_text(
             update,
-            current_catalog(context).SUPPORT_HANDOFF_MESSAGE_RECORDED,
+            service.support_followup_recorded_text(current_catalog(context)),
             keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), current_catalog(context), None),
         )
         return

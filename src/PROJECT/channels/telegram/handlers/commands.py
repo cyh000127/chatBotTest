@@ -303,7 +303,7 @@ async def close_support_handoff_from_admin(update, context, *, reason: str = "ad
         return False
     await send_text(
         update,
-        catalog.SUPPORT_HANDOFF_CLOSED_MESSAGE,
+        service.support_handoff_closed_text(catalog),
         keyboard_layout=keyboard_layout_for_state(current_state(context.user_data), catalog, None),
     )
     return True

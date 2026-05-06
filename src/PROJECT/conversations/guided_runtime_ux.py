@@ -26,6 +26,32 @@ def format_guided_message(
     return "\n".join(part for part in parts if part)
 
 
+def format_waiting_message(
+    catalog,
+    *,
+    flow_label: str,
+    progress_label: str,
+    prompt_text: str,
+    draft_summary: str | None = None,
+    next_actions: tuple[str, ...] = (),
+) -> str:
+    message = format_guided_message(
+        catalog,
+        flow_label=flow_label,
+        progress_label=progress_label,
+        input_mode=STATUS_WAIT,
+        prompt_text=prompt_text,
+        draft_summary=draft_summary,
+    )
+    if not next_actions:
+        return message
+    return (
+        f"{message}\n\n"
+        f"{catalog.GUIDED_NEXT_ACTIONS_LABEL}: "
+        f"{', '.join(f'[{action}]' for action in next_actions)}"
+    )
+
+
 def _input_mode_label(catalog, input_mode: str | None) -> str:
     if input_mode == BUTTON_ONLY:
         return catalog.GUIDED_INPUT_MODE_BUTTON_ONLY

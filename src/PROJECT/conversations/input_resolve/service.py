@@ -333,7 +333,17 @@ def resolved_text(catalog, *, target_type_code: str, candidate_label: str) -> st
 
 
 def manual_review_text(catalog) -> str:
-    return catalog.INPUT_RESOLVE_MANUAL_REVIEW_MESSAGE
+    return guided_runtime_ux.format_waiting_message(
+        catalog,
+        flow_label=getattr(catalog, "GUIDED_FLOW_INPUT_RESOLVE", getattr(catalog, "BUTTON_INPUT_RESOLVE", "입력 해석")),
+        progress_label=catalog.GUIDED_REVIEW_STAGE_LABEL,
+        prompt_text=catalog.INPUT_RESOLVE_MANUAL_REVIEW_MESSAGE,
+        next_actions=(
+            catalog.BUTTON_INPUT_RESOLVE,
+            catalog.BUTTON_SUPPORT,
+            catalog.BUTTON_RESTART,
+        ),
+    )
 
 
 def resume_prompt_text(catalog, session: InputResolutionSession, draft: InputResolveDraft | None) -> str:

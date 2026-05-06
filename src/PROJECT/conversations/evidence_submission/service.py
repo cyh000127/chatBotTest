@@ -139,13 +139,13 @@ def prompt_for_state(
             draft_summary=_draft_summary(draft, catalog),
         )
     if state == STATE_EVIDENCE_VALIDATING:
-        return guided_ux.format_guided_message(
+        return guided_ux.format_waiting_message(
             catalog,
             flow_label=catalog.GUIDED_FLOW_EVIDENCE,
             progress_label=catalog.GUIDED_VALIDATING_STAGE_LABEL,
-            input_mode=guided_ux.STATUS_WAIT,
             prompt_text=catalog.format_evidence_uploaded(file_name=(draft.file_name if draft else "") or "-"),
             draft_summary=_draft_summary(draft, catalog),
+            next_actions=(catalog.BUTTON_SUPPORT, catalog.BUTTON_HELP, catalog.BUTTON_RESTART),
         )
     return start_text(catalog, draft or EvidenceSubmissionDraft())
 
@@ -156,7 +156,13 @@ def fallback_text_for_state(state: str, catalog) -> str:
     if state == STATE_EVIDENCE_WAITING_DOCUMENT:
         return catalog.EVIDENCE_DOCUMENT_FALLBACK
     if state == STATE_EVIDENCE_VALIDATING:
-        return catalog.EVIDENCE_VALIDATING_MESSAGE
+        return guided_ux.format_waiting_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_EVIDENCE,
+            progress_label=catalog.GUIDED_VALIDATING_STAGE_LABEL,
+            prompt_text=catalog.EVIDENCE_VALIDATING_MESSAGE,
+            next_actions=(catalog.BUTTON_SUPPORT, catalog.BUTTON_HELP, catalog.BUTTON_RESTART),
+        )
     return catalog.EVIDENCE_RUNTIME_UNAVAILABLE_MESSAGE
 
 
@@ -188,16 +194,16 @@ def retry_text(catalog, draft: EvidenceSubmissionDraft, *, reason_codes: tuple[s
 
 def manual_review_text(catalog, draft: EvidenceSubmissionDraft, *, reason_codes: tuple[str, ...]) -> str:
     reason_lines = tuple(reason_text(catalog, reason_code) for reason_code in reason_codes)
-    return guided_ux.format_guided_message(
+    return guided_ux.format_waiting_message(
         catalog,
         flow_label=catalog.GUIDED_FLOW_EVIDENCE,
         progress_label=catalog.GUIDED_REVIEW_STAGE_LABEL,
-        input_mode=guided_ux.STATUS_WAIT,
         prompt_text=catalog.format_evidence_manual_review(
             file_name=draft.file_name or "-",
             reason_lines=reason_lines,
         ),
         draft_summary=_draft_summary(draft, catalog),
+        next_actions=(catalog.BUTTON_EVIDENCE, catalog.BUTTON_SUPPORT, catalog.BUTTON_RESTART),
     )
 
 

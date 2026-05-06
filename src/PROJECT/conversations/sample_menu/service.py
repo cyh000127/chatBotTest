@@ -1,3 +1,4 @@
+from PROJECT.conversations import guided_runtime_ux as guided_ux
 from PROJECT.conversations.sample_menu.recovery_messages import render_cheap_gate_message, render_fallback_message
 from PROJECT.conversations.sample_menu.states import STATE_LANGUAGE_SELECT, STATE_MAIN_MENU
 from PROJECT.rule_engine.contracts import ValidationResult
@@ -59,11 +60,43 @@ def input_resolve_entry_text(catalog) -> str:
 
 
 def support_escalation_text(catalog) -> str:
-    return catalog.SUPPORT_ESCALATION_MESSAGE
+    return guided_ux.format_waiting_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_SUPPORT,
+        progress_label=catalog.GUIDED_RECEIVED_STAGE_LABEL,
+        prompt_text=catalog.SUPPORT_ESCALATION_MESSAGE,
+        next_actions=(catalog.BUTTON_HELP, catalog.BUTTON_RESTART),
+    )
+
+
+def support_followup_recorded_text(catalog) -> str:
+    return guided_ux.format_waiting_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_SUPPORT,
+        progress_label=catalog.GUIDED_RECEIVED_STAGE_LABEL,
+        prompt_text=catalog.SUPPORT_HANDOFF_MESSAGE_RECORDED,
+        next_actions=(catalog.BUTTON_HELP, catalog.BUTTON_RESTART),
+    )
 
 
 def support_admin_reply_text(catalog, admin_message: str) -> str:
-    return catalog.format_support_admin_reply(admin_message=admin_message)
+    return guided_ux.format_waiting_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_SUPPORT,
+        progress_label=catalog.GUIDED_OPERATOR_REPLY_STAGE_LABEL,
+        prompt_text=catalog.format_support_admin_reply(admin_message=admin_message),
+        next_actions=(catalog.BUTTON_SUPPORT, catalog.BUTTON_RESTART),
+    )
+
+
+def support_handoff_closed_text(catalog) -> str:
+    return guided_ux.format_waiting_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_SUPPORT,
+        progress_label=catalog.GUIDED_CLOSED_STAGE_LABEL,
+        prompt_text=catalog.SUPPORT_HANDOFF_CLOSED_MESSAGE,
+        next_actions=(catalog.BUTTON_SUPPORT, catalog.BUTTON_HELP),
+    )
 
 
 def language_menu_text(catalog) -> str:
