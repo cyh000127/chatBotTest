@@ -13,9 +13,10 @@ from PROJECT.conversations.input_resolve.states import (
 from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_CONFIRM,
     STATE_FERTILIZER_KIND,
+    STATE_FERTILIZER_PRODUCT,
 )
 from PROJECT.conversations.yield_intake import service as yield_service
-from PROJECT.conversations.yield_intake.states import STATE_YIELD_AMOUNT
+from PROJECT.conversations.yield_intake.states import STATE_YIELD_AMOUNT, STATE_YIELD_FIELD
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.storage.fields import FIELD_BINDING_SOURCE_LOCATION
 
@@ -153,3 +154,36 @@ def test_input_resolve_manual_review_text_uses_waiting_layout():
     assert "입력 해석 검토 단계 · 안내 대기" in text
     assert "이 대화창에서 이어집니다" in text
     assert "다음에 할 수 있는 작업: [입력 해석], [지원 안내], [처음부터]" in text
+
+
+def test_text_input_prompts_include_value_only_examples_and_unsupported_input():
+    catalog = get_catalog("ko")
+
+    fertilizer_text = fertilizer_service.prompt_for_state(
+        STATE_FERTILIZER_PRODUCT,
+        catalog,
+        fertilizer_service.new_draft(),
+    )
+    assert catalog.GUIDED_TEXT_VALUE_ONLY_HINT in fertilizer_text
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: 한아름 복합비료, 액상비료 A" in fertilizer_text
+    assert f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: {catalog.FERTILIZER_PRODUCT_UNSUPPORTED_INPUT_HINT}" in fertilizer_text
+
+    yield_text = yield_service.prompt_for_state(
+        STATE_YIELD_FIELD,
+        catalog,
+        yield_service.new_draft(),
+    )
+    assert catalog.GUIDED_TEXT_VALUE_ONLY_HINT in yield_text
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: 논 1, FIELD-001" in yield_text
+    assert f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: {catalog.YIELD_FIELD_UNSUPPORTED_INPUT_HINT}" in yield_text
+
+    field_code_text = field_binding_service.code_prompt_text(catalog)
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: FIELD-001, FIELD-105" in field_code_text
+    assert f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: {catalog.MYFIELDS_CODE_UNSUPPORTED_INPUT_HINT}" in field_code_text
+
+    resolve_text = input_resolve_service.prompt_for_state(STATE_INPUT_RESOLVE_RAW_INPUT, catalog)
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: FIELD-001, 논 1" in resolve_text
+    assert (
+        f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: "
+        f"{catalog.INPUT_RESOLVE_RAW_INPUT_UNSUPPORTED_INPUT_HINT}"
+    ) in resolve_text
