@@ -83,10 +83,19 @@ def code_prompt_text(catalog, *, method: str = FIELD_BINDING_SOURCE_FIELD_CODE) 
         flow_label=getattr(catalog, "GUIDED_FLOW_MYFIELDS", getattr(catalog, "BUTTON_MYFIELDS", "자기 조회")),
         progress_label="2/4",
         input_mode=guided_runtime_ux.TEXT_ALLOWED,
-        prompt_text=getattr(
+        prompt_text=guided_runtime_ux.format_text_input_prompt(
             catalog,
-            "MYFIELDS_CODE_PROMPT",
-            "농지 고유 번호를 입력하세요.\n예: FIELD-001",
+            prompt_text=getattr(
+                catalog,
+                "MYFIELDS_CODE_PROMPT",
+                "농지 고유 번호를 입력하세요.",
+            ),
+            examples=getattr(catalog, "MYFIELDS_CODE_EXAMPLES", ("FIELD-001",)),
+            unsupported_hint=getattr(
+                catalog,
+                "MYFIELDS_CODE_UNSUPPORTED_INPUT_HINT",
+                "설명 문장이나 위치 요청은 이 단계에서 처리하지 않아요.",
+            ),
         ),
         draft_summary=_draft_summary(catalog, method_label=_lookup_method_label(method, catalog)),
     )

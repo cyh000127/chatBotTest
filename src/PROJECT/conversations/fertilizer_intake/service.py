@@ -69,9 +69,9 @@ def prompt_for_state(state: str, catalog, draft: FertilizerDraft | None = None) 
     mapping = {
         STATE_FERTILIZER_USED: catalog.FERTILIZER_USED_PROMPT,
         STATE_FERTILIZER_KIND: catalog.FERTILIZER_KIND_PROMPT,
-        STATE_FERTILIZER_PRODUCT: catalog.FERTILIZER_PRODUCT_PROMPT,
-        STATE_FERTILIZER_AMOUNT: catalog.FERTILIZER_AMOUNT_PROMPT,
-        STATE_FERTILIZER_DATE: catalog.FERTILIZER_DATE_PROMPT,
+        STATE_FERTILIZER_PRODUCT: _text_prompt_for_state(STATE_FERTILIZER_PRODUCT, catalog),
+        STATE_FERTILIZER_AMOUNT: _text_prompt_for_state(STATE_FERTILIZER_AMOUNT, catalog),
+        STATE_FERTILIZER_DATE: _text_prompt_for_state(STATE_FERTILIZER_DATE, catalog),
         STATE_FERTILIZER_CONFIRM: catalog.FERTILIZER_CONFIRM_PROMPT,
     }
     progress_label, input_mode = _step_meta(catalog, state)
@@ -248,9 +248,21 @@ def repair_message(
     mapping = {
         STATE_FERTILIZER_USED: catalog.FERTILIZER_REPAIR_USED_MESSAGE,
         STATE_FERTILIZER_KIND: catalog.FERTILIZER_REPAIR_KIND_MESSAGE,
-        STATE_FERTILIZER_PRODUCT: catalog.FERTILIZER_REPAIR_PRODUCT_MESSAGE,
-        STATE_FERTILIZER_AMOUNT: catalog.FERTILIZER_REPAIR_AMOUNT_MESSAGE,
-        STATE_FERTILIZER_DATE: catalog.FERTILIZER_REPAIR_DATE_MESSAGE,
+        STATE_FERTILIZER_PRODUCT: _text_prompt_for_state(
+            STATE_FERTILIZER_PRODUCT,
+            catalog,
+            prompt_text=catalog.FERTILIZER_REPAIR_PRODUCT_MESSAGE,
+        ),
+        STATE_FERTILIZER_AMOUNT: _text_prompt_for_state(
+            STATE_FERTILIZER_AMOUNT,
+            catalog,
+            prompt_text=catalog.FERTILIZER_REPAIR_AMOUNT_MESSAGE,
+        ),
+        STATE_FERTILIZER_DATE: _text_prompt_for_state(
+            STATE_FERTILIZER_DATE,
+            catalog,
+            prompt_text=catalog.FERTILIZER_REPAIR_DATE_MESSAGE,
+        ),
     }
     progress_label, input_mode = _step_meta(catalog, target_state)
     return guided_ux.format_guided_message(
@@ -355,6 +367,31 @@ def _step_meta(catalog, state: str) -> tuple[str, str | None]:
         STATE_FERTILIZER_CONFIRM: (catalog.GUIDED_REVIEW_STAGE_LABEL, guided_ux.BUTTON_ONLY),
     }
     return mapping[state]
+
+
+def _text_prompt_for_state(state: str, catalog, *, prompt_text: str | None = None) -> str:
+    if state == STATE_FERTILIZER_PRODUCT:
+        return guided_ux.format_text_input_prompt(
+            catalog,
+            prompt_text=prompt_text or catalog.FERTILIZER_PRODUCT_PROMPT,
+            examples=catalog.FERTILIZER_PRODUCT_EXAMPLES,
+            unsupported_hint=catalog.FERTILIZER_PRODUCT_UNSUPPORTED_INPUT_HINT,
+        )
+    if state == STATE_FERTILIZER_AMOUNT:
+        return guided_ux.format_text_input_prompt(
+            catalog,
+            prompt_text=prompt_text or catalog.FERTILIZER_AMOUNT_PROMPT,
+            examples=catalog.FERTILIZER_AMOUNT_EXAMPLES,
+            unsupported_hint=catalog.FERTILIZER_AMOUNT_UNSUPPORTED_INPUT_HINT,
+        )
+    if state == STATE_FERTILIZER_DATE:
+        return guided_ux.format_text_input_prompt(
+            catalog,
+            prompt_text=prompt_text or catalog.FERTILIZER_DATE_PROMPT,
+            examples=catalog.FERTILIZER_DATE_EXAMPLES,
+            unsupported_hint=catalog.FERTILIZER_DATE_UNSUPPORTED_INPUT_HINT,
+        )
+    return prompt_text or ""
 
 
 def _edit_value_lines(draft: FertilizerDraft, catalog) -> str:

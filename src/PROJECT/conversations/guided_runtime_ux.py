@@ -52,6 +52,21 @@ def format_waiting_message(
     )
 
 
+def format_text_input_prompt(
+    catalog,
+    *,
+    prompt_text: str,
+    examples: tuple[str, ...] = (),
+    unsupported_hint: str | None = None,
+) -> str:
+    parts = [prompt_text, catalog.GUIDED_TEXT_VALUE_ONLY_HINT]
+    if examples:
+        parts.append(f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: {', '.join(examples)}")
+    if unsupported_hint:
+        parts.append(f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: {unsupported_hint}")
+    return "\n".join(part for part in parts if part)
+
+
 def _input_mode_label(catalog, input_mode: str | None) -> str:
     if input_mode == BUTTON_ONLY:
         return catalog.GUIDED_INPUT_MODE_BUTTON_ONLY

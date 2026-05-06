@@ -137,7 +137,12 @@ def prompt_for_state(state: str, catalog, draft: InputResolveDraft | None = None
             flow_label=flow_label,
             progress_label="3/4",
             input_mode=guided_runtime_ux.TEXT_ALLOWED,
-            prompt_text=catalog.INPUT_RESOLVE_RAW_INPUT_PROMPT,
+            prompt_text=guided_runtime_ux.format_text_input_prompt(
+                catalog,
+                prompt_text=catalog.INPUT_RESOLVE_RAW_INPUT_PROMPT,
+                examples=catalog.INPUT_RESOLVE_RAW_INPUT_EXAMPLES,
+                unsupported_hint=catalog.INPUT_RESOLVE_RAW_INPUT_UNSUPPORTED_INPUT_HINT,
+            ),
             draft_summary=_draft_summary(catalog, draft),
         )
     if state == STATE_INPUT_RESOLVE_CANDIDATES:

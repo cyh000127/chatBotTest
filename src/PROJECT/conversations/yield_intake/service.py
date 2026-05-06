@@ -45,9 +45,9 @@ def prompt_for_state(state: str, catalog, draft: YieldDraft | None = None) -> st
         return edit_selection_text(draft or new_draft(), catalog)
     mapping = {
         STATE_YIELD_READY: catalog.YIELD_READY_PROMPT,
-        STATE_YIELD_FIELD: catalog.YIELD_FIELD_PROMPT,
-        STATE_YIELD_AMOUNT: catalog.YIELD_AMOUNT_PROMPT,
-        STATE_YIELD_DATE: catalog.YIELD_DATE_PROMPT,
+        STATE_YIELD_FIELD: _text_prompt_for_state(STATE_YIELD_FIELD, catalog),
+        STATE_YIELD_AMOUNT: _text_prompt_for_state(STATE_YIELD_AMOUNT, catalog),
+        STATE_YIELD_DATE: _text_prompt_for_state(STATE_YIELD_DATE, catalog),
         STATE_YIELD_CONFIRM: catalog.YIELD_CONFIRM_PROMPT,
     }
     progress_label, input_mode = _step_meta(catalog, state)
@@ -171,9 +171,21 @@ def repair_message(
 ) -> str:
     mapping = {
         STATE_YIELD_READY: catalog.YIELD_READY_PROMPT,
-        STATE_YIELD_FIELD: catalog.YIELD_FIELD_FALLBACK,
-        STATE_YIELD_AMOUNT: catalog.YIELD_AMOUNT_FALLBACK,
-        STATE_YIELD_DATE: catalog.YIELD_DATE_FALLBACK,
+        STATE_YIELD_FIELD: _text_prompt_for_state(
+            STATE_YIELD_FIELD,
+            catalog,
+            prompt_text=catalog.YIELD_FIELD_FALLBACK,
+        ),
+        STATE_YIELD_AMOUNT: _text_prompt_for_state(
+            STATE_YIELD_AMOUNT,
+            catalog,
+            prompt_text=catalog.YIELD_AMOUNT_FALLBACK,
+        ),
+        STATE_YIELD_DATE: _text_prompt_for_state(
+            STATE_YIELD_DATE,
+            catalog,
+            prompt_text=catalog.YIELD_DATE_FALLBACK,
+        ),
     }
     progress_label, input_mode = _step_meta(catalog, target_state)
     return guided_ux.format_guided_message(
@@ -252,6 +264,31 @@ def _step_meta(catalog, state: str) -> tuple[str, str | None]:
         STATE_YIELD_EDIT_SELECT: (catalog.GUIDED_REVIEW_STAGE_LABEL, guided_ux.BUTTON_ONLY),
     }
     return mapping[state]
+
+
+def _text_prompt_for_state(state: str, catalog, *, prompt_text: str | None = None) -> str:
+    if state == STATE_YIELD_FIELD:
+        return guided_ux.format_text_input_prompt(
+            catalog,
+            prompt_text=prompt_text or catalog.YIELD_FIELD_PROMPT,
+            examples=catalog.YIELD_FIELD_EXAMPLES,
+            unsupported_hint=catalog.YIELD_FIELD_UNSUPPORTED_INPUT_HINT,
+        )
+    if state == STATE_YIELD_AMOUNT:
+        return guided_ux.format_text_input_prompt(
+            catalog,
+            prompt_text=prompt_text or catalog.YIELD_AMOUNT_PROMPT,
+            examples=catalog.YIELD_AMOUNT_EXAMPLES,
+            unsupported_hint=catalog.YIELD_AMOUNT_UNSUPPORTED_INPUT_HINT,
+        )
+    if state == STATE_YIELD_DATE:
+        return guided_ux.format_text_input_prompt(
+            catalog,
+            prompt_text=prompt_text or catalog.YIELD_DATE_PROMPT,
+            examples=catalog.YIELD_DATE_EXAMPLES,
+            unsupported_hint=catalog.YIELD_DATE_UNSUPPORTED_INPUT_HINT,
+        )
+    return prompt_text or ""
 
 
 def repair_focus_summary(target_state: str, draft: YieldDraft, catalog) -> str | None:

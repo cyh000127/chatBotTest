@@ -19,6 +19,8 @@ from PROJECT.conversations.input_resolve.states import (
     STATE_INPUT_RESOLVE_RAW_INPUT,
     STATE_INPUT_RESOLVE_TARGET,
 )
+from PROJECT.conversations.input_resolve import service as input_resolve_service
+from PROJECT.conversations.yield_intake import service as yield_service
 from PROJECT.conversations.yield_intake.states import (
     STATE_YIELD_AMOUNT,
     STATE_YIELD_CONFIRM,
@@ -91,7 +93,11 @@ SHARED_STEP_SCHEMAS = {
         step_progress="3/5",
         input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("product_name_required_before_amount",),
-        question_factory=lambda catalog, _: catalog.FERTILIZER_PRODUCT_PROMPT,
+        question_factory=lambda catalog, data: fertilizer_service.prompt_for_state(
+            STATE_FERTILIZER_PRODUCT,
+            catalog,
+            fertilizer_service.draft_from_dict(data.get("fertilizer_draft_data")),
+        ),
     ),
     STATE_FERTILIZER_AMOUNT: SharedStepSchema(
         domain="fertilizer",
@@ -102,7 +108,11 @@ SHARED_STEP_SCHEMAS = {
         step_progress="4/5",
         input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("amount_requires_supported_unit",),
-        question_factory=lambda catalog, _: catalog.FERTILIZER_AMOUNT_PROMPT,
+        question_factory=lambda catalog, data: fertilizer_service.prompt_for_state(
+            STATE_FERTILIZER_AMOUNT,
+            catalog,
+            fertilizer_service.draft_from_dict(data.get("fertilizer_draft_data")),
+        ),
     ),
     STATE_FERTILIZER_DATE: SharedStepSchema(
         domain="fertilizer",
@@ -113,7 +123,11 @@ SHARED_STEP_SCHEMAS = {
         step_progress="5/5",
         input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("applied_date_required_before_confirm",),
-        question_factory=lambda catalog, _: catalog.FERTILIZER_DATE_PROMPT,
+        question_factory=lambda catalog, data: fertilizer_service.prompt_for_state(
+            STATE_FERTILIZER_DATE,
+            catalog,
+            fertilizer_service.draft_from_dict(data.get("fertilizer_draft_data")),
+        ),
     ),
     STATE_FERTILIZER_CONFIRM: SharedStepSchema(
         domain="fertilizer",
@@ -149,7 +163,11 @@ SHARED_STEP_SCHEMAS = {
         step_progress="2/4",
         input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("field_selection_required_before_yield_amount",),
-        question_factory=lambda catalog, _: catalog.YIELD_FIELD_PROMPT,
+        question_factory=lambda catalog, data: yield_service.prompt_for_state(
+            STATE_YIELD_FIELD,
+            catalog,
+            yield_service.draft_from_dict(data.get("yield_draft_data")),
+        ),
     ),
     STATE_YIELD_AMOUNT: SharedStepSchema(
         domain="yield",
@@ -160,7 +178,11 @@ SHARED_STEP_SCHEMAS = {
         step_progress="3/4",
         input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("yield_amount_requires_supported_unit_or_default_kg",),
-        question_factory=lambda catalog, _: catalog.YIELD_AMOUNT_PROMPT,
+        question_factory=lambda catalog, data: yield_service.prompt_for_state(
+            STATE_YIELD_AMOUNT,
+            catalog,
+            yield_service.draft_from_dict(data.get("yield_draft_data")),
+        ),
     ),
     STATE_YIELD_DATE: SharedStepSchema(
         domain="yield",
@@ -171,7 +193,11 @@ SHARED_STEP_SCHEMAS = {
         step_progress="4/4",
         input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("harvest_date_required_before_confirm",),
-        question_factory=lambda catalog, _: catalog.YIELD_DATE_PROMPT,
+        question_factory=lambda catalog, data: yield_service.prompt_for_state(
+            STATE_YIELD_DATE,
+            catalog,
+            yield_service.draft_from_dict(data.get("yield_draft_data")),
+        ),
     ),
     STATE_YIELD_CONFIRM: SharedStepSchema(
         domain="yield",
@@ -215,7 +241,11 @@ SHARED_STEP_SCHEMAS = {
         step_progress="3/4",
         input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("raw_resolution_input_required_before_candidate_generation",),
-        question_factory=lambda catalog, _: catalog.INPUT_RESOLVE_RAW_INPUT_PROMPT,
+        question_factory=lambda catalog, data: input_resolve_service.prompt_for_state(
+            STATE_INPUT_RESOLVE_RAW_INPUT,
+            catalog,
+            input_resolve_service.draft_from_dict(data.get("input_resolve_draft_data")),
+        ),
     ),
     STATE_INPUT_RESOLVE_CANDIDATES: SharedStepSchema(
         domain="input_resolve",
