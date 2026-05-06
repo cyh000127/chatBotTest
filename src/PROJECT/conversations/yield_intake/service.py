@@ -174,17 +174,17 @@ def repair_message(
         STATE_YIELD_FIELD: _text_prompt_for_state(
             STATE_YIELD_FIELD,
             catalog,
-            prompt_text=catalog.YIELD_FIELD_FALLBACK,
+            prompt_text=catalog.YIELD_REPAIR_FIELD_MESSAGE,
         ),
         STATE_YIELD_AMOUNT: _text_prompt_for_state(
             STATE_YIELD_AMOUNT,
             catalog,
-            prompt_text=catalog.YIELD_AMOUNT_FALLBACK,
+            prompt_text=catalog.YIELD_REPAIR_AMOUNT_MESSAGE,
         ),
         STATE_YIELD_DATE: _text_prompt_for_state(
             STATE_YIELD_DATE,
             catalog,
-            prompt_text=catalog.YIELD_DATE_FALLBACK,
+            prompt_text=catalog.YIELD_REPAIR_DATE_MESSAGE,
         ),
     }
     progress_label, input_mode = _step_meta(catalog, target_state)
