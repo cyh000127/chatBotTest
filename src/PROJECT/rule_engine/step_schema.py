@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from PROJECT.canonical_intents import registry
+from PROJECT.conversations import guided_runtime_ux as guided_ux
 from PROJECT.conversations.fertilizer_intake import service as fertilizer_service
 from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_AMOUNT,
@@ -35,6 +36,8 @@ class SharedStepSchema:
     current_step: str
     expected_input_type: str
     allowed_value_shape: str
+    step_progress: str | None
+    input_mode: str | None
     hard_constraints: tuple[str, ...]
     question_factory: Callable[[object, dict], str]
 
@@ -63,6 +66,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_FERTILIZER_USED,
         expected_input_type="binary_yes_no",
         allowed_value_shape="one_of:used|not_used",
+        step_progress="1/5",
+        input_mode=guided_ux.BUTTON_ONLY,
         hard_constraints=("fertilizer_usage_flag_required",),
         question_factory=lambda catalog, _: catalog.FERTILIZER_USED_PROMPT,
     ),
@@ -72,6 +77,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_FERTILIZER_KIND,
         expected_input_type="fertilizer_kind",
         allowed_value_shape="one_of:compound|urea|compost|liquid",
+        step_progress="2/5",
+        input_mode=guided_ux.BUTTON_ONLY,
         hard_constraints=("fertilizer_kind_must_be_supported",),
         question_factory=lambda catalog, _: catalog.FERTILIZER_KIND_PROMPT,
     ),
@@ -81,6 +88,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_FERTILIZER_PRODUCT,
         expected_input_type="product_name",
         allowed_value_shape="free_text_product_name",
+        step_progress="3/5",
+        input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("product_name_required_before_amount",),
         question_factory=lambda catalog, _: catalog.FERTILIZER_PRODUCT_PROMPT,
     ),
@@ -90,6 +99,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_FERTILIZER_AMOUNT,
         expected_input_type="amount_with_unit",
         allowed_value_shape="supported_amount_unit_pair",
+        step_progress="4/5",
+        input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("amount_requires_supported_unit",),
         question_factory=lambda catalog, _: catalog.FERTILIZER_AMOUNT_PROMPT,
     ),
@@ -99,6 +110,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_FERTILIZER_DATE,
         expected_input_type="applied_date",
         allowed_value_shape="absolute_or_limited_relative_date",
+        step_progress="5/5",
+        input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("applied_date_required_before_confirm",),
         question_factory=lambda catalog, _: catalog.FERTILIZER_DATE_PROMPT,
     ),
@@ -108,6 +121,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_FERTILIZER_CONFIRM,
         expected_input_type="confirmation_action",
         allowed_value_shape="one_of:confirm|back|cancel",
+        step_progress="review",
+        input_mode=guided_ux.BUTTON_ONLY,
         hard_constraints=("fertilizer_entry_must_be_reviewed_before_finalize",),
         question_factory=lambda catalog, data: fertilizer_service.confirmation_text(
             fertilizer_service.draft_from_dict(data.get("fertilizer_draft_data")),
@@ -120,6 +135,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_YIELD_READY,
         expected_input_type="binary_ready_status",
         allowed_value_shape="one_of:ready|not_ready",
+        step_progress="1/4",
+        input_mode=guided_ux.BUTTON_ONLY,
         hard_constraints=("yield_ready_status_required",),
         question_factory=lambda catalog, _: catalog.YIELD_READY_PROMPT,
     ),
@@ -129,6 +146,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_YIELD_FIELD,
         expected_input_type="field_selection",
         allowed_value_shape="registered_field_alias_or_button",
+        step_progress="2/4",
+        input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("field_selection_required_before_yield_amount",),
         question_factory=lambda catalog, _: catalog.YIELD_FIELD_PROMPT,
     ),
@@ -138,6 +157,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_YIELD_AMOUNT,
         expected_input_type="yield_amount",
         allowed_value_shape="numeric_or_numeric_with_supported_unit",
+        step_progress="3/4",
+        input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("yield_amount_requires_supported_unit_or_default_kg",),
         question_factory=lambda catalog, _: catalog.YIELD_AMOUNT_PROMPT,
     ),
@@ -147,6 +168,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_YIELD_DATE,
         expected_input_type="harvest_date",
         allowed_value_shape="absolute_or_limited_relative_date",
+        step_progress="4/4",
+        input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("harvest_date_required_before_confirm",),
         question_factory=lambda catalog, _: catalog.YIELD_DATE_PROMPT,
     ),
@@ -156,6 +179,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_YIELD_CONFIRM,
         expected_input_type="confirmation_action",
         allowed_value_shape="one_of:confirm|edit|cancel",
+        step_progress="review",
+        input_mode=guided_ux.BUTTON_ONLY,
         hard_constraints=("yield_entry_must_be_reviewed_before_finalize",),
         question_factory=lambda catalog, _: catalog.YIELD_CONFIRM_PROMPT,
     ),
@@ -165,6 +190,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_INPUT_RESOLVE_TARGET,
         expected_input_type="resolution_target_type",
         allowed_value_shape="declared_resolution_target",
+        step_progress="1/4",
+        input_mode=guided_ux.BUTTON_ONLY,
         hard_constraints=("resolution_target_must_be_known",),
         question_factory=lambda catalog, _: catalog.INPUT_RESOLVE_TARGET_PROMPT,
     ),
@@ -174,6 +201,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_INPUT_RESOLVE_METHOD,
         expected_input_type="resolution_input_method",
         allowed_value_shape="one_of:typed_text|ocr_image|candidate_retry",
+        step_progress="2/4",
+        input_mode=guided_ux.BUTTON_ONLY,
         hard_constraints=("resolution_method_required_before_candidate_generation",),
         question_factory=lambda catalog, _: catalog.INPUT_RESOLVE_METHOD_PROMPT,
     ),
@@ -183,6 +212,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_INPUT_RESOLVE_RAW_INPUT,
         expected_input_type="raw_resolution_input",
         allowed_value_shape="typed_text_or_ocr_result",
+        step_progress="3/4",
+        input_mode=guided_ux.TEXT_ALLOWED,
         hard_constraints=("raw_resolution_input_required_before_candidate_generation",),
         question_factory=lambda catalog, _: catalog.INPUT_RESOLVE_RAW_INPUT_PROMPT,
     ),
@@ -192,6 +223,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_INPUT_RESOLVE_CANDIDATES,
         expected_input_type="candidate_selection",
         allowed_value_shape="one_of:candidate_1|candidate_2|candidate_3|retry|none",
+        step_progress="4/4",
+        input_mode=guided_ux.BUTTON_ONLY,
         hard_constraints=("candidate_selection_or_retry_required",),
         question_factory=lambda catalog, _: catalog.INPUT_RESOLVE_CANDIDATES_PROMPT,
     ),
@@ -201,6 +234,8 @@ SHARED_STEP_SCHEMAS = {
         current_step=STATE_INPUT_RESOLVE_DECISION,
         expected_input_type="resolution_decision",
         allowed_value_shape="one_of:resolved|retry|manual_review",
+        step_progress="review",
+        input_mode=guided_ux.BUTTON_ONLY,
         hard_constraints=("resolution_decision_must_close_or_retry_session",),
         question_factory=lambda catalog, _: catalog.INPUT_RESOLVE_DECISION_PROMPT,
     ),

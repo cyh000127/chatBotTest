@@ -47,14 +47,25 @@ def _render_recovery_guidance(recovery_context: dict[str, Any] | Any | None, cat
         current_question = recovery_context.current_question.strip()
         metadata = recovery_context.metadata
 
-    if not current_question:
+    if not current_question and not metadata.get("step_progress"):
         return None
 
     headline = _guidance_headline(metadata.get("recovery_policy_level"), catalog)
+    lines = [headline]
+
+    step_progress = str(metadata.get("step_progress") or "").strip()
+    if step_progress:
+        lines.append(f"{catalog.RECOVERY_CURRENT_STEP_LABEL}: {step_progress}")
+
+    input_mode_hint = _input_mode_hint(catalog, metadata.get("input_mode"))
+    if input_mode_hint:
+        lines.append(input_mode_hint)
+
     question_hint = _question_hint(current_question)
-    if question_hint is None:
-        return None
-    return f"{headline}\n{question_hint}"
+    if question_hint:
+        lines.append(question_hint)
+
+    return "\n".join(lines)
 
 
 def _guidance_headline(recovery_policy_level: str | None, catalog) -> str:
@@ -69,7 +80,25 @@ def _question_hint(current_question: str) -> str | None:
     paragraphs = [part.strip() for part in current_question.split("\n\n") if part.strip()]
     if not paragraphs:
         return None
+    lines = [line.strip() for line in paragraphs[0].splitlines() if line.strip()]
+    if not lines:
+        return None
+    if len(lines) >= 2 and len(lines[0]) <= 80:
+        return "\n".join(lines[:2])
     if len(paragraphs[0]) <= 140:
         return paragraphs[0]
-    first_line = paragraphs[0].splitlines()[0].strip()
-    return first_line or None
+    return lines[0] or None
+
+
+def _input_mode_hint(catalog, input_mode: str | None) -> str | None:
+    if input_mode == "button_only":
+        return catalog.RECOVERY_BUTTON_ONLY_HINT
+    if input_mode == "text_allowed":
+        return catalog.RECOVERY_TEXT_ALLOWED_HINT
+    if input_mode == "location_attachment":
+        return catalog.RECOVERY_LOCATION_ATTACHMENT_HINT
+    if input_mode == "document_upload":
+        return catalog.RECOVERY_DOCUMENT_UPLOAD_HINT
+    if input_mode == "status_wait":
+        return catalog.RECOVERY_STATUS_WAIT_HINT
+    return None

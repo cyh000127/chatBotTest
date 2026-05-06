@@ -1,6 +1,7 @@
 from PROJECT.canonical_intents import registry
 from PROJECT.conversations.sample_menu import recovery_messages
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED
+from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_KIND
 from PROJECT.i18n.translator import get_catalog
 from PROJECT.rule_engine import RuleSource, ValidationClassification, ValidationResult, assemble_recovery_context
 
@@ -66,3 +67,30 @@ def test_render_cheap_gate_message_uses_escalation_guidance_when_context_exists(
     assert "이 대화창" in text
     assert catalog.RECOVERY_GUIDANCE_ESCALATION_READY in text
     assert "현재 흐름이 종료되었습니다." in text
+
+
+def test_render_fallback_message_includes_step_and_input_mode_hint_for_structured_step():
+    catalog = get_catalog("ko")
+    recovery_context = assemble_recovery_context(
+        current_step=STATE_FERTILIZER_KIND,
+        latest_user_message="그냥 바꿔줘",
+        locale="ko",
+        recovery_attempt_count=2,
+        canonical_intent=registry.INTENT_AGRI_INPUT_START,
+        validation_result=ValidationResult(
+            classification=ValidationClassification.REASK,
+            source=RuleSource.CHEAP_GATE,
+            reason="structured_step_mismatch",
+        ),
+        fallback_key="fertilizer_input",
+    )
+
+    text = recovery_messages.render_fallback_message(
+        fallback_key="fertilizer_input",
+        catalog=catalog,
+        recovery_context=recovery_context,
+    )
+
+    assert "현재 단계: 2/5" in text
+    assert catalog.RECOVERY_BUTTON_ONLY_HINT in text
+    assert "비료 유형을 선택하세요." in text

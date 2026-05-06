@@ -1,4 +1,6 @@
 from PROJECT.canonical_intents import registry
+from PROJECT.conversations.evidence_submission import service as evidence_service
+from PROJECT.conversations.evidence_submission.states import STATE_EVIDENCE_WAITING_DOCUMENT
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_AMOUNT
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
 from PROJECT.rule_engine import ValidationClassification, assemble_recovery_context
@@ -67,8 +69,42 @@ def test_assemble_recovery_context_for_yield_step_uses_shared_schema():
     assert context.metadata["ux_recovery_reason"] == "step_scope_mismatch"
     assert context.metadata["ux_next_action_hint"] == "guide_current_step"
     assert context.metadata["recovery_policy_level"] == "guided"
-    assert context.metadata["recovery_domain"] == "general"
-    assert context.metadata["recovery_task_hint"] == "generic_recovery"
-    assert context.metadata["recovery_resume_action"] == "offer_related_actions"
+    assert context.metadata["step_progress"] == "3/4"
+    assert context.metadata["input_mode"] == "text_allowed"
+    assert context.metadata["recovery_domain"] == "yield"
+    assert context.metadata["recovery_task_hint"] == "yield_step_input"
+    assert context.metadata["recovery_resume_action"] == "continue_yield_input"
     assert "yield_amount_requires_supported_unit_or_default_kg" in context.hard_constraints
     assert "수확량을 입력하세요" in context.current_question
+
+
+def test_assemble_recovery_context_for_evidence_step_uses_attachment_mode():
+    validation_result = ValidationResult(
+        classification=ValidationClassification.REASK,
+        source=RuleSource.CHEAP_GATE,
+        reason="structured_step_mismatch",
+    )
+    evidence_draft = evidence_service.update_draft(
+        evidence_service.new_draft(
+            request_event_id="request-1",
+            session_id="session-1",
+            request_type_code="field_photo",
+            field_label="FIELD-001",
+        ),
+        accepted_location=True,
+    )
+
+    context = assemble_recovery_context(
+        current_step=STATE_EVIDENCE_WAITING_DOCUMENT,
+        latest_user_message="사진 보냈어요",
+        locale="ko",
+        recovery_attempt_count=1,
+        canonical_intent=registry.INTENT_EVIDENCE_SUBMISSION_START,
+        validation_result=validation_result,
+        fallback_key="evidence_input",
+        evidence_submission_draft_data=evidence_draft.to_dict(),
+    )
+
+    assert context.metadata["step_progress"] == "2/2"
+    assert context.metadata["input_mode"] == "document_upload"
+    assert "document 업로드" in context.current_question
