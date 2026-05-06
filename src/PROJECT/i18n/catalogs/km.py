@@ -211,6 +211,7 @@ RECOVERY_GUIDANCE_SOFT = "នេះជាអ្វីដែលត្រូវប
 RECOVERY_GUIDANCE_GUIDED = "សូមធ្វើតាមជំហានខាងក្រោម ដើម្បីបន្ត។"
 RECOVERY_GUIDANCE_ESCALATION_READY = "បើបញ្ហានេះកើតឡើងម្តងទៀត អ្នកអាចជ្រើសធាតុខាងក្រោមបាន។"
 RECOVERY_CURRENT_STEP_LABEL = "ជំហានបច្ចុប្បន្ន"
+RECOVERY_QUICK_ACTIONS_LABEL = "ជម្រើសរហ័ស"
 RECOVERY_BUTTON_ONLY_HINT = "ជំហាននេះត្រូវជ្រើសតាមប៊ូតុងខាងក្រោមប៉ុណ្ណោះ។"
 RECOVERY_TEXT_ALLOWED_HINT = "ជំហាននេះអាចបញ្ចូលជាអក្សរបាន។"
 RECOVERY_LOCATION_ATTACHMENT_HINT = "ជំហាននេះត្រូវភ្ជាប់ទីតាំងបច្ចុប្បន្ន។"

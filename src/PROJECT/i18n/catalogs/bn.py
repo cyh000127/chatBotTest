@@ -211,6 +211,7 @@ RECOVERY_GUIDANCE_SOFT = "এই ধাপে কী লাগবে, আবা�
 RECOVERY_GUIDANCE_GUIDED = "চালিয়ে যেতে নিচের নির্দেশনা দেখুন।"
 RECOVERY_GUIDANCE_ESCALATION_READY = "বারবার সমস্যা হলে নিচের বিকল্প নিন।"
 RECOVERY_CURRENT_STEP_LABEL = "এখনকার ধাপ"
+RECOVERY_QUICK_ACTIONS_LABEL = "দ্রুত বেছে নিন"
 RECOVERY_BUTTON_ONLY_HINT = "এই ধাপে নিচের বোতাম থেকেই বেছে নিতে হবে।"
 RECOVERY_TEXT_ALLOWED_HINT = "এই ধাপে লিখে ইনপুট দেওয়া যাবে।"
 RECOVERY_LOCATION_ATTACHMENT_HINT = "এই ধাপে বর্তমান অবস্থান পাঠাতে হবে।"
