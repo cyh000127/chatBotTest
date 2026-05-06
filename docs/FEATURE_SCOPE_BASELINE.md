@@ -46,7 +46,25 @@ farmer-facing runtime의 핵심 범위는 다음과 같다.
 - 운영자 후속 답변의 챗봇 대화창 중계
 - 다국어 farmer-facing 메시지 카탈로그
 
-## 3.1 샘플 구조화 입력 격리
+## 3.1 Guided UX 개선 범위
+
+현재 런타임의 UX 개편도 구현 대상 기능 범위에 포함한다.
+
+우선 개선 대상은 아래와 같다.
+
+- 현재 단계와 남은 입력을 보여주는 진행 상태 표면
+- confirm 직전과 수정 단계의 draft 요약 표면
+- 버튼 전용 단계와 텍스트 입력 허용 단계의 명시적 구분
+- step-aware retry copy와 fallback copy
+- resume, restart, support, manual review 대기 상태의 다음 행동 안내
+
+강제 원칙:
+
+- guided UX 개선은 자유 대화형 엔진 추가를 의미하지 않는다.
+- validator, rule engine, confirm 경계를 약화시키지 않는다.
+- copy와 버튼 구조를 통해 structured interaction을 더 이해하기 쉽게 만드는 방향으로만 확장한다.
+
+## 3.2 샘플 구조화 입력 격리
 
 현재 런타임에 남아 있는 프로필 입력 흐름은 구조화 입력, 수정, confirm, recovery UX를 검증하기 위한 로컬 샘플 흐름이다.
 
@@ -104,6 +122,7 @@ farmer-facing runtime의 핵심 범위는 다음과 같다.
 4. 자기 조회 진입점
 5. input resolve 진입점
 6. 제한적 모델 보조와 handoff 정렬
+7. guided UX 개편
 
 ## 7. 문서화 원칙
 
