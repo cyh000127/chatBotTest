@@ -2,6 +2,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 import re
 
+from PROJECT.conversations import guided_runtime_ux as guided_ux
 from PROJECT.conversations.fertilizer_intake import keyboards
 from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_AMOUNT,
@@ -64,7 +65,7 @@ def update_draft(draft: FertilizerDraft, **changes) -> FertilizerDraft:
     return FertilizerDraft(**{**draft.to_dict(), **changes})
 
 
-def prompt_for_state(state: str, catalog) -> str:
+def prompt_for_state(state: str, catalog, draft: FertilizerDraft | None = None) -> str:
     mapping = {
         STATE_FERTILIZER_USED: catalog.FERTILIZER_USED_PROMPT,
         STATE_FERTILIZER_KIND: catalog.FERTILIZER_KIND_PROMPT,
@@ -73,7 +74,15 @@ def prompt_for_state(state: str, catalog) -> str:
         STATE_FERTILIZER_DATE: catalog.FERTILIZER_DATE_PROMPT,
         STATE_FERTILIZER_CONFIRM: catalog.FERTILIZER_CONFIRM_PROMPT,
     }
-    return mapping[state]
+    progress_label, input_mode = _step_meta(catalog, state)
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_FERTILIZER,
+        progress_label=progress_label,
+        input_mode=input_mode,
+        prompt_text=mapping[state],
+        draft_summary=_draft_summary(draft, catalog),
+    )
 
 
 def keyboard_for_state(state: str, catalog) -> list[list[dict[str, str]]]:
@@ -151,12 +160,18 @@ def parse_applied_date(text: str, *, now: datetime | None = None) -> str | None:
 
 
 def confirmation_text(draft: FertilizerDraft, catalog) -> str:
-    return catalog.format_fertilizer_confirmation(
-        used=draft.used,
-        kind_label=catalog.FERTILIZER_KIND_LABELS.get(draft.kind, draft.kind or "-"),
-        product_name=draft.product_name or "-",
-        amount_text=format_amount(draft),
-        applied_date=draft.applied_date or "-",
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_FERTILIZER,
+        progress_label=catalog.GUIDED_REVIEW_STAGE_LABEL,
+        input_mode=guided_ux.BUTTON_ONLY,
+        prompt_text=catalog.format_fertilizer_confirmation(
+            used=draft.used,
+            kind_label=catalog.FERTILIZER_KIND_LABELS.get(draft.kind, draft.kind or "-"),
+            product_name=draft.product_name or "-",
+            amount_text=format_amount(draft),
+            applied_date=draft.applied_date or "-",
+        ),
     )
 
 
@@ -217,7 +232,7 @@ def reset_draft_for_repair(draft: FertilizerDraft, target_state: str) -> Fertili
     return draft
 
 
-def repair_message(target_state: str, catalog) -> str:
+def repair_message(target_state: str, catalog, draft: FertilizerDraft | None = None) -> str:
     mapping = {
         STATE_FERTILIZER_USED: catalog.FERTILIZER_REPAIR_USED_MESSAGE,
         STATE_FERTILIZER_KIND: catalog.FERTILIZER_REPAIR_KIND_MESSAGE,
@@ -225,7 +240,15 @@ def repair_message(target_state: str, catalog) -> str:
         STATE_FERTILIZER_AMOUNT: catalog.FERTILIZER_REPAIR_AMOUNT_MESSAGE,
         STATE_FERTILIZER_DATE: catalog.FERTILIZER_REPAIR_DATE_MESSAGE,
     }
-    return mapping.get(target_state, catalog.FERTILIZER_USED_PROMPT)
+    progress_label, input_mode = _step_meta(catalog, target_state)
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_FERTILIZER,
+        progress_label=progress_label,
+        input_mode=input_mode,
+        prompt_text=mapping.get(target_state, catalog.FERTILIZER_USED_PROMPT),
+        draft_summary=_draft_summary(draft, catalog),
+    )
 
 
 def repair_confirmation_text(target_state: str, catalog) -> str:
@@ -300,3 +323,36 @@ def _canonical_unit(unit: str) -> str | None:
         if unit in aliases:
             return canonical
     return None
+
+
+def _step_meta(catalog, state: str) -> tuple[str, str | None]:
+    mapping = {
+        STATE_FERTILIZER_USED: ("1/5", guided_ux.BUTTON_ONLY),
+        STATE_FERTILIZER_KIND: ("2/5", guided_ux.BUTTON_ONLY),
+        STATE_FERTILIZER_PRODUCT: ("3/5", guided_ux.TEXT_ALLOWED),
+        STATE_FERTILIZER_AMOUNT: ("4/5", guided_ux.TEXT_ALLOWED),
+        STATE_FERTILIZER_DATE: ("5/5", guided_ux.TEXT_ALLOWED),
+        STATE_FERTILIZER_CONFIRM: (catalog.GUIDED_REVIEW_STAGE_LABEL, guided_ux.BUTTON_ONLY),
+    }
+    return mapping[state]
+
+
+def _draft_summary(draft: FertilizerDraft | None, catalog) -> str | None:
+    if draft is None:
+        return None
+
+    fields: list[str] = []
+    if draft.used is not None:
+        used_label = catalog.FERTILIZER_USED_LABEL_YES if draft.used else catalog.FERTILIZER_USED_LABEL_NO
+        fields.append(f"{catalog.BUTTON_FERTILIZER_EDIT_USED}={used_label}")
+    if draft.kind:
+        fields.append(f"{catalog.BUTTON_FERTILIZER_EDIT_KIND}={catalog.FERTILIZER_KIND_LABELS.get(draft.kind, draft.kind)}")
+    if draft.product_name:
+        fields.append(f"{catalog.BUTTON_FERTILIZER_EDIT_PRODUCT}={draft.product_name}")
+    if draft.amount_value is not None and draft.amount_unit:
+        fields.append(f"{catalog.BUTTON_FERTILIZER_EDIT_AMOUNT}={format_amount(draft)}")
+    if draft.applied_date:
+        fields.append(f"{catalog.BUTTON_FERTILIZER_EDIT_DATE}={draft.applied_date}")
+    if not fields:
+        return None
+    return ", ".join(fields)

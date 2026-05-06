@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
+from PROJECT.conversations import guided_runtime_ux as guided_ux
 from PROJECT.conversations.evidence_submission import keyboards
 from PROJECT.conversations.evidence_submission.states import (
     STATE_EVIDENCE_VALIDATING,
@@ -111,7 +112,14 @@ def keyboard_for_state(
 
 
 def start_text(catalog, draft: EvidenceSubmissionDraft) -> str:
-    return catalog.format_evidence_entry(field_label=draft.field_label or "-")
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_EVIDENCE,
+        progress_label="1/2",
+        input_mode=guided_ux.LOCATION_ATTACHMENT,
+        prompt_text=catalog.format_evidence_entry(field_label=draft.field_label or "-"),
+        draft_summary=_draft_summary(draft, catalog),
+    )
 
 
 def prompt_for_state(
@@ -122,9 +130,23 @@ def prompt_for_state(
     if state == STATE_EVIDENCE_WAITING_LOCATION:
         return start_text(catalog, draft or EvidenceSubmissionDraft())
     if state == STATE_EVIDENCE_WAITING_DOCUMENT:
-        return catalog.EVIDENCE_DOCUMENT_PROMPT
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_EVIDENCE,
+            progress_label="2/2",
+            input_mode=guided_ux.DOCUMENT_UPLOAD,
+            prompt_text=catalog.EVIDENCE_DOCUMENT_PROMPT,
+            draft_summary=_draft_summary(draft, catalog),
+        )
     if state == STATE_EVIDENCE_VALIDATING:
-        return catalog.format_evidence_uploaded(file_name=(draft.file_name if draft else "") or "-")
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_EVIDENCE,
+            progress_label=catalog.GUIDED_VALIDATING_STAGE_LABEL,
+            input_mode=guided_ux.STATUS_WAIT,
+            prompt_text=catalog.format_evidence_uploaded(file_name=(draft.file_name if draft else "") or "-"),
+            draft_summary=_draft_summary(draft, catalog),
+        )
     return start_text(catalog, draft or EvidenceSubmissionDraft())
 
 
@@ -139,22 +161,43 @@ def fallback_text_for_state(state: str, catalog) -> str:
 
 
 def accepted_text(catalog, draft: EvidenceSubmissionDraft) -> str:
-    return catalog.format_evidence_accepted(file_name=draft.file_name or "-")
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_EVIDENCE,
+        progress_label=catalog.GUIDED_REVIEW_STAGE_LABEL,
+        input_mode=guided_ux.STATUS_WAIT,
+        prompt_text=catalog.format_evidence_accepted(file_name=draft.file_name or "-"),
+        draft_summary=_draft_summary(draft, catalog),
+    )
 
 
 def retry_text(catalog, draft: EvidenceSubmissionDraft, *, reason_codes: tuple[str, ...]) -> str:
     reason_lines = tuple(reason_text(catalog, reason_code) for reason_code in reason_codes)
-    return catalog.format_evidence_retry_required(
-        file_name=draft.file_name or "-",
-        reason_lines=reason_lines,
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_EVIDENCE,
+        progress_label="2/2",
+        input_mode=guided_ux.DOCUMENT_UPLOAD,
+        prompt_text=catalog.format_evidence_retry_required(
+            file_name=draft.file_name or "-",
+            reason_lines=reason_lines,
+        ),
+        draft_summary=_draft_summary(draft, catalog),
     )
 
 
 def manual_review_text(catalog, draft: EvidenceSubmissionDraft, *, reason_codes: tuple[str, ...]) -> str:
     reason_lines = tuple(reason_text(catalog, reason_code) for reason_code in reason_codes)
-    return catalog.format_evidence_manual_review(
-        file_name=draft.file_name or "-",
-        reason_lines=reason_lines,
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_EVIDENCE,
+        progress_label=catalog.GUIDED_REVIEW_STAGE_LABEL,
+        input_mode=guided_ux.STATUS_WAIT,
+        prompt_text=catalog.format_evidence_manual_review(
+            file_name=draft.file_name or "-",
+            reason_lines=reason_lines,
+        ),
+        draft_summary=_draft_summary(draft, catalog),
     )
 
 
@@ -168,3 +211,19 @@ def reason_text(catalog, reason_code: str) -> str:
         EVIDENCE_REASON_ARTIFACT_READ_FAILED: catalog.EVIDENCE_REASON_ARTIFACT_READ_FAILED,
     }
     return mapping.get(reason_code, reason_code)
+
+
+def _draft_summary(draft: EvidenceSubmissionDraft | None, catalog) -> str | None:
+    if draft is None:
+        return None
+
+    fields: list[str] = []
+    if draft.field_label:
+        fields.append(f"{catalog.BUTTON_YIELD_EDIT_FIELD}={draft.field_label}")
+    if draft.accepted_location:
+        fields.append(catalog.EVIDENCE_LOCATION_ACCEPTED_LABEL)
+    if draft.file_name:
+        fields.append(f"{catalog.EVIDENCE_FILE_NAME_LABEL}={draft.file_name}")
+    if not fields:
+        return None
+    return ", ".join(fields)

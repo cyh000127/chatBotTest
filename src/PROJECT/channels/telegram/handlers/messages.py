@@ -456,7 +456,7 @@ async def send_fertilizer_prompt(update, context, state: str, text: str | None =
     catalog = current_catalog(context)
     await send_text(
         update,
-        text or fertilizer_service.prompt_for_state(state, catalog),
+        text or fertilizer_service.prompt_for_state(state, catalog, current_fertilizer(context)),
         keyboard_layout=fertilizer_service.keyboard_for_state(state, catalog),
     )
 
@@ -474,7 +474,7 @@ async def send_fertilizer_confirmation(update, context) -> None:
 async def send_yield_prompt(update, context, state: str, text: str | None = None) -> None:
     await send_text(
         update,
-        text or yield_service.prompt_for_state(state, current_catalog(context)),
+        text or yield_service.prompt_for_state(state, current_catalog(context), current_yield(context)),
         keyboard_layout=yield_service.keyboard_for_state(state, current_catalog(context)),
     )
 
@@ -503,7 +503,7 @@ async def open_current_fertilizer_target_edit(update, context, target_state: str
     set_state(context.user_data, target_state)
     await send_text(
         update,
-        fertilizer_service.repair_message(target_state, current_catalog(context)),
+        fertilizer_service.repair_message(target_state, current_catalog(context), current_fertilizer(context)),
         keyboard_layout=fertilizer_service.keyboard_for_state(target_state, current_catalog(context)),
     )
 
@@ -1931,7 +1931,7 @@ async def button_callback(update, context) -> None:
         set_state(context.user_data, target_state, push_history=True)
         await send_text(
             update,
-            fertilizer_service.repair_message(target_state, current_catalog(context)),
+            fertilizer_service.repair_message(target_state, current_catalog(context), current_fertilizer(context)),
             keyboard_layout=fertilizer_service.keyboard_for_state(target_state, current_catalog(context)),
         )
         return

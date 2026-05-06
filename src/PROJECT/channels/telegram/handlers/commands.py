@@ -20,6 +20,7 @@ from PROJECT.dispatch.session_dispatcher import (
     current_onboarding_session_id,
     current_onboarding_status,
     current_state,
+    fertilizer_draft,
     has_started,
     mark_started,
     reset_session,
@@ -198,7 +199,7 @@ async def start_fertilizer_input(update, context) -> None:
     set_fertilizer_draft(context.user_data, draft.to_dict())
     await send_text(
         update,
-        fertilizer_service.prompt_for_state(STATE_FERTILIZER_USED, catalog),
+        fertilizer_service.prompt_for_state(STATE_FERTILIZER_USED, catalog, fertilizer_service.new_draft()),
         keyboard_layout=fertilizer_service.keyboard_for_state(STATE_FERTILIZER_USED, catalog),
     )
 
@@ -211,7 +212,7 @@ async def start_yield_input(update, context) -> None:
     set_yield_draft(context.user_data, draft.to_dict())
     await send_text(
         update,
-        yield_service.prompt_for_state(STATE_YIELD_READY, catalog),
+        yield_service.prompt_for_state(STATE_YIELD_READY, catalog, yield_service.new_draft()),
         keyboard_layout=yield_service.keyboard_for_state(STATE_YIELD_READY, catalog),
     )
 
@@ -325,7 +326,7 @@ async def open_fertilizer_target_edit(update, context, target_state: str) -> boo
     set_state(context.user_data, target_state)
     await send_text(
         update,
-        fertilizer_service.repair_message(target_state, catalog),
+        fertilizer_service.repair_message(target_state, catalog, fertilizer_service.draft_from_dict(fertilizer_draft(context.user_data))),
         keyboard_layout=fertilizer_service.keyboard_for_state(target_state, catalog),
     )
     return True

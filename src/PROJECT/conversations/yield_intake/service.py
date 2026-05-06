@@ -2,6 +2,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 import re
 
+from PROJECT.conversations import guided_runtime_ux as guided_ux
 from PROJECT.conversations.yield_intake import keyboards
 from PROJECT.conversations.yield_intake.states import (
     STATE_YIELD_AMOUNT,
@@ -39,7 +40,7 @@ def update_draft(draft: YieldDraft, **changes) -> YieldDraft:
     return YieldDraft(**{**draft.to_dict(), **changes})
 
 
-def prompt_for_state(state: str, catalog) -> str:
+def prompt_for_state(state: str, catalog, draft: YieldDraft | None = None) -> str:
     mapping = {
         STATE_YIELD_READY: catalog.YIELD_READY_PROMPT,
         STATE_YIELD_FIELD: catalog.YIELD_FIELD_PROMPT,
@@ -48,7 +49,15 @@ def prompt_for_state(state: str, catalog) -> str:
         STATE_YIELD_CONFIRM: catalog.YIELD_CONFIRM_PROMPT,
         STATE_YIELD_EDIT_SELECT: catalog.YIELD_EDIT_MESSAGE,
     }
-    return mapping[state]
+    progress_label, input_mode = _step_meta(catalog, state)
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_YIELD,
+        progress_label=progress_label,
+        input_mode=input_mode,
+        prompt_text=mapping[state],
+        draft_summary=_draft_summary(draft, catalog),
+    )
 
 
 def keyboard_for_state(state: str, catalog) -> list[list[dict[str, str]]]:
@@ -124,11 +133,17 @@ def parse_harvest_date(text: str, *, now: datetime | None = None) -> str | None:
 
 
 def confirmation_text(draft: YieldDraft, catalog) -> str:
-    return catalog.format_yield_confirmation(
-        ready=draft.ready,
-        field_name=draft.field_name or "-",
-        amount_text=format_amount(draft),
-        harvest_date=draft.harvest_date or "-",
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_YIELD,
+        progress_label=catalog.GUIDED_REVIEW_STAGE_LABEL,
+        input_mode=guided_ux.BUTTON_ONLY,
+        prompt_text=catalog.format_yield_confirmation(
+            ready=draft.ready,
+            field_name=draft.field_name or "-",
+            amount_text=format_amount(draft),
+            harvest_date=draft.harvest_date or "-",
+        ),
     )
 
 
@@ -190,3 +205,34 @@ def _canonical_unit(unit: str) -> str | None:
         if unit in aliases:
             return canonical
     return None
+
+
+def _step_meta(catalog, state: str) -> tuple[str, str | None]:
+    mapping = {
+        STATE_YIELD_READY: ("1/4", guided_ux.BUTTON_ONLY),
+        STATE_YIELD_FIELD: ("2/4", guided_ux.TEXT_ALLOWED),
+        STATE_YIELD_AMOUNT: ("3/4", guided_ux.TEXT_ALLOWED),
+        STATE_YIELD_DATE: ("4/4", guided_ux.TEXT_ALLOWED),
+        STATE_YIELD_CONFIRM: (catalog.GUIDED_REVIEW_STAGE_LABEL, guided_ux.BUTTON_ONLY),
+        STATE_YIELD_EDIT_SELECT: (catalog.GUIDED_REVIEW_STAGE_LABEL, guided_ux.BUTTON_ONLY),
+    }
+    return mapping[state]
+
+
+def _draft_summary(draft: YieldDraft | None, catalog) -> str | None:
+    if draft is None:
+        return None
+
+    fields: list[str] = []
+    if draft.ready is not None:
+        ready_label = catalog.BUTTON_YES if draft.ready else catalog.BUTTON_NO
+        fields.append(f"{catalog.BUTTON_YIELD_EDIT_READY}={ready_label}")
+    if draft.field_name:
+        fields.append(f"{catalog.BUTTON_YIELD_EDIT_FIELD}={draft.field_name}")
+    if draft.amount_value is not None and draft.amount_unit:
+        fields.append(f"{catalog.BUTTON_YIELD_EDIT_AMOUNT}={format_amount(draft)}")
+    if draft.harvest_date:
+        fields.append(f"{catalog.BUTTON_YIELD_EDIT_DATE}={draft.harvest_date}")
+    if not fields:
+        return None
+    return ", ".join(fields)
