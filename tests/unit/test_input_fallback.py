@@ -1,4 +1,10 @@
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_CONFIRM, STATE_FERTILIZER_PRODUCT, STATE_FERTILIZER_USED
+from PROJECT.conversations.onboarding.states import (
+    STATE_ONBOARDING_CONFIRM,
+    STATE_ONBOARDING_NAME,
+    STATE_ONBOARDING_PENDING_APPROVAL,
+    STATE_ONBOARDING_PHONE,
+)
 from PROJECT.conversations.sample_menu.keyboards import fallback_keyboard_layout_for_state
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED, STATE_MAIN_MENU
 from PROJECT.conversations.yield_intake.states import STATE_YIELD_CONFIRM, STATE_YIELD_FIELD
@@ -31,6 +37,13 @@ def test_fertilizer_fallbacks():
 def test_yield_fallbacks():
     assert fallback_key_for_state(STATE_YIELD_FIELD) == "yield_input"
     assert fallback_key_for_state(STATE_YIELD_CONFIRM) == "yield_confirm"
+
+
+def test_onboarding_fallbacks():
+    assert fallback_key_for_state(STATE_ONBOARDING_NAME) == "onboarding_input"
+    assert fallback_key_for_state(STATE_ONBOARDING_PHONE) == "onboarding_input"
+    assert fallback_key_for_state(STATE_ONBOARDING_CONFIRM) == "onboarding_confirm"
+    assert fallback_key_for_state(STATE_ONBOARDING_PENDING_APPROVAL) == "onboarding_pending"
 
 
 def test_default_fallback_keyboard_uses_main_menu_buttons():

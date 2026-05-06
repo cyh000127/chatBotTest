@@ -138,7 +138,11 @@ def test_farmer_onboarding_rejects_unsupported_phone_country_code(tmp_path):
         assert current_state(context.user_data) == STATE_ONBOARDING_PHONE
         assert session.current_step_code == STATE_ONBOARDING_PHONE
         assert "phone_normalized" not in draft
-        assert "다시 입력" in message.replies[-1][0]
+        reply_text = message.replies[-1][0]
+        assert "온보딩 3/3 · 텍스트 입력" in reply_text
+        assert "현재 입력: 언어=한국어, 이름=홍길동" in reply_text
+        assert "전화번호를 다시 입력하세요." in reply_text
+        assert "예시: +855 12 345 678, +880 17 1234 5678" in reply_text
     finally:
         runtime.close()
 

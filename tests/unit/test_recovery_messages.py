@@ -3,6 +3,7 @@ from PROJECT.conversations.evidence_submission.states import STATE_EVIDENCE_WAIT
 from PROJECT.conversations.field_binding.states import STATE_FIELD_BINDING_CODE
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_PRODUCT
 from PROJECT.conversations.input_resolve.states import STATE_INPUT_RESOLVE_RAW_INPUT
+from PROJECT.conversations.onboarding.states import STATE_ONBOARDING_PHONE
 from PROJECT.conversations.sample_menu import recovery_messages
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED
 from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_KIND
@@ -222,3 +223,38 @@ def test_render_fallback_message_includes_fast_path_for_evidence_document_step()
 
     assert catalog.EVIDENCE_DOCUMENT_FALLBACK in text
     assert f"{catalog.RECOVERY_QUICK_ACTIONS_LABEL}: [{catalog.BUTTON_SUPPORT}], [{catalog.BUTTON_BACK}], [{catalog.BUTTON_CANCEL}]" in text
+
+
+def test_render_fallback_message_includes_onboarding_examples_and_quick_actions():
+    catalog = get_catalog("ko")
+    recovery_context = assemble_recovery_context(
+        current_step=STATE_ONBOARDING_PHONE,
+        latest_user_message="제 번호는 01012345678이에요",
+        locale="ko",
+        recovery_attempt_count=2,
+        canonical_intent=registry.INTENT_UNKNOWN_TEXT,
+        validation_result=ValidationResult(
+            classification=ValidationClassification.REASK,
+            source=RuleSource.CHEAP_GATE,
+            reason="structured_step_mismatch",
+        ),
+        fallback_key="onboarding_input",
+        onboarding_draft_data={
+            "preferred_locale": "ko",
+            "name": "홍길동",
+        },
+    )
+
+    text = recovery_messages.render_fallback_message(
+        fallback_key="onboarding_input",
+        catalog=catalog,
+        recovery_context=recovery_context,
+    )
+
+    assert catalog.ONBOARDING_PHONE_FALLBACK in text
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: +855 12 345 678, +880 17 1234 5678" in text
+    assert (
+        f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: "
+        f"{catalog.ONBOARDING_PHONE_UNSUPPORTED_INPUT_HINT}"
+    ) in text
+    assert f"{catalog.RECOVERY_QUICK_ACTIONS_LABEL}: [{catalog.BUTTON_RESTART}], [{catalog.BUTTON_SUPPORT}]" in text

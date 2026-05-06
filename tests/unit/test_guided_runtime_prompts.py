@@ -10,6 +10,13 @@ from PROJECT.conversations.input_resolve.states import (
     STATE_INPUT_RESOLVE_DECISION,
     STATE_INPUT_RESOLVE_RAW_INPUT,
 )
+from PROJECT.conversations.onboarding import service as onboarding_service
+from PROJECT.conversations.onboarding.states import (
+    STATE_ONBOARDING_CONFIRM,
+    STATE_ONBOARDING_NAME,
+    STATE_ONBOARDING_PENDING_APPROVAL,
+    STATE_ONBOARDING_PHONE,
+)
 from PROJECT.conversations.fertilizer_intake.states import (
     STATE_FERTILIZER_CONFIRM,
     STATE_FERTILIZER_KIND,
@@ -187,3 +194,29 @@ def test_text_input_prompts_include_value_only_examples_and_unsupported_input():
         f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: "
         f"{catalog.INPUT_RESOLVE_RAW_INPUT_UNSUPPORTED_INPUT_HINT}"
     ) in resolve_text
+
+
+def test_onboarding_prompts_include_guided_progress_draft_and_waiting_layout():
+    catalog = get_catalog("ko")
+    draft = onboarding_service.update_draft(
+        onboarding_service.OnboardingDraft(),
+        preferred_locale="ko",
+        name="홍길동",
+    )
+
+    name_text = onboarding_service.prompt_for_state(STATE_ONBOARDING_NAME, catalog, draft)
+    assert "온보딩 2/3 · 텍스트 입력" in name_text
+    assert "현재 입력: 언어=한국어, 이름=홍길동" in name_text
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: 홍길동, 김영희" in name_text
+
+    phone_text = onboarding_service.prompt_for_state(STATE_ONBOARDING_PHONE, catalog, draft)
+    assert "온보딩 3/3 · 텍스트 입력" in phone_text
+    assert f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: {catalog.ONBOARDING_PHONE_UNSUPPORTED_INPUT_HINT}" in phone_text
+
+    confirm_text = onboarding_service.prompt_for_state(STATE_ONBOARDING_CONFIRM, catalog, draft)
+    assert "온보딩 검토 단계 · 버튼 선택" in confirm_text
+
+    pending_draft = onboarding_service.update_draft(draft, phone_normalized="+85512345678")
+    pending_text = onboarding_service.prompt_for_state(STATE_ONBOARDING_PENDING_APPROVAL, catalog, pending_draft)
+    assert "온보딩 접수 완료 · 안내 대기" in pending_text
+    assert "다음에 할 수 있는 작업: [지원 안내], [처음부터]" in pending_text
