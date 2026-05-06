@@ -220,3 +220,24 @@ def test_onboarding_prompts_include_guided_progress_draft_and_waiting_layout():
     pending_text = onboarding_service.prompt_for_state(STATE_ONBOARDING_PENDING_APPROVAL, catalog, pending_draft)
     assert "온보딩 접수 완료 · 안내 대기" in pending_text
     assert "다음에 할 수 있는 작업: [지원 안내], [처음부터]" in pending_text
+
+
+def test_onboarding_repair_prompt_focuses_only_selected_field():
+    catalog = get_catalog("ko")
+    draft = onboarding_service.update_draft(
+        onboarding_service.OnboardingDraft(),
+        preferred_locale="ko",
+        name="홍길동",
+        phone_normalized="+85512345678",
+    )
+
+    name_repair = onboarding_service.repair_prompt_for_state(STATE_ONBOARDING_NAME, catalog, draft)
+    assert "온보딩 2/3 · 텍스트 입력" in name_repair
+    assert "현재 입력: 이름=홍길동" in name_repair
+    assert "전화번호=+85512345678" not in name_repair
+    assert "새 이름을 입력하세요." in name_repair
+
+    phone_repair = onboarding_service.repair_prompt_for_state(STATE_ONBOARDING_PHONE, catalog, draft)
+    assert "현재 입력: 전화번호=+85512345678" in phone_repair
+    assert "이름=홍길동" not in phone_repair
+    assert "새 전화번호를 입력하세요." in phone_repair

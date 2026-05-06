@@ -143,6 +143,7 @@ def test_farmer_onboarding_rejects_unsupported_phone_country_code(tmp_path):
         assert "현재 입력: 언어=한국어, 이름=홍길동" in reply_text
         assert "전화번호를 다시 입력하세요." in reply_text
         assert "예시: +855 12 345 678, +880 17 1234 5678" in reply_text
+        assert reply_text.count("예시:") == 1
     finally:
         runtime.close()
 
@@ -203,5 +204,47 @@ def test_onboarding_confirm_edit_returns_to_selected_field(tmp_path):
         assert session is not None
         assert current_state(context.user_data) == "name_input"
         assert session.current_step_code == "name_input"
+        reply_text = message.replies[-1][0]
+        assert "온보딩 2/3 · 텍스트 입력" in reply_text
+        assert "현재 입력: 이름=홍길동" in reply_text
+        assert "전화번호=+8801712345678" not in reply_text
+        assert "새 이름을 입력하세요." in reply_text
+    finally:
+        runtime.close()
+
+
+def test_onboarding_confirm_edit_phone_focuses_phone_only(tmp_path):
+    runtime, invitation_repository, onboarding_repository = _repositories(tmp_path)
+    message = FakeMessage()
+
+    try:
+        invitation = invitation_repository.create_invitation()
+        context = _context(
+            args=[invitation.invite_code],
+            bot_data={
+                "invitation_repository": invitation_repository,
+                "onboarding_repository": onboarding_repository,
+            },
+        )
+
+        asyncio.run(commands.start_command(_message_update(message), context))
+        asyncio.run(messages.button_callback(_callback_update("language:ko", message), context))
+        message.text = "홍길동"
+        asyncio.run(messages.text_message(_message_update(message), context))
+        message.text = "+880 17 1234 5678"
+        asyncio.run(messages.text_message(_message_update(message), context))
+        assert current_state(context.user_data) == STATE_ONBOARDING_CONFIRM
+
+        asyncio.run(messages.button_callback(_callback_update("onboarding:edit:phone", message), context))
+
+        session = onboarding_repository.get_by_id(get_session(context.user_data)["onboarding_session_id"])
+        assert session is not None
+        assert current_state(context.user_data) == STATE_ONBOARDING_PHONE
+        assert session.current_step_code == STATE_ONBOARDING_PHONE
+        reply_text = message.replies[-1][0]
+        assert "온보딩 3/3 · 텍스트 입력" in reply_text
+        assert "현재 입력: 전화번호=+8801712345678" in reply_text
+        assert "이름=홍길동" not in reply_text
+        assert "새 전화번호를 입력하세요." in reply_text
     finally:
         runtime.close()
