@@ -97,7 +97,7 @@ async def open_binding_method(update, context) -> None:
     set_state(context.user_data, STATE_FIELD_BINDING_METHOD, push_history=True)
     await send_text(
         update,
-        field_binding_view.method_text(catalog),
+        field_binding_view.method_text(catalog, has_bindings=bool(draft.get("has_bindings"))),
         keyboard_layout=keyboards.keyboard_for_state(STATE_FIELD_BINDING_METHOD, catalog),
     )
 
@@ -120,7 +120,7 @@ async def choose_binding_method(update, context, *, method: str) -> None:
     set_state(context.user_data, STATE_FIELD_BINDING_CODE, push_history=True)
     await send_text(
         update,
-        field_binding_view.code_prompt_text(catalog),
+        field_binding_view.code_prompt_text(catalog, method=FIELD_CODE_BINDING_SOURCE),
         keyboard_layout=keyboards.keyboard_for_state(STATE_FIELD_BINDING_CODE, catalog),
     )
 

@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+from PROJECT.conversations import guided_runtime_ux
 from PROJECT.conversations.input_resolve import keyboards
 from PROJECT.conversations.input_resolve.states import (
     STATE_INPUT_RESOLVE_CANDIDATES,
@@ -112,26 +113,70 @@ def keyboard_for_state(state: str, catalog, draft: InputResolveDraft | None = No
 
 
 def prompt_for_state(state: str, catalog, draft: InputResolveDraft | None = None) -> str:
+    flow_label = getattr(catalog, "GUIDED_FLOW_INPUT_RESOLVE", getattr(catalog, "BUTTON_INPUT_RESOLVE", "입력 해석"))
     if state == STATE_INPUT_RESOLVE_TARGET:
-        return catalog.INPUT_RESOLVE_TARGET_PROMPT
+        return guided_runtime_ux.format_guided_message(
+            catalog,
+            flow_label=flow_label,
+            progress_label="1/4",
+            input_mode=guided_runtime_ux.BUTTON_ONLY,
+            prompt_text=catalog.INPUT_RESOLVE_TARGET_PROMPT,
+        )
     if state == STATE_INPUT_RESOLVE_METHOD:
-        return catalog.INPUT_RESOLVE_METHOD_PROMPT
+        return guided_runtime_ux.format_guided_message(
+            catalog,
+            flow_label=flow_label,
+            progress_label="2/4",
+            input_mode=guided_runtime_ux.BUTTON_ONLY,
+            prompt_text=catalog.INPUT_RESOLVE_METHOD_PROMPT,
+            draft_summary=_draft_summary(catalog, draft),
+        )
     if state == STATE_INPUT_RESOLVE_RAW_INPUT:
-        return catalog.INPUT_RESOLVE_RAW_INPUT_PROMPT
+        return guided_runtime_ux.format_guided_message(
+            catalog,
+            flow_label=flow_label,
+            progress_label="3/4",
+            input_mode=guided_runtime_ux.TEXT_ALLOWED,
+            prompt_text=catalog.INPUT_RESOLVE_RAW_INPUT_PROMPT,
+            draft_summary=_draft_summary(catalog, draft),
+        )
     if state == STATE_INPUT_RESOLVE_CANDIDATES:
         if draft is None or not draft.latest_candidates:
-            return catalog.INPUT_RESOLVE_CANDIDATE_NONE_MESSAGE
-        return catalog.format_input_resolve_candidate_list(
-            target_label=target_label(draft.target_type_code, catalog),
-            raw_input=draft.raw_input_text,
-            candidates=tuple(candidate["label"] for candidate in draft.latest_candidates),
+            prompt_text = catalog.INPUT_RESOLVE_CANDIDATE_NONE_MESSAGE
+        else:
+            prompt_text = catalog.format_input_resolve_candidate_list(
+                target_label=target_label(draft.target_type_code, catalog),
+                raw_input=draft.raw_input_text,
+                candidates=tuple(candidate["label"] for candidate in draft.latest_candidates),
+            )
+        return guided_runtime_ux.format_guided_message(
+            catalog,
+            flow_label=flow_label,
+            progress_label="4/4",
+            input_mode=guided_runtime_ux.BUTTON_ONLY,
+            prompt_text=prompt_text,
+            draft_summary=_draft_summary(catalog, draft),
         )
     if state == STATE_INPUT_RESOLVE_DECISION:
-        return catalog.format_input_resolve_selected_candidate(
+        prompt_text = catalog.format_input_resolve_selected_candidate(
             target_label=target_label(draft.target_type_code if draft else "", catalog),
             candidate_label=draft.selected_candidate_label if draft else "-",
         )
-    return catalog.INPUT_RESOLVE_ENTRY_MESSAGE
+        return guided_runtime_ux.format_guided_message(
+            catalog,
+            flow_label=flow_label,
+            progress_label=getattr(catalog, "GUIDED_REVIEW_STAGE_LABEL", "검토 단계"),
+            input_mode=guided_runtime_ux.BUTTON_ONLY,
+            prompt_text=prompt_text,
+            draft_summary=_draft_summary(catalog, draft),
+        )
+    return guided_runtime_ux.format_guided_message(
+        catalog,
+        flow_label=flow_label,
+        progress_label="1/4",
+        input_mode=guided_runtime_ux.BUTTON_ONLY,
+        prompt_text=catalog.INPUT_RESOLVE_ENTRY_MESSAGE,
+    )
 
 
 def target_label(target_type_code: str, catalog) -> str:
@@ -348,3 +393,36 @@ def _match_scores(query: str, target: str) -> list[int]:
 
 def _normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text.strip().lower())
+
+
+def _draft_summary(catalog, draft: InputResolveDraft | None) -> str | None:
+    if draft is None:
+        return None
+    segments: list[str] = []
+    if draft.target_type_code:
+        segments.append(
+            f"{getattr(catalog, 'INPUT_RESOLVE_DRAFT_TARGET_LABEL', '대상')}="
+            f"{target_label(draft.target_type_code, catalog)}"
+        )
+    if draft.method_code:
+        method_label = (
+            catalog.BUTTON_INPUT_RESOLVE_METHOD_TYPED_TEXT
+            if draft.method_code == METHOD_TYPED_TEXT
+            else draft.method_code
+        )
+        segments.append(
+            f"{getattr(catalog, 'INPUT_RESOLVE_DRAFT_METHOD_LABEL', '입력 방식')}={method_label}"
+        )
+    if draft.raw_input_text:
+        segments.append(
+            f"{getattr(catalog, 'INPUT_RESOLVE_DRAFT_RAW_INPUT_LABEL', '원문')}={draft.raw_input_text}"
+        )
+    if draft.latest_candidates:
+        segments.append(
+            f"{getattr(catalog, 'INPUT_RESOLVE_DRAFT_CANDIDATE_COUNT_LABEL', '후보 수')}={len(draft.latest_candidates)}"
+        )
+    if draft.selected_candidate_label:
+        segments.append(
+            f"{getattr(catalog, 'INPUT_RESOLVE_STEP_DECISION_LABEL', '후보 확정')}={draft.selected_candidate_label}"
+        )
+    return ", ".join(segments) if segments else None
