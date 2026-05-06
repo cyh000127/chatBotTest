@@ -126,6 +126,17 @@ def test_myfields_prompts_include_progress_and_draft_summary():
     assert "현재 입력: 등록 방법=위치 공유, 농지=논 1 (FIELD-001)" in confirm_text
 
 
+def test_myfields_code_retry_prompt_focuses_on_new_code_only():
+    catalog = get_catalog("ko")
+
+    text = field_binding_service.field_code_not_found_text(catalog, requested_code="FIELD-999")
+
+    assert "자기 조회 2/4 · 텍스트 입력" in text
+    assert "현재 입력: 등록 방법=고유 번호, 입력한 고유 번호=FIELD-999" in text
+    assert "새 고유 번호를 입력하세요." in text
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: FIELD-001, FIELD-105" in text
+
+
 def test_input_resolve_prompts_include_progress_and_draft_summary():
     catalog = get_catalog("ko")
     draft = input_resolve_service.update_draft(
@@ -151,6 +162,23 @@ def test_input_resolve_prompts_include_progress_and_draft_summary():
     decision_text = input_resolve_service.prompt_for_state(STATE_INPUT_RESOLVE_DECISION, catalog, draft)
     assert "입력 해석 검토 단계 · 버튼 선택" in decision_text
     assert "현재 입력: 대상=농지 고유 번호, 입력 방식=글로 입력, 원문=field-001, 후보 수=1, 후보 확정=논 1 (FIELD-001)" in decision_text
+
+
+def test_input_resolve_retry_prompt_focuses_on_new_value_only():
+    catalog = get_catalog("ko")
+    draft = input_resolve_service.update_draft(
+        input_resolve_service.new_draft("session-1"),
+        target_type_code=input_resolve_service.TARGET_FIELD_NAME,
+        method_code=input_resolve_service.METHOD_TYPED_TEXT,
+        raw_input_text="없는 농지",
+    )
+
+    text = input_resolve_service.retry_prompt_text(catalog, draft)
+
+    assert "입력 해석 3/4 · 텍스트 입력" in text
+    assert "현재 입력: 대상=농지 이름, 입력 방식=글로 입력, 원문=없는 농지" in text
+    assert "맞는 후보를 찾지 못했습니다.\n새 값을 입력하세요." in text
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: FIELD-001, 논 1" in text
 
 
 def test_input_resolve_manual_review_text_uses_waiting_layout():

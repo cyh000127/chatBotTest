@@ -251,3 +251,30 @@ def test_input_resolution_manual_review_creates_follow_up(tmp_path):
         assert "input_resolve target=field_name" in follow_ups[0].user_message
     finally:
         runtime.close()
+
+
+def test_input_resolution_retry_uses_compact_repair_prompt(tmp_path):
+    runtime, field_repository, _, _, _, bot_data = _approved_runtime(tmp_path)
+    context = _context(bot_data)
+    message = FakeMessage()
+
+    try:
+        _publish_field(field_repository)
+
+        asyncio.run(commands.input_resolve_command(_message_update(message), context))
+        asyncio.run(messages.button_callback(_callback_update("inputresolve:target:field_name", message), context))
+        asyncio.run(messages.button_callback(_callback_update("inputresolve:method:typed_text", message), context))
+
+        raw_input_message = FakeMessage(text="없는 농지")
+        asyncio.run(messages.text_message(_message_update(raw_input_message), context))
+        assert current_state(context.user_data) == STATE_INPUT_RESOLVE_CANDIDATES
+        assert "[다시 입력], [나중에 다시], [운영 검토]" in raw_input_message.replies[-1][0]
+
+        asyncio.run(messages.button_callback(_callback_update("inputresolve:retry", raw_input_message), context))
+
+        assert current_state(context.user_data) == STATE_INPUT_RESOLVE_RAW_INPUT
+        retry_text = raw_input_message.replies[-1][0]
+        assert "맞는 후보를 찾지 못했습니다.\n새 값을 입력하세요." in retry_text
+        assert "현재 입력: 대상=농지 이름, 입력 방식=글로 입력, 원문=없는 농지" in retry_text
+    finally:
+        runtime.close()

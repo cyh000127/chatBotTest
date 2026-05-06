@@ -111,7 +111,12 @@ def test_myfields_location_binding_flow_registers_field_and_updates_summary(tmp_
     message = FakeMessage()
 
     try:
-        version = field_repository.create_registry_version(version_label="v1")
+        participant = field_repository.find_active_participant_context(provider_user_id="12345")
+        assert participant is not None
+        version = field_repository.create_registry_version(
+            version_label="v1",
+            project_id=participant.project_id,
+        )
         field_repository.import_field(
             field_registry_version_id=version.id,
             field_code="FIELD-001",
@@ -168,7 +173,8 @@ def test_myfields_location_fallback_to_field_code_flow(tmp_path):
         asyncio.run(messages.location_message(_message_update(location_message), context))
 
         assert current_state(context.user_data) == STATE_FIELD_BINDING_CODE
-        assert "후보를 찾지 못했습니다" in location_message.replies[-1][0]
+        assert "고유 번호를 입력하세요." in location_message.replies[-1][0]
+        assert "현재 입력: 등록 방법=위치 공유" in location_message.replies[-1][0]
 
         code_message = FakeMessage(text="field-001")
         asyncio.run(messages.text_message(_message_update(code_message), context))
