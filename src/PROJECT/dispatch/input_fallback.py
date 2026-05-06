@@ -21,6 +21,12 @@ from PROJECT.conversations.input_resolve.states import (
     STATE_INPUT_RESOLVE_RAW_INPUT,
     STATE_INPUT_RESOLVE_TARGET,
 )
+from PROJECT.conversations.onboarding.states import (
+    STATE_ONBOARDING_CONFIRM,
+    STATE_ONBOARDING_NAME,
+    STATE_ONBOARDING_PENDING_APPROVAL,
+    STATE_ONBOARDING_PHONE,
+)
 from PROJECT.conversations.evidence_submission.states import (
     STATE_EVIDENCE_VALIDATING,
     STATE_EVIDENCE_WAITING_DOCUMENT,
@@ -54,6 +60,12 @@ def fallback_key_for_state(state: str) -> str:
         return "input_resolve_input"
     if state in {STATE_INPUT_RESOLVE_CANDIDATES, STATE_INPUT_RESOLVE_DECISION}:
         return "input_resolve_confirm"
+    if state in {STATE_ONBOARDING_NAME, STATE_ONBOARDING_PHONE}:
+        return "onboarding_input"
+    if state == STATE_ONBOARDING_CONFIRM:
+        return "onboarding_confirm"
+    if state == STATE_ONBOARDING_PENDING_APPROVAL:
+        return "onboarding_pending"
     if state in {STATE_EVIDENCE_WAITING_LOCATION, STATE_EVIDENCE_WAITING_DOCUMENT}:
         return "evidence_input"
     if state == STATE_EVIDENCE_VALIDATING:

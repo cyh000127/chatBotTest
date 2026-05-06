@@ -118,6 +118,7 @@ from PROJECT.dispatch.session_dispatcher import (
     last_recovery_context,
     llm_calls_in_step,
     mark_llm_input_seen,
+    onboarding_draft,
     pending_candidate,
     pending_repair_confirmation,
     pending_slot,
@@ -1380,6 +1381,7 @@ async def text_message(update, context) -> None:
             fallback_key=fallback_key_for_state(state),
             fertilizer_draft_data=fertilizer_draft(context.user_data),
             pending_slot=pending_slot(context.user_data),
+            onboarding_draft_data=onboarding_draft(context.user_data),
         )
         set_last_recovery_context(context.user_data, recovery_context.to_dict())
         log_recovery_classification_event(recovery_context, source="early_gate_handoff")
@@ -1742,6 +1744,7 @@ async def text_message(update, context) -> None:
             fallback_key=fallback_key,
             fertilizer_draft_data=fertilizer_draft(context.user_data),
             pending_slot=pending_slot(context.user_data),
+            onboarding_draft_data=onboarding_draft(context.user_data),
         )
         set_last_recovery_context(context.user_data, recovery_context.to_dict())
         log_recovery_classification_event(recovery_context, source="late_gate_handoff")

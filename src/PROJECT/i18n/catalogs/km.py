@@ -156,6 +156,7 @@ GUIDED_FLOW_YIELD = "បញ្ចូលទិន្នផល"
 GUIDED_FLOW_EVIDENCE = "ដាក់ស្នើភស្តុតាង"
 GUIDED_FLOW_MYFIELDS = "ព័ត៌មានដីរបស់អ្នក"
 GUIDED_FLOW_INPUT_RESOLVE = "បកស្រាយការបញ្ចូល"
+GUIDED_FLOW_ONBOARDING = "ការចុះឈ្មោះ"
 GUIDED_FLOW_SUPPORT = "ជំនួយ"
 GUIDED_REVIEW_STAGE_LABEL = "ជំហានពិនិត្យ"
 GUIDED_VALIDATING_STAGE_LABEL = "កំពុងពិនិត្យ"
@@ -173,6 +174,13 @@ GUIDED_NEXT_ACTIONS_LABEL = "អ្វីដែលអាចធ្វើបន្
 GUIDED_TEXT_VALUE_ONLY_HINT = "នៅជំហាននេះ សូមបញ្ចូលតែតម្លៃដែលត្រូវការ។"
 GUIDED_TEXT_EXAMPLES_LABEL = "ឧទាហរណ៍"
 GUIDED_TEXT_NOT_SUPPORTED_LABEL = "មិនគាំទ្រនៅជំហាននេះ"
+ONBOARDING_NAME_EXAMPLES = ("សុខា", "ដារ៉ា គីម")
+ONBOARDING_PHONE_EXAMPLES = ("+855 12 345 678", "+880 17 1234 5678")
+ONBOARDING_NAME_UNSUPPORTED_INPUT_HINT = "ប្រយោគដែលបន្ថែមការណែនាំខ្លួនជាមួយឈ្មោះ ដូចជា \"ខ្ញុំឈ្មោះសុខា មកពីភ្នំពេញ\""
+ONBOARDING_PHONE_UNSUPPORTED_INPUT_HINT = "ប្រយោគដែលមានលេខកូដប្រទេសមិនគាំទ្រ ឬពន្យល់បន្ថែម ដូចជា \"លេខខ្ញុំ 010-1234-5678\""
+ONBOARDING_DRAFT_LANGUAGE_LABEL = "ភាសា"
+ONBOARDING_DRAFT_NAME_LABEL = "ឈ្មោះ"
+ONBOARDING_DRAFT_PHONE_LABEL = "លេខទូរស័ព្ទ"
 MYFIELDS_DRAFT_BINDING_COUNT_LABEL = "ចំនួនដីបានចុះ"
 MYFIELDS_DRAFT_METHOD_LABEL = "វិធីសាស្ត្រ"
 MYFIELDS_DRAFT_CANDIDATE_COUNT_LABEL = "ចំនួនបេក្ខជន"
@@ -216,6 +224,9 @@ FALLBACK_MESSAGES = {
     "evidence_status": "ឯកសារភស្តុតាងត្រូវបានទទួលរួចហើយ។\nសូមរង់ចាំការណែនាំបន្ទាប់ ឬជ្រើសសកម្មភាពដែលពាក់ព័ន្ធ។",
     "input_resolve_input": "មិនអាចដំណើរការជំហានបកស្រាយតម្លៃបានទេ។\nសូមជ្រើសប៊ូតុងដែលត្រូវ ឬបញ្ចូលតម្លៃខ្លីម្ដងទៀត។",
     "input_resolve_confirm": "នេះជាជំហានពិនិត្យជម្រើស។\nសូមជ្រើសជម្រើស សាកម្តងទៀត ត្រឡប់មកក្រោយ ឬឲ្យមនុស្សពិនិត្យ។",
+    "onboarding_input": "មិនអាចដំណើរការការបញ្ចូលចុះឈ្មោះបានទេ។\nសូមបញ្ចូលឈ្មោះ ឬលេខទូរស័ព្ទសម្រាប់ជំហាននេះម្តងទៀត។",
+    "onboarding_confirm": "នេះគឺជាជំហានពិនិត្យការចុះឈ្មោះ។\nសូមចុច [បញ្ជាក់] ឬជ្រើសធាតុដែលចង់កែ។",
+    "onboarding_pending": "សំណើចុះឈ្មោះត្រូវបានទទួលហើយ។\nសូមរង់ចាំការណែនាំអំពីការអនុម័ត ឬជ្រើសសកម្មភាពដែលពាក់ព័ន្ធ។",
 }
 RECOVERY_GUIDANCE_SOFT = "នេះជាអ្វីដែលត្រូវបញ្ចូលនៅជំហាននេះ។"
 RECOVERY_GUIDANCE_GUIDED = "សូមធ្វើតាមជំហានខាងក្រោម ដើម្បីបន្ត។"

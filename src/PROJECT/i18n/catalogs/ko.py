@@ -161,6 +161,7 @@ GUIDED_FLOW_YIELD = "수확량 입력"
 GUIDED_FLOW_EVIDENCE = "증빙 제출"
 GUIDED_FLOW_MYFIELDS = "자기 조회"
 GUIDED_FLOW_INPUT_RESOLVE = "입력 해석"
+GUIDED_FLOW_ONBOARDING = "온보딩"
 GUIDED_FLOW_SUPPORT = "지원 안내"
 GUIDED_REVIEW_STAGE_LABEL = "검토 단계"
 GUIDED_VALIDATING_STAGE_LABEL = "검토 중"
@@ -178,6 +179,13 @@ GUIDED_NEXT_ACTIONS_LABEL = "다음에 할 수 있는 작업"
 GUIDED_TEXT_VALUE_ONLY_HINT = "이 단계에서는 값만 입력해 주세요."
 GUIDED_TEXT_EXAMPLES_LABEL = "예시"
 GUIDED_TEXT_NOT_SUPPORTED_LABEL = "지원하지 않는 입력"
+ONBOARDING_NAME_EXAMPLES = ("홍길동", "김영희")
+ONBOARDING_PHONE_EXAMPLES = ("+855 12 345 678", "+880 17 1234 5678")
+ONBOARDING_NAME_UNSUPPORTED_INPUT_HINT = "\"저는 충청남도에 사는 홍길동입니다\"처럼 소개가 함께 섞인 문장"
+ONBOARDING_PHONE_UNSUPPORTED_INPUT_HINT = "\"제 번호는 010-1234-5678이에요\"처럼 지원하지 않는 국가번호 또는 설명이 섞인 문장"
+ONBOARDING_DRAFT_LANGUAGE_LABEL = "언어"
+ONBOARDING_DRAFT_NAME_LABEL = "이름"
+ONBOARDING_DRAFT_PHONE_LABEL = "전화번호"
 MYFIELDS_DRAFT_BINDING_COUNT_LABEL = "등록 농지 수"
 MYFIELDS_DRAFT_METHOD_LABEL = "등록 방법"
 MYFIELDS_DRAFT_CANDIDATE_COUNT_LABEL = "후보 수"
@@ -221,6 +229,9 @@ FALLBACK_MESSAGES = {
     "evidence_status": "증빙 파일이 접수된 상태입니다.\n안내를 기다리거나 관련 메뉴를 선택해 주세요.",
     "input_resolve_input": "입력 해석 단계를 처리하지 못했습니다.\n현재 단계에 맞는 버튼이나 예시 입력을 다시 보내 주세요.",
     "input_resolve_confirm": "후보 확인 단계입니다.\n후보를 선택하거나 다시 입력, 나중에 다시, 운영 검토 중 하나를 선택하세요.",
+    "onboarding_input": "온보딩 입력을 처리하지 못했습니다.\n현재 단계에 맞게 이름이나 전화번호를 다시 입력해 주세요.",
+    "onboarding_confirm": "온보딩 검토 단계입니다.\n[확인]을 누르거나 수정할 항목을 선택하세요.",
+    "onboarding_pending": "온보딩이 접수된 상태입니다.\n승인 안내를 기다리거나 관련 항목을 선택하세요.",
 }
 RECOVERY_GUIDANCE_SOFT = "이 단계에 필요한 입력입니다."
 RECOVERY_GUIDANCE_GUIDED = "계속 진행하려면 아래 안내를 따르세요."

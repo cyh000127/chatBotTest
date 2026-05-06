@@ -156,6 +156,7 @@ GUIDED_FLOW_YIELD = "Yield input"
 GUIDED_FLOW_EVIDENCE = "Evidence submission"
 GUIDED_FLOW_MYFIELDS = "My fields"
 GUIDED_FLOW_INPUT_RESOLVE = "Input resolve"
+GUIDED_FLOW_ONBOARDING = "Onboarding"
 GUIDED_FLOW_SUPPORT = "Support"
 GUIDED_REVIEW_STAGE_LABEL = "Review step"
 GUIDED_VALIDATING_STAGE_LABEL = "Validation pending"
@@ -173,6 +174,13 @@ GUIDED_NEXT_ACTIONS_LABEL = "Next actions"
 GUIDED_TEXT_VALUE_ONLY_HINT = "Enter only the value needed for this step."
 GUIDED_TEXT_EXAMPLES_LABEL = "Examples"
 GUIDED_TEXT_NOT_SUPPORTED_LABEL = "Not supported here"
+ONBOARDING_NAME_EXAMPLES = ("Sample Farmer", "Dara Kim")
+ONBOARDING_PHONE_EXAMPLES = ("+855 12 345 678", "+880 17 1234 5678")
+ONBOARDING_NAME_UNSUPPORTED_INPUT_HINT = "Sentences that mix an introduction with the name, such as \"I am Sample Farmer from Phnom Penh\""
+ONBOARDING_PHONE_UNSUPPORTED_INPUT_HINT = "Sentences with unsupported country codes or extra explanation, such as \"My number is 010-1234-5678\""
+ONBOARDING_DRAFT_LANGUAGE_LABEL = "Language"
+ONBOARDING_DRAFT_NAME_LABEL = "Name"
+ONBOARDING_DRAFT_PHONE_LABEL = "Phone"
 MYFIELDS_DRAFT_BINDING_COUNT_LABEL = "Bound fields"
 MYFIELDS_DRAFT_METHOD_LABEL = "Method"
 MYFIELDS_DRAFT_CANDIDATE_COUNT_LABEL = "Candidates"
@@ -216,6 +224,9 @@ FALLBACK_MESSAGES = {
     "evidence_status": "The evidence file is already received.\nWait for the next guidance or choose a related action.",
     "input_resolve_input": "The input resolve step could not be processed.\nSend a matching button choice or a short example again.",
     "input_resolve_confirm": "This is the candidate review step.\nChoose a candidate, retry, come back later, or send it to manual review.",
+    "onboarding_input": "The onboarding input could not be processed.\nEnter the requested name or phone number again for this step.",
+    "onboarding_confirm": "This is the onboarding review step.\nPress [Confirm] or choose the item to edit.",
+    "onboarding_pending": "The onboarding request has been received.\nWait for approval guidance or choose a related action.",
 }
 RECOVERY_GUIDANCE_SOFT = "Here is what this step needs."
 RECOVERY_GUIDANCE_GUIDED = "Use the guide below to continue."

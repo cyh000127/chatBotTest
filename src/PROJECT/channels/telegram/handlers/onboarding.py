@@ -74,7 +74,15 @@ async def handle_onboarding_text(update, context, *, state: str, text: str, inte
     if state == STATE_ONBOARDING_NAME:
         name = onboarding_service.parse_name(text)
         if name is None:
-            await send_onboarding_prompt(update, context, text=catalog.ONBOARDING_NAME_FALLBACK)
+            await send_onboarding_prompt(
+                update,
+                context,
+                text=onboarding_service.fallback_for_state(
+                    state,
+                    catalog,
+                    current_onboarding_draft(context),
+                ),
+            )
             return True
         updated = repository.update_name(onboarding_session_id, name)
         sync_onboarding_session(context, updated)
@@ -84,7 +92,15 @@ async def handle_onboarding_text(update, context, *, state: str, text: str, inte
     if state == STATE_ONBOARDING_PHONE:
         phone = onboarding_service.normalize_phone(text)
         if phone is None:
-            await send_onboarding_prompt(update, context, text=catalog.ONBOARDING_PHONE_FALLBACK)
+            await send_onboarding_prompt(
+                update,
+                context,
+                text=onboarding_service.fallback_for_state(
+                    state,
+                    catalog,
+                    current_onboarding_draft(context),
+                ),
+            )
             return True
         updated = repository.update_phone(
             onboarding_session_id,
@@ -99,7 +115,15 @@ async def handle_onboarding_text(update, context, *, state: str, text: str, inte
         if intent == "confirm":
             await submit_onboarding_for_approval(update, context)
             return True
-        await send_onboarding_prompt(update, context, text=catalog.ONBOARDING_CONFIRM_FALLBACK)
+        await send_onboarding_prompt(
+            update,
+            context,
+            text=onboarding_service.fallback_for_state(
+                state,
+                catalog,
+                current_onboarding_draft(context),
+            ),
+        )
         return True
 
     if state == STATE_ONBOARDING_PENDING_APPROVAL:

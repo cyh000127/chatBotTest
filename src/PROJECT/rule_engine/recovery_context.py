@@ -20,6 +20,13 @@ from PROJECT.conversations.input_resolve.states import (
     STATE_INPUT_RESOLVE_RAW_INPUT,
     STATE_INPUT_RESOLVE_TARGET,
 )
+from PROJECT.conversations.onboarding import service as onboarding_service
+from PROJECT.conversations.onboarding.states import (
+    STATE_ONBOARDING_CONFIRM,
+    STATE_ONBOARDING_NAME,
+    STATE_ONBOARDING_PENDING_APPROVAL,
+    STATE_ONBOARDING_PHONE,
+)
 from PROJECT.canonical_intents import registry
 from PROJECT.conversations.sample_menu import service as sample_service
 from PROJECT.conversations.sample_menu.states import (
@@ -53,6 +60,7 @@ def assemble_recovery_context(
     fallback_key: str | None = None,
     fertilizer_draft_data: dict | None = None,
     evidence_submission_draft_data: dict | None = None,
+    onboarding_draft_data: dict | None = None,
     pending_slot: str | None = None,
 ) -> RecoveryContextDraft:
     prompt_schema = prompt_schema_for_state(
@@ -60,6 +68,7 @@ def assemble_recovery_context(
         locale=locale,
         fertilizer_draft_data=fertilizer_draft_data,
         evidence_submission_draft_data=evidence_submission_draft_data,
+        onboarding_draft_data=onboarding_draft_data,
     )
     ux_decision = classify_recovery_ux(validation_result)
     policy_decision = evaluate_recovery_policy(
@@ -81,6 +90,7 @@ def assemble_recovery_context(
         recent_messages_summary=_summarize_session(
             current_step=current_step,
             fertilizer_draft_data=fertilizer_draft_data,
+            onboarding_draft_data=onboarding_draft_data,
             pending_slot=pending_slot,
         ),
         locale=locale,
@@ -123,6 +133,7 @@ def prompt_schema_for_state(
     locale: str,
     fertilizer_draft_data: dict | None = None,
     evidence_submission_draft_data: dict | None = None,
+    onboarding_draft_data: dict | None = None,
 ) -> dict[str, str | tuple[str, ...] | None]:
     catalog = get_catalog(locale)
     shared_schema = shared_step_schema_for_step(current_step)
@@ -175,6 +186,50 @@ def prompt_schema_for_state(
             "hard_constraints": (
                 "cancelled_state_blocks_normal_flow",
             ),
+        }
+
+    if current_step == STATE_ONBOARDING_NAME:
+        draft = onboarding_service.draft_from_dict(onboarding_draft_data)
+        return {
+            "current_question": onboarding_service.prompt_for_state(current_step, catalog, draft),
+            "expected_input_type": "person_name",
+            "allowed_value_shape": "short_text_name",
+            "step_progress": "2/3",
+            "input_mode": guided_ux.TEXT_ALLOWED,
+            "hard_constraints": ("onboarding_name_required",),
+        }
+
+    if current_step == STATE_ONBOARDING_PHONE:
+        draft = onboarding_service.draft_from_dict(onboarding_draft_data)
+        return {
+            "current_question": onboarding_service.prompt_for_state(current_step, catalog, draft),
+            "expected_input_type": "phone_number",
+            "allowed_value_shape": "phone_number_with_supported_country_code",
+            "step_progress": "3/3",
+            "input_mode": guided_ux.TEXT_ALLOWED,
+            "hard_constraints": ("onboarding_phone_requires_supported_country_code",),
+        }
+
+    if current_step == STATE_ONBOARDING_CONFIRM:
+        draft = onboarding_service.draft_from_dict(onboarding_draft_data)
+        return {
+            "current_question": onboarding_service.prompt_for_state(current_step, catalog, draft),
+            "expected_input_type": "onboarding_confirmation",
+            "allowed_value_shape": "one_of:confirm|edit_name|edit_phone|restart",
+            "step_progress": "review",
+            "input_mode": guided_ux.BUTTON_ONLY,
+            "hard_constraints": ("onboarding_review_required_before_submit",),
+        }
+
+    if current_step == STATE_ONBOARDING_PENDING_APPROVAL:
+        draft = onboarding_service.draft_from_dict(onboarding_draft_data)
+        return {
+            "current_question": onboarding_service.prompt_for_state(current_step, catalog, draft),
+            "expected_input_type": "wait_or_safe_exit",
+            "allowed_value_shape": "one_of:support|restart",
+            "step_progress": "received",
+            "input_mode": guided_ux.STATUS_WAIT,
+            "hard_constraints": ("onboarding_pending_approval_wait_state",),
         }
 
     if current_step == STATE_MYFIELDS_SUMMARY:
@@ -333,6 +388,19 @@ def task_context_for_state(
         }
 
     if current_step in {
+        STATE_ONBOARDING_NAME,
+        STATE_ONBOARDING_PHONE,
+        STATE_ONBOARDING_CONFIRM,
+        STATE_ONBOARDING_PENDING_APPROVAL,
+    }:
+        return {
+            "domain": "onboarding",
+            "task_hint": "onboarding_step_input",
+            "resume_action": "continue_onboarding",
+            "focus_target": pending_slot or "onboarding_current_step",
+        }
+
+    if current_step in {
         STATE_INPUT_RESOLVE_TARGET,
         STATE_INPUT_RESOLVE_METHOD,
         STATE_INPUT_RESOLVE_RAW_INPUT,
@@ -385,6 +453,7 @@ def _summarize_session(
     *,
     current_step: str,
     fertilizer_draft_data: dict | None,
+    onboarding_draft_data: dict | None,
     pending_slot: str | None,
 ) -> str:
     summary_parts = [f"state={current_step}"]
@@ -405,5 +474,16 @@ def _summarize_session(
             fertilizer_fields.append("applied_date")
         if fertilizer_fields:
             summary_parts.append(f"fertilizer_draft_fields={','.join(fertilizer_fields)}")
+
+    if onboarding_draft_data:
+        onboarding_fields = []
+        if onboarding_draft_data.get("preferred_locale"):
+            onboarding_fields.append("preferred_locale")
+        if onboarding_draft_data.get("name"):
+            onboarding_fields.append("name")
+        if onboarding_draft_data.get("phone_normalized"):
+            onboarding_fields.append("phone")
+        if onboarding_fields:
+            summary_parts.append(f"onboarding_draft_fields={','.join(onboarding_fields)}")
 
     return "; ".join(summary_parts)

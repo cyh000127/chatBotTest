@@ -156,6 +156,7 @@ GUIDED_FLOW_YIELD = "ফসল ইনপুট"
 GUIDED_FLOW_EVIDENCE = "প্রমাণ জমা"
 GUIDED_FLOW_MYFIELDS = "আমার জমি"
 GUIDED_FLOW_INPUT_RESOLVE = "ইনপুট ব্যাখ্যা"
+GUIDED_FLOW_ONBOARDING = "অনবোর্ডিং"
 GUIDED_FLOW_SUPPORT = "সহায়তা"
 GUIDED_REVIEW_STAGE_LABEL = "যাচাই ধাপ"
 GUIDED_VALIDATING_STAGE_LABEL = "যাচাই চলছে"
@@ -173,6 +174,13 @@ GUIDED_NEXT_ACTIONS_LABEL = "এরপর যা করা যাবে"
 GUIDED_TEXT_VALUE_ONLY_HINT = "এই ধাপে শুধু প্রয়োজনীয় মানটাই লিখুন।"
 GUIDED_TEXT_EXAMPLES_LABEL = "উদাহরণ"
 GUIDED_TEXT_NOT_SUPPORTED_LABEL = "এই ধাপে সমর্থিত নয়"
+ONBOARDING_NAME_EXAMPLES = ("রহিম উদ্দিন", "মায়া আক্তার")
+ONBOARDING_PHONE_EXAMPLES = ("+855 12 345 678", "+880 17 1234 5678")
+ONBOARDING_NAME_UNSUPPORTED_INPUT_HINT = "\"আমি কুমিল্লার রহিম\" এর মতো পরিচয়সহ লেখা বাক্য"
+ONBOARDING_PHONE_UNSUPPORTED_INPUT_HINT = "\"আমার নম্বর 010-1234-5678\" এর মতো অসমর্থিত দেশের কোড বা বর্ণনাসহ বাক্য"
+ONBOARDING_DRAFT_LANGUAGE_LABEL = "ভাষা"
+ONBOARDING_DRAFT_NAME_LABEL = "নাম"
+ONBOARDING_DRAFT_PHONE_LABEL = "ফোন"
 MYFIELDS_DRAFT_BINDING_COUNT_LABEL = "নিবন্ধিত জমি"
 MYFIELDS_DRAFT_METHOD_LABEL = "পদ্ধতি"
 MYFIELDS_DRAFT_CANDIDATE_COUNT_LABEL = "প্রার্থী সংখ্যা"
@@ -216,6 +224,9 @@ FALLBACK_MESSAGES = {
     "evidence_status": "প্রমাণ ফাইলটি আগেই পাওয়া গেছে।\nপরের নির্দেশনার জন্য অপেক্ষা করুন বা সম্পর্কিত কাজ বেছে নিন।",
     "input_resolve_input": "ইনপুট বুঝে নেওয়ার ধাপটি করা যায়নি।\nমিল থাকা বোতাম বা ছোট উদাহরণ আবার পাঠান।",
     "input_resolve_confirm": "এটি পছন্দ দেখার ধাপ।\nএকটি পছন্দ নিন, আবার দিন, পরে করুন, বা হাতে দেখার জন্য পাঠান।",
+    "onboarding_input": "অনবোর্ডিং ইনপুটটি নেওয়া যায়নি।\nএই ধাপে চাওয়া নাম বা ফোন নম্বরটি আবার লিখুন।",
+    "onboarding_confirm": "এটি অনবোর্ডিং যাচাই ধাপ।\n[ঠিক আছে] চাপুন বা বদলাতে চান এমন অংশ বেছে নিন।",
+    "onboarding_pending": "অনবোর্ডিং অনুরোধটি গ্রহণ করা হয়েছে।\nঅনুমোদনের নির্দেশনার জন্য অপেক্ষা করুন বা সম্পর্কিত কাজ বেছে নিন।",
 }
 RECOVERY_GUIDANCE_SOFT = "এই ধাপে কী লাগবে, আবার বলছি।"
 RECOVERY_GUIDANCE_GUIDED = "চালিয়ে যেতে নিচের নির্দেশনা দেখুন।"

@@ -26,6 +26,12 @@ from PROJECT.conversations.input_resolve.states import (
     STATE_INPUT_RESOLVE_RAW_INPUT,
     STATE_INPUT_RESOLVE_TARGET,
 )
+from PROJECT.conversations.onboarding.states import (
+    STATE_ONBOARDING_CONFIRM,
+    STATE_ONBOARDING_NAME,
+    STATE_ONBOARDING_PENDING_APPROVAL,
+    STATE_ONBOARDING_PHONE,
+)
 from PROJECT.conversations.yield_intake.states import (
     STATE_YIELD_AMOUNT,
     STATE_YIELD_CONFIRM,
@@ -178,6 +184,10 @@ def _retry_copy_for_state(current_step: str, catalog) -> str | None:
         STATE_INPUT_RESOLVE_RAW_INPUT: catalog.INPUT_RESOLVE_RAW_INPUT_FALLBACK,
         STATE_INPUT_RESOLVE_CANDIDATES: catalog.FALLBACK_MESSAGES["input_resolve_confirm"],
         STATE_INPUT_RESOLVE_DECISION: catalog.INPUT_RESOLVE_DECISION_PROMPT,
+        STATE_ONBOARDING_NAME: catalog.ONBOARDING_NAME_FALLBACK,
+        STATE_ONBOARDING_PHONE: catalog.ONBOARDING_PHONE_FALLBACK,
+        STATE_ONBOARDING_CONFIRM: catalog.ONBOARDING_CONFIRM_FALLBACK,
+        STATE_ONBOARDING_PENDING_APPROVAL: catalog.ONBOARDING_PENDING_APPROVAL_SUBMITTED_MESSAGE,
         STATE_EVIDENCE_WAITING_LOCATION: catalog.EVIDENCE_LOCATION_FALLBACK,
         STATE_EVIDENCE_WAITING_DOCUMENT: catalog.EVIDENCE_DOCUMENT_FALLBACK,
         STATE_EVIDENCE_VALIDATING: catalog.EVIDENCE_VALIDATING_MESSAGE,
@@ -219,6 +229,14 @@ def _text_step_help(current_step: str, catalog) -> tuple[str, ...]:
         STATE_INPUT_RESOLVE_RAW_INPUT: (
             getattr(catalog, "INPUT_RESOLVE_RAW_INPUT_EXAMPLES", ()),
             getattr(catalog, "INPUT_RESOLVE_RAW_INPUT_UNSUPPORTED_INPUT_HINT", ""),
+        ),
+        STATE_ONBOARDING_NAME: (
+            getattr(catalog, "ONBOARDING_NAME_EXAMPLES", ()),
+            getattr(catalog, "ONBOARDING_NAME_UNSUPPORTED_INPUT_HINT", ""),
+        ),
+        STATE_ONBOARDING_PHONE: (
+            getattr(catalog, "ONBOARDING_PHONE_EXAMPLES", ()),
+            getattr(catalog, "ONBOARDING_PHONE_UNSUPPORTED_INPUT_HINT", ""),
         ),
     }
     examples, unsupported_hint = mapping.get(current_step, ((), ""))
@@ -318,6 +336,12 @@ def _quick_action_labels(current_step: str, catalog) -> tuple[str, ...]:
             catalog.BUTTON_INPUT_RESOLVE_RETRY,
             catalog.BUTTON_INPUT_RESOLVE_RETRY_LATER,
         )
+    if current_step in {STATE_ONBOARDING_NAME, STATE_ONBOARDING_PHONE}:
+        return (catalog.BUTTON_RESTART, catalog.BUTTON_SUPPORT)
+    if current_step == STATE_ONBOARDING_CONFIRM:
+        return (catalog.BUTTON_CONFIRM, catalog.BUTTON_EDIT_NAME, catalog.BUTTON_EDIT_PHONE)
+    if current_step == STATE_ONBOARDING_PENDING_APPROVAL:
+        return (catalog.BUTTON_SUPPORT, catalog.BUTTON_RESTART)
     if current_step == STATE_EVIDENCE_WAITING_LOCATION:
         return (catalog.BUTTON_SUPPORT, catalog.BUTTON_CANCEL, catalog.BUTTON_RESTART)
     if current_step == STATE_EVIDENCE_WAITING_DOCUMENT:

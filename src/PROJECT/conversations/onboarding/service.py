@@ -4,6 +4,7 @@ import json
 import re
 from dataclasses import asdict, dataclass
 
+from PROJECT.conversations import guided_runtime_ux as guided_ux
 from PROJECT.conversations.onboarding.states import (
     STATE_ONBOARDING_CONFIRM,
     STATE_ONBOARDING_LANGUAGE_SELECT,
@@ -92,25 +93,89 @@ def normalize_phone(text: str) -> str | None:
 def prompt_for_state(state: str, catalog, draft: OnboardingDraft | None = None) -> str:
     draft = draft or OnboardingDraft()
     if state == STATE_ONBOARDING_LANGUAGE_SELECT:
-        return catalog.ONBOARDING_STARTED_MESSAGE
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_ONBOARDING,
+            progress_label="1/3",
+            input_mode=guided_ux.BUTTON_ONLY,
+            prompt_text=catalog.ONBOARDING_STARTED_MESSAGE,
+        )
     if state == STATE_ONBOARDING_NAME:
-        return catalog.ONBOARDING_NAME_PROMPT
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_ONBOARDING,
+            progress_label="2/3",
+            input_mode=guided_ux.TEXT_ALLOWED,
+            prompt_text=_text_prompt_for_state(STATE_ONBOARDING_NAME, catalog),
+            draft_summary=_draft_summary(draft, catalog),
+        )
     if state == STATE_ONBOARDING_PHONE:
-        return catalog.ONBOARDING_PHONE_PROMPT
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_ONBOARDING,
+            progress_label="3/3",
+            input_mode=guided_ux.TEXT_ALLOWED,
+            prompt_text=_text_prompt_for_state(STATE_ONBOARDING_PHONE, catalog),
+            draft_summary=_draft_summary(draft, catalog),
+        )
     if state == STATE_ONBOARDING_CONFIRM:
-        return confirmation_text(draft, catalog)
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_ONBOARDING,
+            progress_label=catalog.GUIDED_REVIEW_STAGE_LABEL,
+            input_mode=guided_ux.BUTTON_ONLY,
+            prompt_text=confirmation_text(draft, catalog),
+        )
     if state == STATE_ONBOARDING_PENDING_APPROVAL:
-        return catalog.ONBOARDING_PENDING_APPROVAL_SUBMITTED_MESSAGE
+        return guided_ux.format_waiting_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_ONBOARDING,
+            progress_label=catalog.GUIDED_RECEIVED_STAGE_LABEL,
+            prompt_text=catalog.ONBOARDING_PENDING_APPROVAL_SUBMITTED_MESSAGE,
+            draft_summary=_draft_summary(draft, catalog),
+            next_actions=(catalog.BUTTON_SUPPORT, catalog.BUTTON_RESTART),
+        )
     return catalog.ONBOARDING_ACCESS_REQUIRED_MESSAGE
 
 
-def fallback_for_state(state: str, catalog) -> str:
+def fallback_for_state(state: str, catalog, draft: OnboardingDraft | None = None) -> str:
+    draft = draft or OnboardingDraft()
     if state == STATE_ONBOARDING_NAME:
-        return catalog.ONBOARDING_NAME_FALLBACK
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_ONBOARDING,
+            progress_label="2/3",
+            input_mode=guided_ux.TEXT_ALLOWED,
+            prompt_text=_text_prompt_for_state(
+                STATE_ONBOARDING_NAME,
+                catalog,
+                prompt_text=catalog.ONBOARDING_NAME_FALLBACK,
+            ),
+            draft_summary=_draft_summary(draft, catalog),
+        )
     if state == STATE_ONBOARDING_PHONE:
-        return catalog.ONBOARDING_PHONE_FALLBACK
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_ONBOARDING,
+            progress_label="3/3",
+            input_mode=guided_ux.TEXT_ALLOWED,
+            prompt_text=_text_prompt_for_state(
+                STATE_ONBOARDING_PHONE,
+                catalog,
+                prompt_text=catalog.ONBOARDING_PHONE_FALLBACK,
+            ),
+            draft_summary=_draft_summary(draft, catalog),
+        )
     if state == STATE_ONBOARDING_CONFIRM:
-        return catalog.ONBOARDING_CONFIRM_FALLBACK
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_ONBOARDING,
+            progress_label=catalog.GUIDED_REVIEW_STAGE_LABEL,
+            input_mode=guided_ux.BUTTON_ONLY,
+            prompt_text=catalog.ONBOARDING_CONFIRM_FALLBACK,
+        )
+    if state == STATE_ONBOARDING_PENDING_APPROVAL:
+        return prompt_for_state(state, catalog, draft)
     return catalog.ONBOARDING_ACCESS_REQUIRED_MESSAGE
 
 
@@ -142,3 +207,35 @@ def confirmation_text(draft: OnboardingDraft, catalog) -> str:
         phone=draft.phone_normalized or "-",
         language=language_label,
     )
+
+
+def _text_prompt_for_state(state: str, catalog, *, prompt_text: str | None = None) -> str:
+    if state == STATE_ONBOARDING_NAME:
+        return guided_ux.format_text_input_prompt(
+            catalog,
+            prompt_text=prompt_text or catalog.ONBOARDING_NAME_PROMPT,
+            examples=catalog.ONBOARDING_NAME_EXAMPLES,
+            unsupported_hint=catalog.ONBOARDING_NAME_UNSUPPORTED_INPUT_HINT,
+        )
+    if state == STATE_ONBOARDING_PHONE:
+        return guided_ux.format_text_input_prompt(
+            catalog,
+            prompt_text=prompt_text or catalog.ONBOARDING_PHONE_PROMPT,
+            examples=catalog.ONBOARDING_PHONE_EXAMPLES,
+            unsupported_hint=catalog.ONBOARDING_PHONE_UNSUPPORTED_INPUT_HINT,
+        )
+    return prompt_text or ""
+
+
+def _draft_summary(draft: OnboardingDraft, catalog) -> str | None:
+    parts: list[str] = []
+    if draft.preferred_locale:
+        parts.append(
+            f"{catalog.ONBOARDING_DRAFT_LANGUAGE_LABEL}="
+            f"{LANGUAGE_LABELS.get(draft.preferred_locale, draft.preferred_locale)}"
+        )
+    if draft.name:
+        parts.append(f"{catalog.ONBOARDING_DRAFT_NAME_LABEL}={draft.name}")
+    if draft.phone_normalized:
+        parts.append(f"{catalog.ONBOARDING_DRAFT_PHONE_LABEL}={draft.phone_normalized}")
+    return ", ".join(parts) if parts else None
