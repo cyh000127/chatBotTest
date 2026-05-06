@@ -151,7 +151,15 @@ async def handle_onboarding_callback(update, context, *, action: str, payload: d
         target_step = STATE_ONBOARDING_NAME if target == "name" else STATE_ONBOARDING_PHONE
         updated = repository.move_to_step(onboarding_session_id, target_step)
         sync_onboarding_session(context, updated)
-        await send_onboarding_prompt(update, context)
+        await send_onboarding_prompt(
+            update,
+            context,
+            text=onboarding_service.repair_prompt_for_state(
+                target_step,
+                get_catalog(current_locale(context.user_data)),
+                current_onboarding_draft(context),
+            ),
+        )
         return True
 
     return False
@@ -168,7 +176,15 @@ async def submit_onboarding_for_approval(update, context) -> None:
         target_step = STATE_ONBOARDING_PHONE if draft.name else STATE_ONBOARDING_NAME
         updated = repository.move_to_step(onboarding_session_id, target_step)
         sync_onboarding_session(context, updated)
-        await send_onboarding_prompt(update, context)
+        await send_onboarding_prompt(
+            update,
+            context,
+            text=onboarding_service.repair_prompt_for_state(
+                target_step,
+                get_catalog(current_locale(context.user_data)),
+                current_onboarding_draft(context),
+            ),
+        )
         return
 
     updated = repository.submit_pending_approval(onboarding_session_id)

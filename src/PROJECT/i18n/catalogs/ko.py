@@ -74,9 +74,11 @@ ONBOARDING_STARTED_MESSAGE = "초대 코드를 확인했습니다.\n언어를 �
 ONBOARDING_ACCESS_REQUIRED_MESSAGE = "서비스 이용 전 온보딩과 관리자 승인이 필요합니다.\n초대 코드가 있다면 /start <초대코드>로 시작하세요."
 ONBOARDING_PENDING_APPROVAL_MESSAGE = "온보딩이 아직 완료되지 않았거나 관리자 승인 대기 중입니다.\n승인 후 서비스를 이용할 수 있습니다."
 ONBOARDING_NAME_PROMPT = "이름을 입력하세요."
-ONBOARDING_NAME_FALLBACK = "이름을 다시 입력하세요.\n예: 홍길동"
+ONBOARDING_NAME_FALLBACK = "이름을 다시 입력하세요."
+ONBOARDING_NAME_REPAIR_PROMPT = "새 이름을 입력하세요."
 ONBOARDING_PHONE_PROMPT = "전화번호를 국가번호와 함께 입력하세요.\n예: +855 12 345 678, +880 17 1234 5678"
-ONBOARDING_PHONE_FALLBACK = "전화번호를 다시 입력하세요.\n현재는 +855 또는 +880 국가번호만 사용할 수 있습니다."
+ONBOARDING_PHONE_FALLBACK = "전화번호를 다시 입력하세요."
+ONBOARDING_PHONE_REPAIR_PROMPT = "새 전화번호를 입력하세요."
 ONBOARDING_CONFIRM_MESSAGE = (
     "온보딩 입력 내용을 확인하세요.\n"
     "- 이름: {name}\n"

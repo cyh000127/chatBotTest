@@ -70,9 +70,11 @@ ONBOARDING_STARTED_MESSAGE = "Invitation code verified.\nChoose a language to co
 ONBOARDING_ACCESS_REQUIRED_MESSAGE = "Onboarding and admin approval are required before using the service.\nIf you have an invitation code, start with /start <invite_code>."
 ONBOARDING_PENDING_APPROVAL_MESSAGE = "Onboarding is not complete yet or is waiting for admin approval.\nYou can use the service after approval."
 ONBOARDING_NAME_PROMPT = "Enter your name."
-ONBOARDING_NAME_FALLBACK = "Enter your name again.\nExample: Sample Farmer"
+ONBOARDING_NAME_FALLBACK = "Enter your name again."
+ONBOARDING_NAME_REPAIR_PROMPT = "Enter the new name."
 ONBOARDING_PHONE_PROMPT = "Enter your phone number with country code.\nExample: +855 12 345 678, +880 17 1234 5678"
-ONBOARDING_PHONE_FALLBACK = "Enter your phone number again.\nOnly +855 or +880 country codes are supported for now."
+ONBOARDING_PHONE_FALLBACK = "Enter your phone number again."
+ONBOARDING_PHONE_REPAIR_PROMPT = "Enter the new phone number."
 ONBOARDING_CONFIRM_MESSAGE = (
     "Review your onboarding input.\n"
     "- Name: {name}\n"

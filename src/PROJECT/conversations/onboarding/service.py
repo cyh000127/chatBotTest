@@ -179,6 +179,37 @@ def fallback_for_state(state: str, catalog, draft: OnboardingDraft | None = None
     return catalog.ONBOARDING_ACCESS_REQUIRED_MESSAGE
 
 
+def repair_prompt_for_state(state: str, catalog, draft: OnboardingDraft | None = None) -> str:
+    draft = draft or OnboardingDraft()
+    if state == STATE_ONBOARDING_NAME:
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_ONBOARDING,
+            progress_label="2/3",
+            input_mode=guided_ux.TEXT_ALLOWED,
+            prompt_text=_text_prompt_for_state(
+                STATE_ONBOARDING_NAME,
+                catalog,
+                prompt_text=catalog.ONBOARDING_NAME_REPAIR_PROMPT,
+            ),
+            draft_summary=_repair_focus_summary(STATE_ONBOARDING_NAME, draft, catalog),
+        )
+    if state == STATE_ONBOARDING_PHONE:
+        return guided_ux.format_guided_message(
+            catalog,
+            flow_label=catalog.GUIDED_FLOW_ONBOARDING,
+            progress_label="3/3",
+            input_mode=guided_ux.TEXT_ALLOWED,
+            prompt_text=_text_prompt_for_state(
+                STATE_ONBOARDING_PHONE,
+                catalog,
+                prompt_text=catalog.ONBOARDING_PHONE_REPAIR_PROMPT,
+            ),
+            draft_summary=_repair_focus_summary(STATE_ONBOARDING_PHONE, draft, catalog),
+        )
+    return prompt_for_state(state, catalog, draft)
+
+
 def keyboard_for_state(state: str, catalog) -> list[list[dict[str, str]]] | None:
     if state == STATE_ONBOARDING_LANGUAGE_SELECT:
         return language_keyboard()
@@ -239,3 +270,11 @@ def _draft_summary(draft: OnboardingDraft, catalog) -> str | None:
     if draft.phone_normalized:
         parts.append(f"{catalog.ONBOARDING_DRAFT_PHONE_LABEL}={draft.phone_normalized}")
     return ", ".join(parts) if parts else None
+
+
+def _repair_focus_summary(state: str, draft: OnboardingDraft, catalog) -> str | None:
+    if state == STATE_ONBOARDING_NAME and draft.name:
+        return f"{catalog.ONBOARDING_DRAFT_NAME_LABEL}={draft.name}"
+    if state == STATE_ONBOARDING_PHONE and draft.phone_normalized:
+        return f"{catalog.ONBOARDING_DRAFT_PHONE_LABEL}={draft.phone_normalized}"
+    return _draft_summary(draft, catalog)

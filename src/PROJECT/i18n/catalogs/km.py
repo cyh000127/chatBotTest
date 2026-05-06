@@ -70,9 +70,11 @@ ONBOARDING_STARTED_MESSAGE = "បានផ្ទៀងផ្ទាត់កូ�
 ONBOARDING_ACCESS_REQUIRED_MESSAGE = "ត្រូវបញ្ចប់ការចុះឈ្មោះ និងទទួលការអនុម័តពីអ្នកគ្រប់គ្រងជាមុន។\nបើអ្នកមានកូដអញ្ជើញ សូមចាប់ផ្តើមដោយ /start <invite_code>។"
 ONBOARDING_PENDING_APPROVAL_MESSAGE = "ការចុះឈ្មោះមិនទាន់បញ្ចប់ ឬកំពុងរង់ចាំការអនុម័ត។\nអ្នកអាចប្រើសេវាបានបន្ទាប់ពីអនុម័ត។"
 ONBOARDING_NAME_PROMPT = "សូមបញ្ចូលឈ្មោះ។"
-ONBOARDING_NAME_FALLBACK = "សូមបញ្ចូលឈ្មោះម្ដងទៀត។\nឧទាហរណ៍៖ Sample Farmer"
+ONBOARDING_NAME_FALLBACK = "សូមបញ្ចូលឈ្មោះម្ដងទៀត។"
+ONBOARDING_NAME_REPAIR_PROMPT = "សូមបញ្ចូលឈ្មោះថ្មី។"
 ONBOARDING_PHONE_PROMPT = "សូមបញ្ចូលលេខទូរស័ព្ទជាមួយលេខកូដប្រទេស។\nឧទាហរណ៍៖ +855 12 345 678, +880 17 1234 5678"
-ONBOARDING_PHONE_FALLBACK = "សូមបញ្ចូលលេខទូរស័ព្ទម្ដងទៀត។\nពេលនេះគាំទ្រតែ +855 ឬ +880 ប៉ុណ្ណោះ។"
+ONBOARDING_PHONE_FALLBACK = "សូមបញ្ចូលលេខទូរស័ព្ទម្ដងទៀត។"
+ONBOARDING_PHONE_REPAIR_PROMPT = "សូមបញ្ចូលលេខទូរស័ព្ទថ្មី។"
 ONBOARDING_CONFIRM_MESSAGE = (
     "សូមពិនិត្យព័ត៌មានចុះឈ្មោះ។\n"
     "- ឈ្មោះ៖ {name}\n"

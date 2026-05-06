@@ -70,9 +70,11 @@ ONBOARDING_STARTED_MESSAGE = "আমন্ত্রণ কোড যাচাই
 ONBOARDING_ACCESS_REQUIRED_MESSAGE = "সেবা ব্যবহারের আগে অনবোর্ডিং এবং অ্যাডমিন অনুমোদন দরকার।\nআমন্ত্রণ কোড থাকলে /start <invite_code> দিয়ে শুরু করুন।"
 ONBOARDING_PENDING_APPROVAL_MESSAGE = "অনবোর্ডিং এখনও শেষ হয়নি বা অ্যাডমিন অনুমোদনের অপেক্ষায় আছে।\nঅনুমোদনের পরে সেবা ব্যবহার করতে পারবেন।"
 ONBOARDING_NAME_PROMPT = "আপনার নাম লিখুন।"
-ONBOARDING_NAME_FALLBACK = "নাম আবার লিখুন।\nউদাহরণ: Sample Farmer"
+ONBOARDING_NAME_FALLBACK = "নাম আবার লিখুন।"
+ONBOARDING_NAME_REPAIR_PROMPT = "নতুন নাম লিখুন।"
 ONBOARDING_PHONE_PROMPT = "দেশের কোডসহ ফোন নম্বর লিখুন।\nউদাহরণ: +855 12 345 678, +880 17 1234 5678"
-ONBOARDING_PHONE_FALLBACK = "ফোন নম্বর আবার লিখুন।\nএখন শুধু +855 বা +880 দেশের কোড চালু আছে।"
+ONBOARDING_PHONE_FALLBACK = "ফোন নম্বর আবার লিখুন।"
+ONBOARDING_PHONE_REPAIR_PROMPT = "নতুন ফোন নম্বর লিখুন।"
 ONBOARDING_CONFIRM_MESSAGE = (
     "অনবোর্ডিং তথ্য দেখে নিন।\n"
     "- নাম: {name}\n"
