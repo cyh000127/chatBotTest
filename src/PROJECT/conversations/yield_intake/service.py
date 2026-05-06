@@ -41,13 +41,14 @@ def update_draft(draft: YieldDraft, **changes) -> YieldDraft:
 
 
 def prompt_for_state(state: str, catalog, draft: YieldDraft | None = None) -> str:
+    if state == STATE_YIELD_EDIT_SELECT:
+        return edit_selection_text(draft or new_draft(), catalog)
     mapping = {
         STATE_YIELD_READY: catalog.YIELD_READY_PROMPT,
         STATE_YIELD_FIELD: catalog.YIELD_FIELD_PROMPT,
         STATE_YIELD_AMOUNT: catalog.YIELD_AMOUNT_PROMPT,
         STATE_YIELD_DATE: catalog.YIELD_DATE_PROMPT,
         STATE_YIELD_CONFIRM: catalog.YIELD_CONFIRM_PROMPT,
-        STATE_YIELD_EDIT_SELECT: catalog.YIELD_EDIT_MESSAGE,
     }
     progress_label, input_mode = _step_meta(catalog, state)
     return guided_ux.format_guided_message(
@@ -151,6 +152,40 @@ def confirmed_text(catalog) -> str:
     return catalog.YIELD_CONFIRMED_MESSAGE
 
 
+def edit_selection_text(draft: YieldDraft, catalog) -> str:
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_YIELD,
+        progress_label=catalog.GUIDED_REVIEW_STAGE_LABEL,
+        input_mode=guided_ux.BUTTON_ONLY,
+        prompt_text=f"{catalog.YIELD_EDIT_MESSAGE}\n{_edit_value_lines(draft, catalog)}",
+    )
+
+
+def repair_message(
+    target_state: str,
+    catalog,
+    draft: YieldDraft | None = None,
+    *,
+    focus_summary: str | None = None,
+) -> str:
+    mapping = {
+        STATE_YIELD_READY: catalog.YIELD_READY_PROMPT,
+        STATE_YIELD_FIELD: catalog.YIELD_FIELD_FALLBACK,
+        STATE_YIELD_AMOUNT: catalog.YIELD_AMOUNT_FALLBACK,
+        STATE_YIELD_DATE: catalog.YIELD_DATE_FALLBACK,
+    }
+    progress_label, input_mode = _step_meta(catalog, target_state)
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_YIELD,
+        progress_label=progress_label,
+        input_mode=input_mode,
+        prompt_text=mapping.get(target_state, catalog.YIELD_READY_PROMPT),
+        draft_summary=focus_summary or _draft_summary(draft, catalog),
+    )
+
+
 def reset_draft_for_repair(draft: YieldDraft, target_state: str) -> YieldDraft:
     if target_state == STATE_YIELD_READY:
         return new_draft()
@@ -217,6 +252,56 @@ def _step_meta(catalog, state: str) -> tuple[str, str | None]:
         STATE_YIELD_EDIT_SELECT: (catalog.GUIDED_REVIEW_STAGE_LABEL, guided_ux.BUTTON_ONLY),
     }
     return mapping[state]
+
+
+def repair_focus_summary(target_state: str, draft: YieldDraft, catalog) -> str | None:
+    label = _field_label(target_state, catalog)
+    value = _field_value(target_state, draft, catalog)
+    if label is None or value is None:
+        return None
+    return f"{label}={value}"
+
+
+def _edit_value_lines(draft: YieldDraft, catalog) -> str:
+    lines = []
+    for state in (
+        STATE_YIELD_READY,
+        STATE_YIELD_FIELD,
+        STATE_YIELD_AMOUNT,
+        STATE_YIELD_DATE,
+    ):
+        label = _field_label(state, catalog)
+        value = _field_value(state, draft, catalog)
+        if label is None or value is None:
+            continue
+        lines.append(f"- {label}: {value}")
+    return "\n".join(lines)
+
+
+def _field_label(state: str, catalog) -> str | None:
+    mapping = {
+        STATE_YIELD_READY: catalog.BUTTON_YIELD_EDIT_READY,
+        STATE_YIELD_FIELD: catalog.BUTTON_YIELD_EDIT_FIELD,
+        STATE_YIELD_AMOUNT: catalog.BUTTON_YIELD_EDIT_AMOUNT,
+        STATE_YIELD_DATE: catalog.BUTTON_YIELD_EDIT_DATE,
+    }
+    return mapping.get(state)
+
+
+def _field_value(state: str, draft: YieldDraft, catalog) -> str | None:
+    mapping = {
+        STATE_YIELD_READY: (
+            catalog.BUTTON_YES
+            if draft.ready
+            else catalog.BUTTON_NO
+            if draft.ready is False
+            else "-"
+        ),
+        STATE_YIELD_FIELD: draft.field_name or "-",
+        STATE_YIELD_AMOUNT: format_amount(draft),
+        STATE_YIELD_DATE: draft.harvest_date or "-",
+    }
+    return mapping.get(state)
 
 
 def _draft_summary(draft: YieldDraft | None, catalog) -> str | None:

@@ -498,12 +498,19 @@ async def open_current_fertilizer_edit_selector(update, context) -> None:
 
 
 async def open_current_fertilizer_target_edit(update, context, target_state: str) -> None:
-    draft = fertilizer_service.reset_draft_for_repair(current_fertilizer(context), target_state)
+    current = current_fertilizer(context)
+    focus_summary = fertilizer_service.repair_focus_summary(target_state, current, current_catalog(context))
+    draft = fertilizer_service.reset_draft_for_repair(current, target_state)
     set_fertilizer_draft(context.user_data, draft.to_dict())
     set_state(context.user_data, target_state)
     await send_text(
         update,
-        fertilizer_service.repair_message(target_state, current_catalog(context), current_fertilizer(context)),
+        fertilizer_service.repair_message(
+            target_state,
+            current_catalog(context),
+            current_fertilizer(context),
+            focus_summary=focus_summary,
+        ),
         keyboard_layout=fertilizer_service.keyboard_for_state(target_state, current_catalog(context)),
     )
 
@@ -2042,10 +2049,17 @@ async def button_callback(update, context) -> None:
         if target_state is None:
             await send_yield_prompt(update, context, STATE_YIELD_EDIT_SELECT)
             return
-        draft = yield_service.reset_draft_for_repair(current_yield(context), target_state)
+        current = current_yield(context)
+        focus_summary = yield_service.repair_focus_summary(target_state, current, current_catalog(context))
+        draft = yield_service.reset_draft_for_repair(current, target_state)
         set_yield_draft(context.user_data, draft.to_dict())
         set_state(context.user_data, target_state, push_history=True)
-        await send_yield_prompt(update, context, target_state)
+        await send_yield_prompt(
+            update,
+            context,
+            target_state,
+            yield_service.repair_message(target_state, current_catalog(context), current_yield(context), focus_summary=focus_summary),
+        )
         return
 
     decision = route_message(state, action, payload)

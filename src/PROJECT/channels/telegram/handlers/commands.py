@@ -320,13 +320,19 @@ async def open_fertilizer_target_edit(update, context, target_state: str) -> boo
         return False
 
     confirmed = fertilizer_service.draft_from_dict(confirmed_fertilizer(context.user_data))
+    focus_summary = fertilizer_service.repair_focus_summary(target_state, confirmed, catalog)
     draft = fertilizer_service.reset_draft_for_repair(confirmed, target_state)
     reset_session(context.user_data)
     set_fertilizer_draft(context.user_data, draft.to_dict())
     set_state(context.user_data, target_state)
     await send_text(
         update,
-        fertilizer_service.repair_message(target_state, catalog, fertilizer_service.draft_from_dict(fertilizer_draft(context.user_data))),
+        fertilizer_service.repair_message(
+            target_state,
+            catalog,
+            fertilizer_service.draft_from_dict(fertilizer_draft(context.user_data)),
+            focus_summary=focus_summary,
+        ),
         keyboard_layout=fertilizer_service.keyboard_for_state(target_state, catalog),
     )
     return True

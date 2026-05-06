@@ -186,7 +186,13 @@ def summary_text(draft: FertilizerDraft, catalog) -> str:
 
 
 def edit_selection_text(draft: FertilizerDraft, catalog) -> str:
-    return f"{summary_text(draft, catalog)}\n\n{catalog.FERTILIZER_EDIT_MESSAGE}"
+    return guided_ux.format_guided_message(
+        catalog,
+        flow_label=catalog.GUIDED_FLOW_FERTILIZER,
+        progress_label=catalog.GUIDED_REVIEW_STAGE_LABEL,
+        input_mode=guided_ux.BUTTON_ONLY,
+        prompt_text=f"{catalog.FERTILIZER_EDIT_MESSAGE}\n{_edit_value_lines(draft, catalog)}",
+    )
 
 
 def confirmed_text(catalog) -> str:
@@ -232,7 +238,13 @@ def reset_draft_for_repair(draft: FertilizerDraft, target_state: str) -> Fertili
     return draft
 
 
-def repair_message(target_state: str, catalog, draft: FertilizerDraft | None = None) -> str:
+def repair_message(
+    target_state: str,
+    catalog,
+    draft: FertilizerDraft | None = None,
+    *,
+    focus_summary: str | None = None,
+) -> str:
     mapping = {
         STATE_FERTILIZER_USED: catalog.FERTILIZER_REPAIR_USED_MESSAGE,
         STATE_FERTILIZER_KIND: catalog.FERTILIZER_REPAIR_KIND_MESSAGE,
@@ -247,7 +259,7 @@ def repair_message(target_state: str, catalog, draft: FertilizerDraft | None = N
         progress_label=progress_label,
         input_mode=input_mode,
         prompt_text=mapping.get(target_state, catalog.FERTILIZER_USED_PROMPT),
-        draft_summary=_draft_summary(draft, catalog),
+        draft_summary=focus_summary or _draft_summary(draft, catalog),
     )
 
 
@@ -295,6 +307,14 @@ def change_preview_text(before: FertilizerDraft, after: FertilizerDraft, target_
     )
 
 
+def repair_focus_summary(target_state: str, draft: FertilizerDraft, catalog) -> str | None:
+    label = _field_label(target_state, catalog)
+    value = _field_value(target_state, draft, catalog)
+    if label is None or value is None:
+        return None
+    return f"{label}={value}"
+
+
 def fallback_text_for_state(state: str, catalog) -> str:
     mapping = {
         STATE_FERTILIZER_USED: catalog.FERTILIZER_USED_FALLBACK,
@@ -335,6 +355,51 @@ def _step_meta(catalog, state: str) -> tuple[str, str | None]:
         STATE_FERTILIZER_CONFIRM: (catalog.GUIDED_REVIEW_STAGE_LABEL, guided_ux.BUTTON_ONLY),
     }
     return mapping[state]
+
+
+def _edit_value_lines(draft: FertilizerDraft, catalog) -> str:
+    lines = []
+    for state in (
+        STATE_FERTILIZER_USED,
+        STATE_FERTILIZER_KIND,
+        STATE_FERTILIZER_PRODUCT,
+        STATE_FERTILIZER_AMOUNT,
+        STATE_FERTILIZER_DATE,
+    ):
+        label = _field_label(state, catalog)
+        value = _field_value(state, draft, catalog)
+        if label is None or value is None:
+            continue
+        lines.append(f"- {label}: {value}")
+    return "\n".join(lines)
+
+
+def _field_label(state: str, catalog) -> str | None:
+    mapping = {
+        STATE_FERTILIZER_USED: catalog.BUTTON_FERTILIZER_EDIT_USED,
+        STATE_FERTILIZER_KIND: catalog.BUTTON_FERTILIZER_EDIT_KIND,
+        STATE_FERTILIZER_PRODUCT: catalog.BUTTON_FERTILIZER_EDIT_PRODUCT,
+        STATE_FERTILIZER_AMOUNT: catalog.BUTTON_FERTILIZER_EDIT_AMOUNT,
+        STATE_FERTILIZER_DATE: catalog.BUTTON_FERTILIZER_EDIT_DATE,
+    }
+    return mapping.get(state)
+
+
+def _field_value(state: str, draft: FertilizerDraft, catalog) -> str | None:
+    mapping = {
+        STATE_FERTILIZER_USED: (
+            catalog.FERTILIZER_USED_LABEL_YES
+            if draft.used
+            else catalog.FERTILIZER_USED_LABEL_NO
+            if draft.used is False
+            else "-"
+        ),
+        STATE_FERTILIZER_KIND: catalog.FERTILIZER_KIND_LABELS.get(draft.kind, draft.kind or "-"),
+        STATE_FERTILIZER_PRODUCT: draft.product_name or "-",
+        STATE_FERTILIZER_AMOUNT: format_amount(draft),
+        STATE_FERTILIZER_DATE: draft.applied_date or "-",
+    }
+    return mapping.get(state)
 
 
 def _draft_summary(draft: FertilizerDraft | None, catalog) -> str | None:
