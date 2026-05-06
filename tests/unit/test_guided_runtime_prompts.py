@@ -89,6 +89,10 @@ def test_evidence_prompt_includes_attachment_modes_and_draft_summary():
     assert "증빙 제출 2/2 · document 업로드" in document_text
     assert "위치 확인 완료" in document_text
 
+    validating_text = evidence_service.prompt_for_state("evidence_validating", catalog, updated)
+    assert "증빙 제출 검토 중 · 안내 대기" in validating_text
+    assert "다음에 할 수 있는 작업: [지원 안내], [도움말], [처음부터]" in validating_text
+
 
 def test_myfields_prompts_include_progress_and_draft_summary():
     catalog = get_catalog("ko")
@@ -139,3 +143,13 @@ def test_input_resolve_prompts_include_progress_and_draft_summary():
     decision_text = input_resolve_service.prompt_for_state(STATE_INPUT_RESOLVE_DECISION, catalog, draft)
     assert "입력 해석 검토 단계 · 버튼 선택" in decision_text
     assert "현재 입력: 대상=농지 고유 번호, 입력 방식=글로 입력, 원문=field-001, 후보 수=1, 후보 확정=논 1 (FIELD-001)" in decision_text
+
+
+def test_input_resolve_manual_review_text_uses_waiting_layout():
+    catalog = get_catalog("ko")
+
+    text = input_resolve_service.manual_review_text(catalog)
+
+    assert "입력 해석 검토 단계 · 안내 대기" in text
+    assert "이 대화창에서 이어집니다" in text
+    assert "다음에 할 수 있는 작업: [입력 해석], [지원 안내], [처음부터]" in text

@@ -73,7 +73,8 @@ def test_support_guidance_creates_support_handoff(monkeypatch):
     assert handoff.user_messages == ("/support",)
     assert active_follow_up_id(context.user_data) == handoff.handoff_id
     assert admin_runtime.get_follow_up(handoff.handoff_id).user_messages == ("/support",)
-    assert sent_messages
+    assert "지원 안내 접수 완료 · 안내 대기" in sent_messages[-1]
+    assert "다음에 할 수 있는 작업: [도움말], [처음부터]" in sent_messages[-1]
 
 
 def test_support_guidance_uses_sqlite_admin_runtime(monkeypatch, tmp_path):
@@ -139,6 +140,7 @@ def test_active_support_handoff_records_followup_message(monkeypatch):
     assert handoff is not None
     assert handoff.user_messages == ("상담원 연결해주세요", "추가로 사진 업로드도 안 됩니다")
     assert admin_runtime.get_follow_up(handoff.handoff_id).user_messages == ("상담원 연결해주세요", "추가로 사진 업로드도 안 됩니다")
+    assert any("지원 안내 접수 완료 · 안내 대기" in text for text in sent_messages)
     assert any("추가 내용" in text for text in sent_messages)
 
 
@@ -195,7 +197,7 @@ def test_admin_reply_is_recorded_and_relayed_in_same_chat(monkeypatch):
     assert handoff.admin_reply_count == 1
     assert handoff.awaiting_admin_reply is False
     assert handoff.admin_messages == ("확인했습니다. 사진을 다시 보내주세요.",)
-    assert any("운영자 답변" in text for text in sent_messages)
+    assert any("지원 안내 운영자 답변 · 안내 대기" in text for text in sent_messages)
 
 
 def test_active_support_handoff_safe_exit_restarts_session(monkeypatch):
@@ -231,4 +233,4 @@ def test_admin_can_close_support_handoff(monkeypatch):
     assert closed is True
     assert handoff is not None
     assert handoff.closed is True
-    assert any("지원 이관이 종료" in text for text in sent_messages)
+    assert any("지원 안내 종료됨 · 안내 대기" in text for text in sent_messages)
