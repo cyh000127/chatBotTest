@@ -80,11 +80,23 @@
 - `guided`
 - `escalation_ready`
 
+### 3.6 UX vocabulary
+
+- `step_progress`
+- `draft_summary`
+- `input_mode`
+- `button_only`
+- `text_allowed`
+- `retry_copy`
+- `resume_available`
+- `handoff_waiting`
+
 ## 4. 입력 처리 규칙
 
 | 상황 | 1차 처리 | 모델 사용 | 결과 처리 |
 |---|---|---|---|
 | 버튼/슬래시 명령 | 룰 100% | 금지 | 즉시 처리 |
+| 버튼 전용 단계에서 자유문장 입력 | cheap gate + guided reask | 금지 | 버튼 전용 단계임을 다시 알리고 fast-path 버튼 제시 |
 | 현재 step에서 기대 형식과 맞는 입력 | parser/validator | 금지 | 성공 시 다음 step |
 | 현재 step에서 핵심 값은 보이지만 문장이 복합적임 | heuristic parser + slot 추출 | 기본 금지 | 현재 step 값만 반영하거나 재질문 |
 | 현재 step에서 형식이 틀린 입력 | cheap gate + reask | 금지 | 예시와 버튼 제공 |
@@ -96,7 +108,22 @@
 | 반복 실패 누적 | recovery/handoff | 제한적 또는 금지 | 버튼 유도 강화 또는 지원 이관 |
 | 증빙 파일 형식 불일치 또는 staged artifact read failure | parser/validator | 금지 | 재제출 안내 또는 운영 검토 |
 
-## 5. Unknown / Fallback 규칙
+## 5. 단계 가시성 규칙
+
+- 구조화 플로우는 가능하면 `현재 작업`, `현재 단계`, `남은 입력`을 짧게 보여준다.
+- confirm 직전이나 수정 단계에서는 현재 draft 요약을 함께 보여준다.
+- 진행 상태 표시는 긴 설명보다 우선한다.
+- 같은 step에서 반복 실패가 날 때는 intro를 다시 늘리지 않고 현재 질문과 복구 행동만 보여준다.
+- restart 또는 resume 가능한 상태에서는 현재 진행 중 draft가 있는지 먼저 알려준다.
+
+## 6. 입력 모드 규칙
+
+- 모든 step는 `버튼 전용` 또는 `텍스트 허용` 중 하나를 사용자에게 분명히 밝혀야 한다.
+- 버튼 전용 step에서 자유문장 입력을 억지로 의미 해석하려고 하지 않는다.
+- 텍스트 허용 step에서는 허용 형식 예시를 짧게 함께 보여준다.
+- fallback은 현재 step의 입력 모드를 다시 알려줘야 한다.
+
+## 7. Unknown / Fallback 규칙
 
 - `알 수 없는 요청입니다` 단일 문장으로 종료하지 않는다.
 - fallback은 항상 다음 행동을 제시해야 한다.
@@ -105,8 +132,21 @@
 - fallback 문구는 상태별로 다르게 유지한다.
 - fallback은 가능하면 현재 step 질문을 짧게 다시 보여준다.
 - recovery 버튼은 상태별 fast path를 공용 메뉴보다 우선한다.
+- fallback은 가능하면 아래 정보를 함께 보여준다.
+  - 현재 step
+  - 실패 이유
+  - 허용 입력 형식 또는 예시 1개
+  - 현재 가능한 버튼
+- retry copy는 첫 진입 copy보다 짧아야 한다.
 
-## 6. 자연어 수정 규칙
+## 8. Retry copy 규칙
+
+- retry는 긴 설명 반복이 아니라 복구 안내여야 한다.
+- retry 문구는 최소한 `왜 실패했는지`, `지금 무엇을 보내야 하는지`를 포함해야 한다.
+- 동일 step의 반복 실패에서는 배경 설명보다 fast-path 버튼과 예시를 우선한다.
+- 형식 오류와 범위 오류는 서로 다른 copy로 분리한다.
+
+## 9. 자연어 수정 규칙
 
 - 자연어는 직접 수정 명령이 아니라 수정 의도 신호로만 사용한다.
 - 자연어만으로 값을 즉시 저장하거나 덮어쓰지 않는다.
@@ -124,7 +164,7 @@
 - `이 값을 다른 값으로 바꾸고 싶어`
   새 값은 후보로만 보관하고 confirm 없이 overwrite 하지 않는다
 
-## 7. Candidate 저장 규칙
+## 10. Candidate 저장 규칙
 
 세션 상태는 아래 세 층으로 분리한다.
 
@@ -140,7 +180,7 @@
 - pending candidate가 폐기되면 clear하고 telemetry를 남긴다.
 - multi-slot candidate도 동일하게 pending candidate로만 유지한다.
 
-## 8. Recovery 정책 레벨 규칙
+## 11. Recovery 정책 레벨 규칙
 
 - `soft`: 현재 질문 재안내 중심
 - `guided`: 현재 step fast-path 버튼 우선
@@ -152,11 +192,15 @@
 - 2회차 실패 또는 step 재안내 필요: `guided`
 - repeated failure, support/admin/manual resolution 성격: `escalation_ready`
 
-## 9. Recovery context 규칙
+## 12. Recovery context 규칙
 
 fallback과 repair는 최소한 아래 context를 공유해야 한다.
 
 - `current_question`
+- `current_step`
+- `step_progress`
+- `draft_summary`
+- `input_mode`
 - `expected_input_type`
 - `allowed_value_shape`
 - `recent_messages_summary`
@@ -166,7 +210,14 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 - `recovery_resume_action`
 - `recovery_focus_target`
 
-## 10. 모델 호출 허용 조건
+## 13. Resume / Handoff 대기 규칙
+
+- resume 가능한 상태에서는 `이어서 진행`, `다시 입력`, `취소` 중 하나 이상의 안전 액션을 제공한다.
+- handoff 또는 manual review 대기 상태에서는 `응답 대기 중`, `추가 설명 가능`, `처음으로 이동 가능`을 명시한다.
+- handoff는 실시간 상담 연결처럼 보이게 안내하지 않는다.
+- handoff 이후에도 같은 챗봇 대화창 안에서 후속 답변이 온다는 점을 유지한다.
+
+## 14. 모델 호출 허용 조건
 
 모델은 아래 조건을 모두 만족할 때만 호출한다.
 
@@ -178,7 +229,7 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 6. 현재 step에서 호출 횟수 한도를 넘지 않았다.
 7. 동일 `normalized_text + current_step` 조합으로 이미 호출한 적이 없다.
 
-## 11. 모델 호출 금지 조건
+## 15. 모델 호출 금지 조건
 
 - 버튼/슬래시 명령
 - reply button
@@ -191,13 +242,13 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 - runtime fallback mode가 `rules-only validation + admin review`로 고정된 경우
 - 동일 `normalized_text + current_step` 재호출
 
-## 12. Step별 모델 호출 한도
+## 16. Step별 모델 호출 한도
 
 - `MAX_LLM_CALLS_PER_STRUCTURED_STEP = 1`
 - `MAX_LLM_CALLS_PER_CONFIRM_STEP = 1`
 - `MAX_RECOVERY_ATTEMPTS_BEFORE_HANDOFF = 3`
 
-## 13. 모델 역할 제한
+## 17. 모델 역할 제한
 
 모델은 아래 역할만 허용한다.
 
@@ -217,7 +268,7 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 - 운영 우선순위 결정
 - 승인, 거절, 검토 결과 확정
 
-## 14. 출력 형식
+## 18. 출력 형식
 
 모델 출력은 항상 JSON-only 구조로 제한한다.
 
@@ -240,15 +291,16 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 - 값이 있더라도 pending candidate로만 저장한다.
 - confirm 없이 확정값으로 승격할 수 없다.
 
-## 15. Confirm 단계 규칙
+## 19. Confirm 단계 규칙
 
 - confirm 단계는 가장 강한 안전 단계다.
 - confirm 단계의 애매한 수정 요청은 rule repair를 먼저 시도한다.
 - rule repair 실패 시에만 모델을 허용한다.
 - 모델이 field 후보를 뽑더라도 바로 저장하지 않는다.
 - confirm 단계에서는 항상 수정 대상 재확인 또는 수정 단계 진입으로 처리한다.
+- confirm 단계에서는 전체 요약과 함께 수정 가능한 항목을 다시 보여주는 것이 좋다.
 
-## 16. Handoff 조건
+## 20. Handoff 조건
 
 아래는 모델보다 handoff가 우선이다.
 
@@ -278,7 +330,7 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 - 이관 상태에서 사용자의 추가 메시지는 이관 항목의 대화 이력으로 누적한다.
 - 명시적 restart는 이관 상태에서도 우선 처리한다.
 
-## 17. 증빙 파일 품질 규칙
+## 21. 증빙 파일 품질 규칙
 
 - 증빙 업로드는 자유 형식 파일 수집이 아니다.
 - 원본 JPEG document를 우선 허용 형식으로 본다.
@@ -288,7 +340,7 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 - 파일 품질 실패는 즉시 재제출 안내 대상으로 보되, 반복되면 운영 검토로 승격할 수 있다.
 - 관리자 상세에서는 최소한 staged artifact uri, checksum, parser status, signal detail을 확인할 수 있어야 한다.
 
-## 18. 정책 코드 분리 원칙
+## 22. 정책 코드 분리 원칙
 
 정책 판단 로직은 메시지 핸들러 안에 분산하지 않는다.
 
@@ -300,7 +352,7 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 - `should_handoff(...)`
 - `same_input_cache_key(...)`
 
-## 19. 런타임 강제 순서
+## 23. 런타임 강제 순서
 
 1. command/button
 2. step parser
@@ -311,7 +363,7 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 7. validator + state machine 재검증
 8. confirm 또는 fallback 또는 handoff
 
-## 20. 구현 순서
+## 24. 구현 순서
 
 1. vocabulary와 정책을 문서에 먼저 고정한다.
 2. 정책 판단 로직을 중앙화한다.
@@ -319,11 +371,13 @@ fallback과 repair는 최소한 아래 context를 공유해야 한다.
 4. step별 호출 한도와 재호출 방지를 추가한다.
 5. telemetry 최소 이벤트 세트를 붙인다.
 6. 모든 모델 호출을 정책 함수 뒤로 이동시킨다.
+7. 진행 상태, 입력 모드, retry copy를 state-aware UX로 연결한다.
 
-## 21. 최종 요약
+## 25. 최종 요약
 
 - 메인 경로는 룰베이스로 유지한다.
 - unknown 입력은 guided fallback으로 회수한다.
+- 현재 단계, 허용 입력, 실패 이유, 다음 행동이 항상 보이는 guided UX를 지향한다.
 - 자연어 수정은 direct update가 아니라 수정 의도 신호로만 다룬다.
 - 모델은 제한된 구조화 판정기로만 사용한다.
 - candidate value는 pending candidate로만 저장한다.
