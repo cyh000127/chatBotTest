@@ -53,6 +53,30 @@ def test_yield_confirmation_text_formats_summary():
     assert "2026-04-21" in text
 
 
+def test_yield_edit_selection_and_repair_message_focus_current_value():
+    draft = service.update_draft(
+        service.new_draft(),
+        ready=True,
+        field_name="A-1",
+        amount_value=320.0,
+        amount_unit="kg",
+        harvest_date="2026-04-21",
+    )
+
+    edit_text = service.edit_selection_text(draft, ko)
+    repair_text = service.repair_message(
+        STATE_YIELD_FIELD,
+        ko,
+        service.reset_draft_for_repair(draft, STATE_YIELD_FIELD),
+        focus_summary=service.repair_focus_summary(STATE_YIELD_FIELD, draft, ko),
+    )
+
+    assert ko.YIELD_EDIT_MESSAGE in edit_text
+    assert "- 농지: A-1" in edit_text
+    assert "현재 입력: 농지=A-1" in repair_text
+    assert ko.YIELD_FIELD_FALLBACK in repair_text
+
+
 def test_reset_yield_draft_for_repair_clears_target_and_later_fields():
     draft = service.update_draft(
         service.new_draft(),

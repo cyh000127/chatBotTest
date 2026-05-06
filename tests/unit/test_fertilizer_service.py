@@ -57,11 +57,19 @@ def test_fertilizer_edit_selection_text_and_repair_confirmation():
 
     summary = service.edit_selection_text(draft, ko)
     confirmation = service.repair_confirmation_text(STATE_FERTILIZER_KIND, ko)
+    repair = service.repair_message(
+        STATE_FERTILIZER_PRODUCT,
+        ko,
+        service.reset_draft_for_repair(draft, STATE_FERTILIZER_PRODUCT),
+        focus_summary=service.repair_focus_summary(STATE_FERTILIZER_PRODUCT, draft, ko),
+    )
 
     assert ko.FERTILIZER_EDIT_MESSAGE in summary
-    assert "한아름 복합비료" in summary
+    assert "- 제품명: 한아름 복합비료" in summary
     assert ko.BUTTON_FERTILIZER_EDIT_KIND in confirmation
     assert ko.BUTTON_EDIT_START in confirmation
+    assert "현재 입력: 제품명=한아름 복합비료" in repair
+    assert ko.FERTILIZER_REPAIR_PRODUCT_MESSAGE in repair
 
 
 def test_fertilizer_change_preview_text_shows_before_and_after():
