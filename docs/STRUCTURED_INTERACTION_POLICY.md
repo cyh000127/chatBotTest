@@ -72,6 +72,8 @@ fallback은 아래 요소를 포함하는 것이 좋다.
 - 동일 step에서 같은 안내문을 길게 반복하지 않는다.
 - retry copy는 최소한 `왜 실패했는지`, `지금 무엇을 보내야 하는지`를 알려줘야 한다.
 - 형식 오류와 버튼 전용 단계 오류는 서로 다른 copy를 사용한다.
+- 특정 필드 재입력 단계에서는 `현재 값 1개 + 새 값 입력` 패턴을 기본으로 한다.
+- retry가 이미 선택된 target, method, lookup path를 가진 상태라면 그 문맥만 유지하고 전체 draft 재설명은 피한다.
 
 ## 9. Restart / Text Fallback 원칙
 
@@ -97,6 +99,12 @@ fallback은 아래 요소를 포함하는 것이 좋다.
 - `input.resolve.start`
 
 이 진입점은 모두 동일한 제품 범위 안에서 localized copy, fallback, restart 규칙을 공유해야 한다.
+
+추가 규칙:
+
+- `/myfields` 위치 실패는 generic 오류가 아니라 고유 번호 입력 repair step으로 전환한다.
+- `/myfields` 고유 번호 재입력은 `등록 방법 + 직전 고유 번호`만 보여준다.
+- `input resolve` 후보 없음 상태는 버튼 선택 단계로 유지하고, retry 선택 시 raw input repair prompt로 복귀한다.
 
 ## 12. 제외 항목
 

@@ -50,6 +50,8 @@ This slice does not cover:
 - Candidate generation is rule-first.
 - A selected candidate is not authoritative until the user confirms it.
 - Repeated failure must escalate rather than loop forever.
+- When no candidate is found, the runtime must keep the user in a candidate-decision state and show explicit next actions for retry, later, or manual review.
+- When the user chooses retry, the runtime must return to the raw-input step with a compact repair prompt that preserves the current target, method, and latest raw input summary.
 
 ## 5. Local Runtime Target Types
 
@@ -71,6 +73,7 @@ The current local runtime target baseline is limited to:
 - If the runtime cannot generate a usable candidate after repeated attempts, it must create an admin follow-up item.
 - If the user explicitly chooses manual review, it must create an admin follow-up item.
 - Escalation must preserve session id and latest raw input in structured form.
+- Retry and manual review are separate outcomes. A candidate-miss state must not immediately pretend the user re-entered the raw-input step before an explicit retry choice.
 
 ## 8. Acceptance Baseline
 
