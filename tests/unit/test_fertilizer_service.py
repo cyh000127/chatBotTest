@@ -69,7 +69,7 @@ def test_fertilizer_edit_selection_text_and_repair_confirmation():
     assert ko.BUTTON_FERTILIZER_EDIT_KIND in confirmation
     assert ko.BUTTON_EDIT_START in confirmation
     assert "현재 입력: 제품명=한아름 복합비료" in repair
-    assert ko.FERTILIZER_REPAIR_PRODUCT_MESSAGE in repair
+    assert "새 제품명을 입력하세요." in repair
 
 
 def test_fertilizer_change_preview_text_shows_before_and_after():

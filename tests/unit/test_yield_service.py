@@ -74,7 +74,7 @@ def test_yield_edit_selection_and_repair_message_focus_current_value():
     assert ko.YIELD_EDIT_MESSAGE in edit_text
     assert "- 농지: A-1" in edit_text
     assert "현재 입력: 농지=A-1" in repair_text
-    assert ko.YIELD_FIELD_FALLBACK in repair_text
+    assert "새 농지 이름을 입력하세요." in repair_text
 
 
 def test_reset_yield_draft_for_repair_clears_target_and_later_fields():

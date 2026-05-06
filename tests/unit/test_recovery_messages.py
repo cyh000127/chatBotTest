@@ -1,7 +1,7 @@
 from PROJECT.canonical_intents import registry
 from PROJECT.conversations.evidence_submission.states import STATE_EVIDENCE_WAITING_DOCUMENT
 from PROJECT.conversations.field_binding.states import STATE_FIELD_BINDING_CODE
-from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_PRODUCT
+from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_AMOUNT, STATE_FERTILIZER_PRODUCT
 from PROJECT.conversations.input_resolve.states import STATE_INPUT_RESOLVE_RAW_INPUT
 from PROJECT.conversations.onboarding.states import STATE_ONBOARDING_PHONE
 from PROJECT.conversations.sample_menu import recovery_messages
@@ -190,6 +190,33 @@ def test_render_fallback_message_includes_text_step_examples_for_fertilizer_prod
         f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: "
         f"{catalog.FERTILIZER_PRODUCT_UNSUPPORTED_INPUT_HINT}"
     ) in text
+
+
+def test_render_fallback_message_shows_amount_examples_once():
+    catalog = get_catalog("ko")
+    recovery_context = assemble_recovery_context(
+        current_step=STATE_FERTILIZER_AMOUNT,
+        latest_user_message="많이 넣었어요",
+        locale="ko",
+        recovery_attempt_count=2,
+        canonical_intent=registry.INTENT_AGRI_INPUT_START,
+        validation_result=ValidationResult(
+            classification=ValidationClassification.REASK,
+            source=RuleSource.CHEAP_GATE,
+            reason="structured_step_mismatch",
+        ),
+        fallback_key="fertilizer_input",
+    )
+
+    text = recovery_messages.render_fallback_message(
+        fallback_key="fertilizer_input",
+        catalog=catalog,
+        recovery_context=recovery_context,
+    )
+
+    assert catalog.FERTILIZER_AMOUNT_FALLBACK in text
+    assert text.count("예시:") == 1
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: 20kg, 한 포" in text
 
 
 def test_render_fallback_message_includes_fast_path_for_evidence_document_step():
