@@ -438,7 +438,7 @@ async def _retry_input(update, context, session_id: str) -> bool:
     catalog = _catalog(context)
     await send_text(
         update,
-        input_resolve_service.prompt_for_state(STATE_INPUT_RESOLVE_RAW_INPUT, catalog, draft),
+        input_resolve_service.retry_prompt_text(catalog, draft),
         keyboard_layout=input_resolve_service.keyboard_for_state(STATE_INPUT_RESOLVE_RAW_INPUT, catalog, draft),
     )
     return True

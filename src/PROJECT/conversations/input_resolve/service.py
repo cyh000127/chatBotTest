@@ -184,6 +184,27 @@ def prompt_for_state(state: str, catalog, draft: InputResolveDraft | None = None
     )
 
 
+def retry_prompt_text(catalog, draft: InputResolveDraft | None = None) -> str:
+    flow_label = getattr(catalog, "GUIDED_FLOW_INPUT_RESOLVE", getattr(catalog, "BUTTON_INPUT_RESOLVE", "입력 해석"))
+    return guided_runtime_ux.format_guided_message(
+        catalog,
+        flow_label=flow_label,
+        progress_label="3/4",
+        input_mode=guided_runtime_ux.TEXT_ALLOWED,
+        prompt_text=guided_runtime_ux.format_text_input_prompt(
+            catalog,
+            prompt_text=getattr(catalog, "INPUT_RESOLVE_RAW_INPUT_REPAIR_PROMPT", "새 값을 입력하세요."),
+            examples=getattr(catalog, "INPUT_RESOLVE_RAW_INPUT_EXAMPLES", ("FIELD-001",)),
+            unsupported_hint=getattr(
+                catalog,
+                "INPUT_RESOLVE_RAW_INPUT_UNSUPPORTED_INPUT_HINT",
+                "설명 문장이나 관련 없는 요청은 이 단계에서 처리하지 않아요.",
+            ),
+        ),
+        draft_summary=_draft_summary(catalog, draft),
+    )
+
+
 def target_label(target_type_code: str, catalog) -> str:
     if target_type_code == TARGET_FIELD_CODE:
         return catalog.BUTTON_INPUT_RESOLVE_TARGET_FIELD_CODE

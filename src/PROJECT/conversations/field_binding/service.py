@@ -101,6 +101,37 @@ def code_prompt_text(catalog, *, method: str = FIELD_BINDING_SOURCE_FIELD_CODE) 
     )
 
 
+def code_retry_text(
+    catalog,
+    *,
+    method: str = FIELD_BINDING_SOURCE_FIELD_CODE,
+    requested_code: str | None = None,
+    from_location_retry: bool = False,
+) -> str:
+    prompt_key = "MYFIELDS_LOCATION_TO_CODE_REPAIR_PROMPT" if from_location_retry else "MYFIELDS_CODE_REPAIR_PROMPT"
+    summary = _draft_summary(catalog, method_label=_lookup_method_label(method, catalog))
+    if requested_code:
+        requested_code_label = getattr(catalog, "MYFIELDS_DRAFT_REQUESTED_CODE_LABEL", "입력한 고유 번호")
+        summary = _join_summary(summary, f"{requested_code_label}={requested_code}")
+    return guided_runtime_ux.format_guided_message(
+        catalog,
+        flow_label=getattr(catalog, "GUIDED_FLOW_MYFIELDS", getattr(catalog, "BUTTON_MYFIELDS", "자기 조회")),
+        progress_label="2/4",
+        input_mode=guided_runtime_ux.TEXT_ALLOWED,
+        prompt_text=guided_runtime_ux.format_text_input_prompt(
+            catalog,
+            prompt_text=getattr(catalog, prompt_key, getattr(catalog, "MYFIELDS_CODE_PROMPT", "농지 고유 번호를 입력하세요.")),
+            examples=getattr(catalog, "MYFIELDS_CODE_EXAMPLES", ("FIELD-001",)),
+            unsupported_hint=getattr(
+                catalog,
+                "MYFIELDS_CODE_UNSUPPORTED_INPUT_HINT",
+                "설명 문장이나 위치 요청은 이 단계에서 처리하지 않아요.",
+            ),
+        ),
+        draft_summary=summary,
+    )
+
+
 def no_registry_text(catalog) -> str:
     return getattr(
         catalog,
@@ -110,18 +141,18 @@ def no_registry_text(catalog) -> str:
 
 
 def location_no_candidate_text(catalog) -> str:
-    return getattr(
+    return code_retry_text(
         catalog,
-        "MYFIELDS_LOCATION_NO_CANDIDATE_MESSAGE",
-        "이 위치에서는 등록 가능한 농지 후보를 찾지 못했습니다.\n고유 번호를 입력하거나 다시 시도해 주세요.",
+        method=FIELD_BINDING_SOURCE_LOCATION,
+        from_location_retry=True,
     )
 
 
-def field_code_not_found_text(catalog) -> str:
-    return getattr(
+def field_code_not_found_text(catalog, *, requested_code: str | None = None) -> str:
+    return code_retry_text(
         catalog,
-        "MYFIELDS_CODE_NOT_FOUND_MESSAGE",
-        "입력한 고유 번호를 찾지 못했습니다.\n다시 입력하거나 위치 공유로 찾기를 선택해 주세요.",
+        method=FIELD_BINDING_SOURCE_FIELD_CODE,
+        requested_code=requested_code,
     )
 
 
@@ -208,3 +239,9 @@ def _draft_summary(
             f"{getattr(catalog, 'MYFIELDS_DRAFT_FIELD_LABEL', '농지')}={field_label}"
         )
     return ", ".join(segments) if segments else None
+
+
+def _join_summary(current: str | None, extra: str) -> str:
+    if not current:
+        return extra
+    return f"{current}, {extra}"

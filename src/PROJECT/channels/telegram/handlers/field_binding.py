@@ -151,7 +151,7 @@ async def handle_field_code_text(update, context, *, text: str) -> bool:
         set_field_binding_draft(context.user_data, draft)
         await send_text(
             update,
-            field_binding_view.field_code_not_found_text(catalog),
+            field_binding_view.field_code_not_found_text(catalog, requested_code=normalized_code),
             keyboard_layout=keyboards.keyboard_for_state(STATE_FIELD_BINDING_CODE, catalog),
         )
         return True
