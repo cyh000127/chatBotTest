@@ -1,6 +1,7 @@
 from PROJECT.canonical_intents import registry
 from PROJECT.conversations.evidence_submission.states import STATE_EVIDENCE_WAITING_DOCUMENT
 from PROJECT.conversations.field_binding.states import STATE_FIELD_BINDING_CODE
+from PROJECT.conversations.fertilizer_intake.states import STATE_FERTILIZER_PRODUCT
 from PROJECT.conversations.input_resolve.states import STATE_INPUT_RESOLVE_RAW_INPUT
 from PROJECT.conversations.sample_menu import recovery_messages
 from PROJECT.conversations.sample_menu.states import STATE_CANCELLED
@@ -124,6 +125,8 @@ def test_render_fallback_message_includes_fast_path_for_myfields_code_step():
     )
 
     assert catalog.MYFIELDS_CODE_PROMPT in text
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: FIELD-001, FIELD-105" in text
+    assert f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: {catalog.MYFIELDS_CODE_UNSUPPORTED_INPUT_HINT}" in text
     assert f"{catalog.RECOVERY_QUICK_ACTIONS_LABEL}: [{catalog.BUTTON_FIELD_LOOKUP_LOCATION}]" in text
 
 
@@ -150,7 +153,42 @@ def test_render_fallback_message_includes_fast_path_for_input_resolve_raw_input(
     )
 
     assert catalog.INPUT_RESOLVE_RAW_INPUT_FALLBACK in text
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: FIELD-001, 논 1" in text
+    assert (
+        f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: "
+        f"{catalog.INPUT_RESOLVE_RAW_INPUT_UNSUPPORTED_INPUT_HINT}"
+    ) in text
     assert f"{catalog.RECOVERY_QUICK_ACTIONS_LABEL}: [{catalog.BUTTON_BACK}], [{catalog.BUTTON_CANCEL}]" in text
+
+
+def test_render_fallback_message_includes_text_step_examples_for_fertilizer_product():
+    catalog = get_catalog("ko")
+    recovery_context = assemble_recovery_context(
+        current_step=STATE_FERTILIZER_PRODUCT,
+        latest_user_message="복합비료 20kg 어제 썼어요",
+        locale="ko",
+        recovery_attempt_count=2,
+        canonical_intent=registry.INTENT_AGRI_INPUT_START,
+        validation_result=ValidationResult(
+            classification=ValidationClassification.REASK,
+            source=RuleSource.CHEAP_GATE,
+            reason="structured_step_mismatch",
+        ),
+        fallback_key="fertilizer_input",
+    )
+
+    text = recovery_messages.render_fallback_message(
+        fallback_key="fertilizer_input",
+        catalog=catalog,
+        recovery_context=recovery_context,
+    )
+
+    assert catalog.FERTILIZER_PRODUCT_FALLBACK in text
+    assert f"{catalog.GUIDED_TEXT_EXAMPLES_LABEL}: 한아름 복합비료, 액상비료 A" in text
+    assert (
+        f"{catalog.GUIDED_TEXT_NOT_SUPPORTED_LABEL}: "
+        f"{catalog.FERTILIZER_PRODUCT_UNSUPPORTED_INPUT_HINT}"
+    ) in text
 
 
 def test_render_fallback_message_includes_fast_path_for_evidence_document_step():
